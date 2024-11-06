@@ -5,6 +5,7 @@ from pathlib import Path
 
 logger = logging.getLogger("projectLog")
 
+
 def get_dataset_root() -> Path:
     """
     Get the dataset root directory from the local env.json file.
