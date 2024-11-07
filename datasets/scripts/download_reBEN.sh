@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-subdir="reBEN"
+subdir="/reBEN"
 download_path=$DATASET_ROOT$subdir
 
 # urls to download from. See https://bigearth.net/ for more information.
@@ -12,7 +12,7 @@ urls=(
   "https://zenodo.org/records/10891137/files/metadata_for_patches_with_snow_cloud_or_shadow.parquet"
 )
 
-echo "This will download the reBEN dataset files to $download_path with wget."
+echo "This will download the reBEN dataset files to $download_path with wget. Use a VPN to connect via Germany for faster downloads."
 echo "These files are of the following sizes:"
 for url in "${urls[@]}"
 do
