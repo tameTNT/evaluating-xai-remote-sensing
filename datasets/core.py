@@ -61,6 +61,9 @@ class ClampTransform:
 
         return ((image - self.min) / (self.max - self.min)).clamp(0, 1)
 
+    def __repr__(self):
+        return f"{__name__}.{self.__class__.__name__}(min={self.min}, max={self.max})"
+
 
 def tensor_dict_transform_wrapper(
         transform: t.Callable[[torch.Tensor], torch.Tensor]
