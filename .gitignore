@@ -2,3 +2,5 @@
 /.logs
 /checkpoints/
 /wandb/
+*.log
+
