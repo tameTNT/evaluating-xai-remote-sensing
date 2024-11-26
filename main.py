@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-import datasets.core
+import dataset_processing.core
 
 # Basic setup mirrors https://docs.python.org/3/howto/logging-cookbook.html#using-logging-in-multiple-modules
 logger = logging.getLogger("projectLog")
@@ -23,4 +23,4 @@ logger.addHandler(ch)
 logger.debug("Logger successfully initialised.")
 
 if __name__ == "__main__":
-    print(datasets.dataset_core.get_dataset_root())
+    print(dataset_processing.dataset_core.get_dataset_root())

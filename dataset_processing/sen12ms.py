@@ -4,9 +4,9 @@ import typing as t
 import torch
 import torchgeo.datasets
 
-import datasets.core
+import dataset_processing.core
 
-DATASET_ROOT = datasets.dataset_core.get_dataset_root()
+DATASET_ROOT = dataset_processing.dataset_core.get_dataset_root()
 logger = logging.getLogger("projectLog")
 
 
@@ -18,7 +18,7 @@ def get_dataset(
     """
     Get the SEN12MS dataset using torchgeo.
 
-    Needs to be downloaded separately first (you can use bash script in `/datasets/scripts/download_sen12ms.sh`).
+    Needs to be downloaded separately first (you can use bash script in `/dataset_processing/scripts/download_sen12ms.sh`).
     """
 
     logger.debug("Using `torchgeo.datasets` to load EuroSAT dataset.")

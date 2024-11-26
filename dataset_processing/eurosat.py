@@ -4,9 +4,9 @@ import typing as t
 import torch
 import torchgeo.datasets
 
-import datasets.core
+import dataset_processing.core
 
-DATASET_ROOT = datasets.core.get_dataset_root()
+DATASET_ROOT = dataset_processing.core.get_dataset_root()
 logger = logging.getLogger("projectLog")
 
 
