@@ -3,7 +3,7 @@ import torch
 
 
 def during_training_validation_step(model_to_validate, eval_criterion, val_data_iterator, train_loss_arr,
-                                    train_acc_arr, epoch, i, device, dataloader_len):
+                                    train_acc_arr, step_num, epoch, device, dataloader_len):
     model_to_validate.eval()
     with torch.no_grad():
         print(f"Epoch {epoch:03} - Batch num {i:05}")
@@ -29,7 +29,7 @@ def during_training_validation_step(model_to_validate, eval_criterion, val_data_
         train_acc_arr = np.zeros(0)
 
         log_dict = {
-            "overall_step": epoch * dataloader_len + i,
+            "overall_step": epoch * dataloader_len + step_num,
             "training/loss": train_loss_arr.mean(),
             "training/accuracy": train_acc_arr.mean(),
             "validation/loss": val_loss_arr.mean(),
