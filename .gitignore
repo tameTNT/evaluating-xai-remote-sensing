@@ -6,3 +6,7 @@
 /checkpoints/
 /wandb/
 /output/
+
+*/*__pycache__/
+*pycharm-support-libs/
+.ipynb_checkpoints/
