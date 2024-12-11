@@ -6,7 +6,7 @@ def during_training_validation_step(model_to_validate, eval_criterion, val_data_
                                     train_acc_arr, step_num, epoch, device, dataloader_len):
     model_to_validate.eval()
     with torch.no_grad():
-        print(f"Epoch {epoch:03} - Batch num {i:05}")
+        print(f"Epoch {epoch:03} - Batch num {step_num:05}")
         val_loss_arr = np.zeros(0)
         val_acc_arr = np.zeros(0)
         for _ in range(20):  # iterate over 20 batches
@@ -25,9 +25,6 @@ def during_training_validation_step(model_to_validate, eval_criterion, val_data_
         print(f"Training loss: {train_loss_arr.mean():.2f}, Training accuracy: {train_acc_arr.mean():.2f}")
         print(f"Validation loss: {val_loss_arr.mean():.2f}, Validation accuracy: {val_acc_arr.mean():.2f}")
 
-        train_loss_arr = np.zeros(0)
-        train_acc_arr = np.zeros(0)
-
         log_dict = {
             "overall_step": epoch * dataloader_len + step_num,
             "training/loss": train_loss_arr.mean(),
@@ -36,7 +33,10 @@ def during_training_validation_step(model_to_validate, eval_criterion, val_data_
             "validation/accuracy": val_acc_arr.mean()
         }
 
-    return log_dict
+        train_loss_arr = np.zeros(0)
+        train_acc_arr = np.zeros(0)
+
+        return log_dict
 
 
 def test_model(model_to_test, testing_dataloader, device):
@@ -64,6 +64,6 @@ def test_model(model_to_test, testing_dataloader, device):
             batch_accuracy = np.append(batch_accuracy,
                                        predictions.data.eq(labels.view_as(predictions)).float().mean().item())
 
-        print(f"Accuracy of the model on the {len(all_labels)} evaluation images: {batch_accuracy.mean():.5f}")
+        print(f"Accuracy of the model on the {len(all_labels)} test images: {batch_accuracy.mean():.5f}")
 
     return all_labels, all_predictions, all_logits
