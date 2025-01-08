@@ -37,27 +37,37 @@ def get_dataset_root() -> Path:
                                 f"{path.resolve()} is not a directory.")
 
 
-class ClampTransform:
+class RSNormaliseTransform:
     """
     Transformation the input tensor to the float range [0, 1] using the provided min and max values.
-    If None, the min and max values are calculated from the input tensor's min/max directly.
-    :param input_min:
-    :param input_max:
+    If None, the min and max values are calculated from the input tensor's min/max directly,
+    optionally using provided percentiles rather than the pure min/max.
     """
 
     def __init__(
             self,
             input_min: t.Optional[float] = 0.,
-            input_max: t.Optional[float] = 3000.  # Authors claim range is 0-2750. Other torchgeo datasets use 3000.
+            # For EuroSAT, authors claim range is 0-2750. Other torchgeo datasets use 3000.
+            input_max: t.Optional[float] = 3000.,
+            percentiles: t.Optional[t.Tuple[float, float]] = (.01, .99),
     ):
         self.min = input_min
         self.max = input_max
+        self.percentiles = percentiles
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
         if self.max is None:
-            self.max = image.max()
+            # See article for further reasoning behind percentile normalization:
+            # https://medium.com/sentinel-hub/how-to-normalize-satellite-images-for-deep-learning-d5b668c885af
+            if self.percentiles:
+                self.max = image.quantile(self.percentiles[1])  # max as 99th percentile
+            else:
+                self.max = image.max()
         if self.min is None:
-            self.min = image.min()
+            if self.percentiles:
+                self.min = image.quantile(self.percentiles[0])  # min as 1st percentile
+            else:
+                self.min = image.min()
 
         return ((image - self.min) / (self.max - self.min)).clamp(0, 1)
 
