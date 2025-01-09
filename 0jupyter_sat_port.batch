@@ -3,12 +3,13 @@
 #SBATCH -c 4                                     ##Request 4 cores
 #SBATCH -p ug-gpu-small                          ##Use the research GPU partition if I'm a PhD student for example. 
 #SBATCH --qos="short"                            ##Use the short QoS to run jobs for up to 2 days
-#SBATCH --mem=24G                                ##Request 28Gb of System RAM. This is the most available on this partition
-#SBATCH -t 00-10:00:00                           ##Request 2 days for this job, the default is only 30 minutes
+#SBATCH --mem=28G                                ##Request 28Gb of System RAM. This is the most available on this partition
+#SBATCH -t 00-18:00:00                           ##Request 2 days for this job, the default is only 30 minutes
 ##SBATCH --gres=gpu:1                             ##Request 1 GPU, we don't mind what GPU we get given. We could use --gres=gpu:ampere:1 instead to ensure we get an 80Gb A100 for example.
 #SBATCH --gres=gpu:1g.10gb:1                     #Temporary sbatch bug workaround
-#SBATCH --mail-user=jgcw74@durham.ac.uk          ##Replace <username> with your CIS username to receive an email when the job starts
-#SBATCH --mail-type=BEGIN
+
+##SBATCH --mail-user=jgcw74@durham.ac.uk          ##Replace <username> with your CIS username to receive an email when the job starts
+##SBATCH --mail-type=BEGIN
 
 #SBATCH --job-name=jupyter_sat_port
 #SBATCH -o jupyter_sat_port.log
