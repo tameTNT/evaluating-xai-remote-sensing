@@ -2,19 +2,7 @@ import torch.nn as nn
 import torchvision
 
 
-class FineTunedResNet50(nn.Module):
-    def __init__(self, num_classes: int):
-        """
-        Initialise a ResNet-50 model with the final linear layer replaced to output the desired number of classes.
-        """
-
-        super().__init__()
-        self.model = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
-
-    def forward(self, x):
-        return self.model(x)
-
+class FreezableModel(nn.Module):
     def freeze_layers(self, keep: int):
         """
         Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
@@ -51,3 +39,17 @@ class FineTunedResNet50(nn.Module):
                     break
 
         return f"> {num_frozen} layers frozen: {', '.join([layer.__class__.__name__ for layer in frozen_layers])} <"
+
+
+class FineTunedResNet50(FreezableModel):
+    def __init__(self, num_classes: int):
+        """
+        Initialise a ResNet-50 model with the final linear layer replaced to output the desired number of classes.
+        """
+
+        super().__init__()
+        self.model = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+
+    def forward(self, x):
+        return self.model(x)
