@@ -46,9 +46,9 @@ class RSNormaliseTransform:
 
     def __init__(
             self,
-            input_min: t.Optional[float] = 0.,
+            input_min: t.Optional[float] = None,
             # For EuroSAT, authors claim range is 0-2750. Other torchgeo datasets use 3000.
-            input_max: t.Optional[float] = 3000.,
+            input_max: t.Optional[float] = None,
             percentiles: t.Optional[t.Tuple[float, float]] = (.01, .99),
     ):
         self.min = input_min
