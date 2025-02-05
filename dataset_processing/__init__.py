@@ -1,5 +1,5 @@
-import core
-import eurosat
-import reBEN_dataset
-import sen12ms
-import ucmerced
+from . import core
+from . import eurosat
+from . import reBEN_dataset
+from . import sen12ms
+from . import ucmerced
