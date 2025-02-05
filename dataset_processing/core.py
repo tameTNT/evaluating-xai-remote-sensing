@@ -101,3 +101,9 @@ def tensor_dict_transform_wrapper(
         return return_dict
 
     return wrapper
+
+
+def cycle(iterable):
+    while True:
+        for x in iterable:
+            yield x

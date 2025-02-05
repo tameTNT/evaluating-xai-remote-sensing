@@ -1,42 +1,67 @@
+import typing
+
 import numpy as np
 import torch
 
 
-def during_training_validation_step(model_to_validate, eval_criterion, val_data_iterator, train_loss_arr,
-                                    train_acc_arr, step_num, epoch, device, dataloader_len):
+def make_preds(
+        model: torch.nn.Module,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        criterion: torch.nn.Module,
+) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+    y_pred: torch.Tensor = model(x)
+
+    loss = criterion(y_pred, y)
+    accuracy = (y_pred.argmax(dim=1) == y).float().mean()
+
+    return loss, accuracy
+
+
+def train_step(
+        model_to_train: torch.nn.Module,
+        input_img: torch.Tensor,
+        targets: torch.Tensor,
+        train_criterion: torch.nn.Module,
+        model_optimiser: torch.optim.Optimizer,
+        train_loss_arr: np.ndarray,
+        train_acc_arr: np.ndarray,
+) -> None:
+    loss, accuracy = make_preds(model_to_train, input_img, targets, train_criterion)
+
+    train_loss_arr = np.append(train_loss_arr, loss.item())
+    train_acc_arr = np.append(train_acc_arr, accuracy.item())
+
+    model_optimiser.zero_grad()
+    loss.backward()
+    model_optimiser.step()
+
+
+def validation_step(
+        model_to_validate: torch.nn.Module,
+        eval_criterion: torch.nn.Module,
+        val_data_iterator: typing.Generator,
+        num_val_batches: int,
+) -> typing.Tuple[float, float]:
+
     model_to_validate.eval()
+    model_device = model_to_validate.device
+
+    val_loss_arr = np.zeros(0)
+    val_acc_arr = np.zeros(0)
+
     with torch.no_grad():
-        print(f"Epoch {epoch:03} - Batch num {step_num:05}")
-        val_loss_arr = np.zeros(0)
-        val_acc_arr = np.zeros(0)
-        for _ in range(20):  # iterate over 20 batches
+        for _ in range(num_val_batches):
             val_data = next(val_data_iterator)
-            val_images = val_data["image"].to(device)
-            val_labels: torch.Tensor = val_data["label"].to(device)
+            val_images = val_data["image"].to(model_device)
+            val_labels = val_data["label"].to(model_device)
 
-            val_predictions: torch.Tensor = model_to_validate(val_images)
+            loss, accuracy = make_preds(model_to_validate, val_images, val_labels, eval_criterion)
 
-            val_loss = eval_criterion(val_predictions, val_labels)
-            val_loss_arr = np.append(val_loss_arr, val_loss.item())
+            val_loss_arr = np.append(val_loss_arr, loss.item())
+            val_acc_arr = np.append(val_acc_arr, accuracy.item())
 
-            val_accuracy = (val_predictions.argmax(dim=1) == val_labels).float().mean().item()
-            val_acc_arr = np.append(val_acc_arr, val_accuracy)
-
-        print(f"Training loss: {train_loss_arr.mean():.2f}, Training accuracy: {train_acc_arr.mean():.2f}")
-        print(f"Validation loss: {val_loss_arr.mean():.2f}, Validation accuracy: {val_acc_arr.mean():.2f}")
-
-        log_dict = {
-            "overall_step": epoch * dataloader_len + step_num,
-            "training/loss": train_loss_arr.mean(),
-            "training/accuracy": train_acc_arr.mean(),
-            "validation/loss": val_loss_arr.mean(),
-            "validation/accuracy": val_acc_arr.mean()
-        }
-
-        train_loss_arr = np.zeros(0)
-        train_acc_arr = np.zeros(0)
-
-        return log_dict
+    return val_loss_arr.mean(), val_acc_arr.mean()
 
 
 def test_model(model_to_test, testing_dataloader, device):
