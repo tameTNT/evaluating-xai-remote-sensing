@@ -28,7 +28,9 @@ def train_step(
         model_optimiser: torch.optim.Optimizer,
 ) -> typing.Tuple[float, float]:
     model_to_train.train()
-    loss, accuracy = make_preds(model_to_train, input_img, targets, train_criterion)
+    model_device = next(model_to_train.parameters()).device
+
+    loss, accuracy = make_preds(model_to_train, input_img.to(model_device), targets.to(model_device), train_criterion)
 
     model_optimiser.zero_grad()
     loss.backward()
