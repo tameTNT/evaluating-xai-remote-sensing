@@ -2,6 +2,7 @@ import typing
 
 import numpy as np
 import torch
+from tqdm.autonotebook import tqdm
 
 
 def make_preds(
@@ -10,6 +11,7 @@ def make_preds(
         y: torch.Tensor,
         criterion: torch.nn.Module,
 ) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+
     y_pred: torch.Tensor = model(x)
 
     loss = criterion(y_pred, y)
@@ -24,35 +26,33 @@ def train_step(
         targets: torch.Tensor,
         train_criterion: torch.nn.Module,
         model_optimiser: torch.optim.Optimizer,
-        train_loss_arr: np.ndarray,
-        train_acc_arr: np.ndarray,
-) -> None:
+) -> typing.Tuple[float, float]:
+    model_to_train.train()
     loss, accuracy = make_preds(model_to_train, input_img, targets, train_criterion)
-
-    train_loss_arr = np.append(train_loss_arr, loss.item())
-    train_acc_arr = np.append(train_acc_arr, accuracy.item())
 
     model_optimiser.zero_grad()
     loss.backward()
     model_optimiser.step()
 
+    return loss.item(), accuracy.item()
+
 
 def validation_step(
         model_to_validate: torch.nn.Module,
         eval_criterion: torch.nn.Module,
-        val_data_iterator: typing.Generator,
+        val_data_gen: typing.Generator,
         num_val_batches: int,
 ) -> typing.Tuple[float, float]:
 
     model_to_validate.eval()
-    model_device = model_to_validate.device
+    model_device = next(model_to_validate.parameters()).device
 
     val_loss_arr = np.zeros(0)
     val_acc_arr = np.zeros(0)
 
     with torch.no_grad():
-        for _ in range(num_val_batches):
-            val_data = next(val_data_iterator)
+        for _ in tqdm(range(num_val_batches)):
+            val_data = next(val_data_gen)
             val_images = val_data["image"].to(model_device)
             val_labels = val_data["label"].to(model_device)
 
