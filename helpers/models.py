@@ -59,7 +59,7 @@ class FineTunedResNet50(FreezableModel):
         """
 
         super().__init__()
-        self.model = resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
+        self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
         self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
 
     def forward(self, x):
@@ -437,7 +437,7 @@ class ResNet101_Weights(WeightsEnum):
 
 @register_model()
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
-def resnet50(*, weights: Optional[ResNet50_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet50_new(*, weights: Optional[ResNet50_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-50 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.
 
     .. note::
@@ -469,7 +469,7 @@ def resnet50(*, weights: Optional[ResNet50_Weights] = None, progress: bool = Tru
 
 @register_model()
 @handle_legacy_interface(weights=("pretrained", ResNet101_Weights.IMAGENET1K_V1))
-def resnet101(*, weights: Optional[ResNet101_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet101_new(*, weights: Optional[ResNet101_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-101 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.
 
     .. note::
