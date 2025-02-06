@@ -64,8 +64,9 @@ class FineTunedResNet50(FreezableModel):
         return self.model(x)
 
 
-# === Copied from torchvision/models/resnet.py ===
+# ================== Copied from torchvision/models/resnet.py ==================
 # Very slightly modified to add a separate ReLU layer for compatibility with DeepLiftSHAP in Captum
+# See https://github.com/pytorch/captum/issues/378
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
