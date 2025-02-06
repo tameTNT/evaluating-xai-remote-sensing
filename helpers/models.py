@@ -1,15 +1,13 @@
-from functools import partial
 from typing import Optional, Callable, Type, Union, List, Any
 
 import torch
 import torch.nn as nn
 import torchvision
 from torch import Tensor
-from torchvision.models import WeightsEnum, Weights
+from torchvision.models import WeightsEnum, ResNet50_Weights, ResNet101_Weights
 from torchvision.models._api import register_model
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
-from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
 
 
@@ -347,92 +345,6 @@ _COMMON_META = {
     "min_size": (1, 1),
     "categories": _IMAGENET_CATEGORIES,
 }
-
-
-class ResNet50_Weights(WeightsEnum):
-    IMAGENET1K_V1 = Weights(
-        url="https://download.pytorch.org/models/resnet50-0676ba61.pth",
-        transforms=partial(ImageClassification, crop_size=224),
-        meta={
-            **_COMMON_META,
-            "num_params": 25557032,
-            "recipe": "https://github.com/pytorch/vision/tree/main/references/classification#resnet",
-            "_metrics": {
-                "ImageNet-1K": {
-                    "acc@1": 76.130,
-                    "acc@5": 92.862,
-                }
-            },
-            "_ops": 4.089,
-            "_file_size": 97.781,
-            "_docs": """These weights reproduce closely the results of the paper using a simple training recipe.""",
-        },
-    )
-    IMAGENET1K_V2 = Weights(
-        url="https://download.pytorch.org/models/resnet50-11ad3fa6.pth",
-        transforms=partial(ImageClassification, crop_size=224, resize_size=232),
-        meta={
-            **_COMMON_META,
-            "num_params": 25557032,
-            "recipe": "https://github.com/pytorch/vision/issues/3995#issuecomment-1013906621",
-            "_metrics": {
-                "ImageNet-1K": {
-                    "acc@1": 80.858,
-                    "acc@5": 95.434,
-                }
-            },
-            "_ops": 4.089,
-            "_file_size": 97.79,
-            "_docs": """
-                These weights improve upon the results of the original paper by using TorchVision's `new training recipe
-                <https://pytorch.org/blog/how-to-train-state-of-the-art-models-using-torchvision-latest-primitives/>`_.
-            """,
-        },
-    )
-    DEFAULT = IMAGENET1K_V2
-
-
-class ResNet101_Weights(WeightsEnum):
-    IMAGENET1K_V1 = Weights(
-        url="https://download.pytorch.org/models/resnet101-63fe2227.pth",
-        transforms=partial(ImageClassification, crop_size=224),
-        meta={
-            **_COMMON_META,
-            "num_params": 44549160,
-            "recipe": "https://github.com/pytorch/vision/tree/main/references/classification#resnet",
-            "_metrics": {
-                "ImageNet-1K": {
-                    "acc@1": 77.374,
-                    "acc@5": 93.546,
-                }
-            },
-            "_ops": 7.801,
-            "_file_size": 170.511,
-            "_docs": """These weights reproduce closely the results of the paper using a simple training recipe.""",
-        },
-    )
-    IMAGENET1K_V2 = Weights(
-        url="https://download.pytorch.org/models/resnet101-cd907fc2.pth",
-        transforms=partial(ImageClassification, crop_size=224, resize_size=232),
-        meta={
-            **_COMMON_META,
-            "num_params": 44549160,
-            "recipe": "https://github.com/pytorch/vision/issues/3995#new-recipe",
-            "_metrics": {
-                "ImageNet-1K": {
-                    "acc@1": 81.886,
-                    "acc@5": 95.780,
-                }
-            },
-            "_ops": 7.801,
-            "_file_size": 170.53,
-            "_docs": """
-                These weights improve upon the results of the original paper by using TorchVision's `new training recipe
-                <https://pytorch.org/blog/how-to-train-state-of-the-art-models-using-torchvision-latest-primitives/>`_.
-            """,
-        },
-    )
-    DEFAULT = IMAGENET1K_V2
 
 
 @register_model()
