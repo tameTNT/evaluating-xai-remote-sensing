@@ -65,7 +65,9 @@ class FineTunedResNet50(FreezableModel):
 
 
 # ================== Copied from torchvision/models/resnet.py ==================
-# Very slightly modified to add a separate ReLU layer for compatibility with DeepLiftSHAP in Captum
+# Slightly modified to:
+# - add a separate ReLU layer for compatibility with DeepLiftSHAP in Captum
+# - use inplace=False ReLU layers and no inplace operations (e.g. +=) for compatibility with DeepExplainer in shap
 # See https://github.com/pytorch/captum/issues/378
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
@@ -133,7 +135,7 @@ class BasicBlock(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out += identity
+        out = out + identity
         # Use new relu function for Captum compatibility
         out = self.relu2(out)
 
@@ -196,7 +198,7 @@ class Bottleneck(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out += identity
+        out = out + identity
         out = self.relu3(out)
 
         return out
