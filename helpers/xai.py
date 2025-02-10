@@ -28,7 +28,8 @@ def calculate_shap_values_tensor(
     for i in tqdm(range(num_classes), desc="Calculating SHAP values for class i"):
         vals_for_ith_label = with_this_explainer.attribute(
             explain_these.to(model_device),
-            given_this_background,  # uses a HUGE amount of memory (50GB for 25 imgs) so limit size of background
+            # changing background can use a HUGE amount of memory (50GB for 25 imgs) so limit!
+            given_this_background.to(model_device),
             target=torch.tensor(i).to(model_device)
         )
 
