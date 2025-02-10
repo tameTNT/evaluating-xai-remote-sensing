@@ -1,23 +1,45 @@
+import captum.attr
 import einops
 import numpy as np
 import shap
 import torch
+from jaxtyping import Float
+from torch import Tensor
 from tqdm.autonotebook import tqdm
 
 
-def build_shap_vals_tensor(explain_these, given_this_background, with_this_explainer, num_classes, device):
-    vals = torch.zeros(0).to(device)
-    for to_be_explained in tqdm(explain_these, leave=True):
-        image_vals = torch.zeros(0).to(device)
-        for i in tqdm(range(num_classes), leave=True):
-            vals_for_class_i = with_this_explainer.attribute(to_be_explained.unsqueeze(0).to(device),
-                                                             given_this_background,
-                                                             target=torch.tensor(i).to(device))
-            image_vals = torch.cat((image_vals, vals_for_class_i), dim=0) if image_vals.size else vals_for_class_i
-        vals = torch.cat((vals, image_vals.unsqueeze(0)), dim=0)
+def calculate_shap_values_tensor(
+        explain_these: Float[Tensor, "batch_size channels height width"],
+        given_this_background: Float[Tensor, "batch_size channels height width"],
+        with_this_explainer: captum.attr.DeepLiftShap,
+        num_classes: int,
+) -> Float[np.ndarray, "labels batch_size height width channels"]:
+    """
+    Calculate SHAP values using an explainer for a given model and a given set of images.
+    :param explain_these: Tensor of images to explain
+    :param given_this_background:
+    :param with_this_explainer:
+    :param num_classes: num of classes in dataset to explain
+    :return: Numpy array with dimensions ready to be passed to shap.image_plot (wrapped in a list() call)
+    """
+    model_device = next(with_this_explainer.model.parameters()).device
 
-    vals = vals.detach()
-    return vals
+    shap_vals = torch.zeros(0).to(model_device)
+    for i in tqdm(range(num_classes), desc="Calculating SHAP values for class i"):
+        vals_for_ith_label = with_this_explainer.attribute(
+            explain_these.to(model_device),
+            given_this_background,  # uses a HUGE amount of memory (50GB for 25 imgs) so limit size of background
+            target=torch.tensor(i).to(model_device)
+        )
+
+        shap_vals = torch.cat(
+            (shap_vals, vals_for_ith_label.unsqueeze(0)),
+            dim=0
+        ) if shap_vals.size else vals_for_ith_label.unsqueeze(0)
+
+    shap_vals = shap_vals.detach()
+    shap_vals = einops.rearrange(shap_vals, "l b c h w -> l b h w c")
+    return shap_vals.cpu().numpy()
 
 
 def make_shap_plots(model, shap_vals, for_images, with_labels, split_size, label_classes, device, show_true=True):
