@@ -13,14 +13,14 @@ def calculate_shap_values_tensor(
         given_this_background: Float[Tensor, "batch_size channels height width"],
         with_this_explainer: captum.attr.DeepLiftShap,
         num_classes: int,
-) -> Float[np.ndarray, "labels batch_size height width channels"]:
+) -> Float[Tensor, "labels batch_size channels height width"]:
     """
     Calculate SHAP values using an explainer for a given model and a given set of images.
     :param explain_these: Tensor of images to explain
     :param given_this_background:
     :param with_this_explainer:
     :param num_classes: num of classes in dataset to explain
-    :return: Numpy array with dimensions ready to be passed to shap.image_plot (wrapped in a list() call)
+    :return:
     """
     model_device = next(with_this_explainer.model.parameters()).device
 
@@ -38,8 +38,11 @@ def calculate_shap_values_tensor(
         ) if shap_vals.size else vals_for_ith_label.unsqueeze(0)
 
     shap_vals = shap_vals.detach()
-    shap_vals = einops.rearrange(shap_vals, "l b c h w -> l b h w c")
-    return shap_vals.cpu().numpy()
+    return shap_vals
+
+
+def prepare_shap_for_image_plot(shap_vals: Float[Tensor, "labels batch_size channels height width"]) -> list:
+    return list(einops.rearrange(shap_vals, "l b c h w -> l b h w c").cpu().numpy())
 
 
 def make_shap_plots(model, shap_vals, for_images, with_labels, split_size, label_classes, device, show_true=True):
