@@ -143,20 +143,21 @@ def incrementally_delete(
     num_pixels = x.shape[1] * x.shape[2]
 
     is_random = False
+    random_res, random_gen, num_trials = 0, None, 1
     if isinstance(importance_rank, tuple):
         is_random = True
+        random_res, random_gen, num_trials = importance_rank
 
     k_values = np.floor(
         np.linspace(0, num_pixels, num_iterations + 1)  # +1 because of 0 step
     ).astype(int)
 
-    incrementally_deleted = np.zeros((num_iterations + 1, *x.shape),
+    incrementally_deleted = np.zeros((num_iterations + 1, num_trials, *x.shape),
                                      dtype=x.dtype)
 
-    for i, k in tqdm(enumerate(k_values),
+    for i, k in tqdm(enumerate(k_values), total=k_values,
                      desc="Incrementally deleting important pixels"):
         if is_random:
-            random_res, random_gen, num_trials = importance_rank
             for j in range(num_trials):
                 if random_gen is None:
                     random_gen = np.random.default_rng(j)
