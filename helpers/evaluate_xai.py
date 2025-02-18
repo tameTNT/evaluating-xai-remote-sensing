@@ -49,8 +49,7 @@ def rank_pixel_importance(
     return pixel_ranks_0_top
 
 
-DELETION_METHODS = t.Union[float, int, np.random.Generator,
-t.Literal["blur", "inpaint", "nn"]]
+DELETION_METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn"]]
 
 
 def delete_top_k_important(
@@ -116,8 +115,8 @@ def delete_top_k_important(
 def incrementally_delete(
         # todo: make channels position consistent across functions
         x: Float[np.ndarray, "channels height width"],
-        importance_rank: t.Union[t.Tuple[int, np.random.Generator, int],
-        Int[np.ndarray, "height width"]],
+        importance_rank: t.Union[
+            t.Tuple[int, t.Union[np.random.Generator, None], int], Int[np.ndarray, "height width"]],
         num_iterations: int,
         method: DELETION_METHODS,
 ) -> t.Tuple[
@@ -187,10 +186,17 @@ def make_preds_df(
         x: Float[np.ndarray, "batch_size channels height width"],
         index: t.Optional[t.List[float]] = None,
         columns: t.Optional[t.List[str]] = None,
+        max_batch_size: int = 32,
 ):
     model.eval()
     x = torch.from_numpy(x).to(next(model.parameters()).device)
-    preds = model(x).softmax(dim=-1)
+
+    # split into smaller batches to avoid memory issues
+    preds = []
+    for i in range(0, x.size(0), max_batch_size):
+        batch_preds = model(x[i:i + max_batch_size]).softmax(dim=-1)
+        preds.append(batch_preds)
+    preds = torch.cat(preds, dim=0)
 
     if index is None:
         index = range(preds.shape[0])
