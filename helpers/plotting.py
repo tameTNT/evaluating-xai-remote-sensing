@@ -95,7 +95,7 @@ def visualise_importance(
     """
 
     show_image(x)
-    plt.imshow(importance_rank, alpha=alpha, cmap="inferno_r")
+    plt.imshow(importance_rank, alpha=alpha, cmap="jet_r")
 
     cb = plt.colorbar(label="Importance Rank (0 = most important)")
     cb.ax.invert_yaxis()
