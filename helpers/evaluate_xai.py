@@ -151,12 +151,12 @@ def incrementally_delete(
     k_values = np.floor(
         np.linspace(0, num_pixels, num_iterations)
     ).astype(int)
-    incrementally_deleted = np.zeros(
-        (num_iterations, *x.shape), dtype=x.dtype
-    )
-    for k in k_values:
+
+    incrementally_deleted = np.zeros((num_iterations, *x.shape),
+                                     dtype=x.dtype)
+    for i, k in enumerate(k_values):
         x = delete_top_k_important(x, importance_rank, k, method)
-        incrementally_deleted[k] = x
+        incrementally_deleted[i] = x
 
     return incrementally_deleted, k_values
 
