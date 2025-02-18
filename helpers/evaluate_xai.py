@@ -170,13 +170,13 @@ def incrementally_delete(
                 )
                 x_j = delete_top_k_important(x, importance_rank, k, method)
                 x_j = x_j[np.newaxis, :]
-                x = x_j if j == 0 else np.concatenate((x, x_j), axis=0)
+                output = x_j if j == 0 else np.concatenate((output, x_j), axis=0)
         else:
-            x = delete_top_k_important(x, importance_rank, k, method)
+            output = delete_top_k_important(x, importance_rank, k, method)
             # add repeats dim at front (just 1 for non-random)
-            x = x[np.newaxis, :]
+            output = output[np.newaxis, :]
 
-        incrementally_deleted[i] = x
+        incrementally_deleted[i] = output
 
     return incrementally_deleted, k_values
 
