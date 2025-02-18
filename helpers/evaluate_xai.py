@@ -176,5 +176,5 @@ def make_preds_df(
     if columns is None:
         columns = [f"cls_{i}" for i in range(preds.shape[1])]
 
-    df = pd.DataFrame(preds.cpu().numpy(), index=index, columns=columns)
+    df = pd.DataFrame(preds.numpy(force=True), index=index, columns=columns)
     return df
