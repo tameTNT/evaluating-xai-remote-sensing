@@ -100,5 +100,3 @@ def visualise_importance(
     cb = plt.colorbar(label="Importance Rank (0 = most important)")
     cb.ax.invert_yaxis()
     _ = cb.solids.set(alpha=1)
-
-    plt.show()

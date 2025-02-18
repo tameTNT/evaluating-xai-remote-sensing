@@ -133,8 +133,8 @@ def incrementally_delete(
     random generator.
     This grid is shown using `plt.matshow` if `show_random_grid` is True.
 
-    k is increased linearly from 0 to the number of pixels in the image over
-    `num_iterations`.
+    k is increased linearly from 0 (inclusive) to the total number pixels in the
+    image over `num_iterations`.
     An ndarray of shape (num_iterations, *x.shape) is returned alongside the
     values of k used.
     """
@@ -154,10 +154,10 @@ def incrementally_delete(
             plt.matshow(importance_rank)
 
     k_values = np.floor(
-        np.linspace(0, num_pixels, num_iterations)
+        np.linspace(0, num_pixels, num_iterations + 1)  # +1 because of 0 step
     ).astype(int)
 
-    incrementally_deleted = np.zeros((num_iterations, *x.shape),
+    incrementally_deleted = np.zeros((num_iterations + 1, *x.shape),
                                      dtype=x.dtype)
     for i, k in enumerate(k_values):
         x = delete_top_k_important(x, importance_rank, k, method)
