@@ -1,12 +1,12 @@
 import typing as t
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
 import skimage
 import torch
 from jaxtyping import Float, Int
+from tqdm.autonotebook import tqdm
 
 
 # for SHAP values this is better evaluated with L2 (hamming doesn't make sense
@@ -54,11 +54,11 @@ t.Literal["blur", "inpaint", "nn"]]
 
 
 def delete_top_k_important(
-        x: Float[np.ndarray, "batch_size channels height width"],
-        importance_rank: Int[np.ndarray, "batch_size height width"],
+        x: Float[np.ndarray, "channels height width"],
+        importance_rank: Int[np.ndarray, "height width"],
         k: int,
         method: DELETION_METHODS,
-) -> Float[np.ndarray, "batch_size channels height width"]:
+) -> Float[np.ndarray, "channels height width"]:
     """
     'Delete' the top k most important pixels (as specified by `importance_rank`)
     in `x` (values in [-1,1]) using one of several methods
@@ -116,22 +116,23 @@ def delete_top_k_important(
 def incrementally_delete(
         # todo: make channels position consistent across functions
         x: Float[np.ndarray, "channels height width"],
-        importance_rank: t.Union[t.Tuple[int, np.random.Generator],
+        importance_rank: t.Union[t.Tuple[int, np.random.Generator, int],
         Int[np.ndarray, "height width"]],
         num_iterations: int,
         method: DELETION_METHODS,
-        show_random_grid: bool = False
 ) -> t.Tuple[
-    Float[np.ndarray, "num_iterations channels height width"],
+    Float[np.ndarray, "num_iterations trials channels height width"],
     Int[np.ndarray, "num_iterations"]
 ]:
     """
     Iteratively delete the top k most important pixels (as specified by
     `importance_rank`).
+
     If `importance_rank` is a tuple (and not a numpy array),
     a random rank grid of edge length given is used instead, shuffled using the
-    random generator.
-    This grid is shown using `plt.matshow` if `show_random_grid` is True.
+    random generator provided (a consistent one per call if generator is None).
+    Only if this random ranking is used, is the `trials` dim not 1 and is
+    instead the third tuple argument of `importance_rank`.
 
     k is increased linearly from 0 (inclusive) to the total number pixels in the
     image over `num_iterations`.
@@ -141,17 +142,9 @@ def incrementally_delete(
 
     num_pixels = x.shape[1] * x.shape[2]
 
+    is_random = False
     if isinstance(importance_rank, tuple):
-        random_res, random_gen = importance_rank
-        random_importance = random_gen.permuted(
-            np.floor(np.linspace(0, num_pixels, random_res ** 2))
-        ).reshape(random_res, random_res)
-        importance_rank = skimage.transform.resize(
-            random_importance, output_shape=x.shape[1:],
-            order=0, clip=False, preserve_range=True
-        )
-        if show_random_grid:
-            plt.matshow(importance_rank)
+        is_random = True
 
     k_values = np.floor(
         np.linspace(0, num_pixels, num_iterations + 1)  # +1 because of 0 step
@@ -159,8 +152,30 @@ def incrementally_delete(
 
     incrementally_deleted = np.zeros((num_iterations + 1, *x.shape),
                                      dtype=x.dtype)
-    for i, k in enumerate(k_values):
-        x = delete_top_k_important(x, importance_rank, k, method)
+
+    for i, k in tqdm(enumerate(k_values),
+                     desc="Incrementally deleting important pixels"):
+        if is_random:
+            random_res, random_gen, num_trials = importance_rank
+            for j in range(num_trials):
+                if random_gen is None:
+                    random_gen = np.random.default_rng(j)
+
+                random_importance = random_gen.permuted(
+                    np.floor(np.linspace(0, num_pixels, random_res ** 2))
+                ).reshape(random_res, random_res)
+                importance_rank = skimage.transform.resize(
+                    random_importance, output_shape=x.shape[1:],
+                    order=0, clip=False, preserve_range=True
+                )
+                x_j = delete_top_k_important(x, importance_rank, k, method)
+                x_j = x_j[np.newaxis, :]
+                x = x_j if j == 0 else np.concatenate((x, x_j), axis=0)
+        else:
+            x = delete_top_k_important(x, importance_rank, k, method)
+            # add repeats dim at front (just 1 for non-random)
+            x = x[np.newaxis, :]
+
         incrementally_deleted[i] = x
 
     return incrementally_deleted, k_values
