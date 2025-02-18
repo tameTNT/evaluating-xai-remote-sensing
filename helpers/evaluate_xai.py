@@ -9,6 +9,17 @@ from jaxtyping import Float, Int
 from tqdm.autonotebook import tqdm
 
 
+def reset_child_params(model: torch.nn.Module):
+    """
+    Reset all parameters of the model to their defaults **inplace**.
+    Adapted from https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
+    """
+    for layer in model.children():
+        if hasattr(layer, "reset_parameters"):
+            layer.reset_parameters()
+        reset_child_params(layer)
+
+
 # for SHAP values this is better evaluated with L2 (hamming doesn't make sense
 # (not the same)); SSIM is for heatmaps
 def pixel_l2_distance_per_label(
