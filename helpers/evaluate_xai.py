@@ -78,6 +78,13 @@ def delete_top_k_important(
     top_k_mask = importance_rank < k
     target_region = masked_img[:, top_k_mask]  # mask across all colour channels
 
+    # we need at least one 'known' pixel (where the top_k_mask is False)
+    # for the inpaint and nn methods
+    if method in ["inpaint", "nn"]:
+        if np.sum(~top_k_mask) < 1:
+            top_k_mask[top_k_mask.shape[0] // 2,
+                       top_k_mask.shape[1] // 2] = False
+
     if isinstance(method, (float, int)):
         masked_img[:, top_k_mask] = np.clip(method, -1, 1)
 
@@ -93,8 +100,6 @@ def delete_top_k_important(
     elif method == "inpaint":
         mask = np.zeros_like(importance_rank)
         mask[top_k_mask] = 1  # indicate unknown pixels
-        if np.sum(mask != 1) < 1:  # we need at least one known pixel
-            mask[[mask.shape[0] // 2, mask.shape[1] // 2]] = 0
         masked_img = skimage.restoration.inpaint_biharmonic(
             masked_img, mask, channel_axis=0
         )
