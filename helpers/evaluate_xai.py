@@ -155,7 +155,7 @@ def incrementally_delete(
     incrementally_deleted = np.zeros((num_iterations + 1, num_trials, *x.shape),
                                      dtype=x.dtype)
 
-    for i, k in tqdm(enumerate(k_values), total=k_values,
+    for i, k in tqdm(enumerate(k_values), total=len(k_values),
                      desc="Incrementally deleting important pixels"):
         if is_random:
             for j in range(num_trials):
