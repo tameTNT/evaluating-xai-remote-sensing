@@ -187,7 +187,7 @@ def make_preds_df(
         index: t.Optional[t.List[float]] = None,
         columns: t.Optional[t.List[str]] = None,
         max_batch_size: int = 32,
-):
+) -> pd.DataFrame:
     model.eval()
     x = torch.from_numpy(x).to(next(model.parameters()).device)
 
