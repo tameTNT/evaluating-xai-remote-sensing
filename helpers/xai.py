@@ -1,3 +1,5 @@
+import typing as t
+
 import captum.attr
 import einops
 import numpy as np
@@ -42,8 +44,12 @@ def calculate_shap_values_tensor(
     return shap_vals
 
 
-def prepare_shap_for_image_plot(shap_vals: Float[Tensor, "labels batch_size channels height width"]) -> list:
-    return list(einops.rearrange(shap_vals, "l b c h w -> l b h w c").cpu().numpy())
+def prepare_shap_for_image_plot(
+        shap_vals: Float[t.Union[Tensor, np.ndarray], "labels batch_size channels height width"]
+) -> list[np.ndarray]:
+    if isinstance(shap_vals, Tensor):
+        shap_vals = shap_vals.cpu().numpy()
+    return list(einops.rearrange(shap_vals, "l b c h w -> l b h w c"))
 
 
 def make_shap_plots(model, shap_vals, for_images, with_labels, split_size, label_classes, device, show_true=True):
