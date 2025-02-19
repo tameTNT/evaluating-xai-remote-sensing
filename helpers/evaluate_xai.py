@@ -24,17 +24,23 @@ def reset_child_params(model: torch.nn.Module):
 # (not the same)); SSIM is for heatmaps
 def pixel_l2_distance_per_label(
         x1: Float[np.ndarray, "batch_size labels height width channels"],
-        x2: Float[np.ndarray, "batch_size labels height width channels"]
+        x2: Float[np.ndarray, "batch_size labels height width channels"],
+        normalise: bool = True,
 ) -> Float[torch.Tensor, "labels"]:
     """
     Calculate mean L2 distance between two sets of images (`x1`, `x2`) per label
     over the batch size.
     Each image (H, W, C) is flattened (i.e. to H*W*C) and the L2 distance is
-    calculated per element.
+    calculated per element (optionally normalised to [0, 1]).
     """
 
     x1 = torch.from_numpy(x1)
     x2 = torch.from_numpy(x2)
+
+    if normalise:
+        x1 = (x1 - x1.min()) / (x1.max() - x1.min())
+        x2 = (x2 - x2.min()) / (x2.max() - x2.min())
+
     # flatten image dimensions (HxWxC)
     # then sum squared differences and take average over num samples (first dim)
     # This is the L2 (Euclidian) distance per label
