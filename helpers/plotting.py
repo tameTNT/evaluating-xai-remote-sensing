@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from jaxtyping import Float, Int
+import pandas as pd
 
 
 def show_sample_of_incorrect(
@@ -100,3 +101,55 @@ def visualise_importance(
     cb = plt.colorbar(label="Importance Rank (0 = most important)")
     cb.ax.invert_yaxis()
     _ = cb.solids.set(alpha=1)
+
+
+def make_deletions_plot(
+        *args: pd.DataFrame,
+        method_names: list[str] = None,
+        return_aucs: bool = False,
+        plot_class: str = None,
+        plt_title: str = None
+) -> t.Optional[dict[str, float]]:
+    """
+    Plots a line chart, where each line represents confidence over iterations
+    of a different method (names specified in method names) and the x-axis is
+    the number of deletion iterations, from multiple dataframes.
+    The legend includes the Area under Curve metric for each method which is
+    optionally returned as a dictionary in the format `method_name: auc`.
+
+    Specify a `plot_class` to plot only that class, otherwise the first row's
+    max value is used (i.e. the DL model's most confident prediction for no
+    perturbations).
+    """
+
+    if method_names is None:
+        method_names = [f"method_{i}" for i in range(len(args))]
+    concatenated_df = pd.concat(
+        {name: df for name, df in zip(method_names, args)},
+        names=["method", "iteration"]
+    )
+
+    aucs = dict()
+
+    fig, ax = plt.subplots()
+    for method, data in concatenated_df.groupby(level=0):
+        if plot_class is None:
+            # get the first row's max value (assumed to be correct prediction)
+            plot_class = data.idxmax(axis=1).iloc[0]
+
+        # take cross-section of just relevant column, drop the method from index
+        series = data.xs(plot_class, axis=1).reset_index(level=0, drop=True)
+        # then plot a line for this method
+        auc = np.trapz(series.to_numpy())
+        series.plot(
+            kind="line",
+            xlabel="iterations", rot=45, xlim=(0, len(series)-1),
+            ylabel="model confidence", ylim=(0, 1),
+            # NB: padding is the total number of characters inc. right of .
+            label=f"{method} - AuC={auc:07.4f}",
+            legend=True, title=plt_title, ax=ax, grid=True,
+        )
+        aucs[method] = auc
+
+    if return_aucs:
+        return aucs
