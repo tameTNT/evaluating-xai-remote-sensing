@@ -145,8 +145,7 @@ def make_deletions_plot(
             kind="line",
             xlabel="iterations", rot=45, xlim=(0, len(series)-1),
             ylabel="model confidence", ylim=(0, 1),
-            # NB: padding is the total number of characters inc. right of .
-            label=f"{method} - AuC={auc:07.4f}",
+            label=f"{method} (AuC={auc:.4f})",
             legend=True, title=plt_title, ax=ax, grid=True,
         )
         aucs[method] = auc
