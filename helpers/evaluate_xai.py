@@ -98,7 +98,7 @@ def rank_pixel_importance(
     return pixel_ranks_0_top
 
 
-DELETION_METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn"]]
+DELETION_METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn", "shuffle"]]
 
 
 def delete_top_k_important(
@@ -120,6 +120,8 @@ def delete_top_k_important(
         `skimage.restoration.inpaint_biharmonic`.
     - If method is 'nn', replace the top k pixels using nearest neighbour
         interpolation.
+    - If method is 'shuffle', randomly perturb the top k pixels by shuffling
+        them with the other pixels in the image.
 
     If importance_rank is a tuple of an int and a np.random.Generator, a random
     ranking, with grid element size of the first argument, is generated instead.
@@ -175,6 +177,24 @@ def delete_top_k_important(
         filled_ind = scipy.ndimage.distance_transform_edt(
             np.isnan(masked_img), return_distances=False, return_indices=True)
         masked_img = masked_img[tuple(filled_ind)]
+
+    elif method == "shuffle":
+        pixels_to_scramble = masked_img[:, top_k_mask]
+
+        # === Shuffle among all pixels ===
+        # np.random.shuffle shuffles along first axis only
+        # so transpose to shuffle RGB pixels (and not colour channels)
+        np.random.shuffle(pixels_to_scramble.transpose(1, 0))
+
+        # === Shuffle along neighbourhood *lines* ===
+        # neighbourhood_size = 20
+        # for i in range(0, pixels_to_scramble.shape[1], neighbourhood_size):
+        #     np.random.shuffle(
+        #         pixels_to_scramble.transpose(1, 0)[i:i + neighbourhood_size]
+        #     )
+
+        masked_img[:, top_k_mask] = pixels_to_scramble
+
     return masked_img
 
 
