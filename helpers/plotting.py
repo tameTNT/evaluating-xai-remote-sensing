@@ -151,5 +151,13 @@ def make_deletions_plot(
         )
         aucs[method] = auc
 
+    ax.axhline(0.5, color="black", linestyle="--")
+    ax.text(
+        1, 0.5, "decision boundary (ranking/compactness)",
+        horizontalalignment="right",
+        verticalalignment="bottom",
+        transform=ax.transAxes,
+    )
+
     if return_aucs:
         return aucs
