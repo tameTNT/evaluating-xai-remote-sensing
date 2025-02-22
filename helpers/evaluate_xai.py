@@ -238,12 +238,13 @@ def make_preds_df(
         max_batch_size: int = 32,
 ) -> pd.DataFrame:
     model.eval()
-    x = torch.from_numpy(x).to(next(model.parameters()).device)
+    model_device = next(model.parameters()).device
 
-    # split into smaller batches to avoid memory issues
     preds = []
-    for i in range(0, x.size(0), max_batch_size):
-        batch_preds = model(x[i:i + max_batch_size]).softmax(dim=-1)
+    # split into smaller batches to avoid memory issues
+    for i in range(0, x.shape[0], max_batch_size):
+        x_batch = torch.from_numpy(x[i:i + max_batch_size]).to(model_device)
+        batch_preds = model(x_batch).softmax(dim=-1).detach().cpu()
         preds.append(batch_preds)
     preds = torch.cat(preds, dim=0)
 
