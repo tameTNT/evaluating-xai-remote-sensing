@@ -103,7 +103,7 @@ DELETION_METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "i
 
 def delete_top_k_important(
         x: Float[np.ndarray, "channels height width"],
-        importance_rank: Int[np.ndarray, "height width"],
+        importance_rank: t.Union[Int[np.ndarray, "height width"], t.Tuple[int, np.random.Generator]],
         k: int,
         method: DELETION_METHODS,
 ) -> Float[np.ndarray, "channels height width"]:
@@ -120,9 +120,26 @@ def delete_top_k_important(
         `skimage.restoration.inpaint_biharmonic`.
     - If method is 'nn', replace the top k pixels using nearest neighbour
         interpolation.
+
+    If importance_rank is a tuple of an int and a np.random.Generator, a random
+    ranking, with grid element size of the first argument, is generated instead.
     """
 
     masked_img = x.copy()
+
+    if isinstance(importance_rank, tuple):
+        num_pixels = x.shape[-2] * x.shape[-1]
+        random_res, random_gen = importance_rank
+
+        random_importance = random_gen.permuted(
+            np.floor(np.linspace(0, num_pixels, random_res ** 2))
+        ).reshape(random_res, random_res)
+
+        importance_rank = skimage.transform.resize(
+            random_importance, output_shape=x.shape[1:],
+            order=0, clip=False, preserve_range=True
+        )
+
     top_k_mask = importance_rank < k
     target_region = masked_img[:, top_k_mask]  # mask across all colour channels
 
@@ -177,8 +194,9 @@ def incrementally_delete(
     `importance_rank`).
 
     If `importance_rank` is a tuple (and not a numpy array),
-    a random rank grid of edge length given is used instead, shuffled using the
-    random generator provided (a consistent one per call if generator is None).
+    a random rank grid of edge length (1st arg) given is used instead, shuffled
+    using the random generator provided (a consistent one per call if generator
+    is None).
     Only if this random ranking is used, is the `trials` dim not 1 and is
     instead the third tuple argument of `importance_rank`.
 
@@ -210,14 +228,8 @@ def incrementally_delete(
                 if random_gen is None:
                     random_gen = np.random.default_rng(j)
 
-                random_importance = random_gen.permuted(
-                    np.floor(np.linspace(0, num_pixels, random_res ** 2))
-                ).reshape(random_res, random_res)
-                importance_rank = skimage.transform.resize(
-                    random_importance, output_shape=x.shape[1:],
-                    order=0, clip=False, preserve_range=True
-                )
-                x_j = delete_top_k_important(x, importance_rank, k, method)
+                x_j = delete_top_k_important(x, (random_res, random_gen), k, method)
+
                 x_j = x_j[np.newaxis, :]
                 output = x_j if j == 0 else np.concatenate((output, x_j), axis=0)
         else:
