@@ -1,3 +1,5 @@
+from helpers import utils
+
 import typing as t
 
 import numpy as np
@@ -269,14 +271,14 @@ def make_preds_df(
         columns: t.Optional[t.List[str]] = None,
         max_batch_size: int = 32,
 ) -> pd.DataFrame:
+
     model.eval()
     model_device = next(model.parameters()).device
+    x = torch.from_numpy(x)
 
     preds = []
-    # split into smaller batches to avoid memory issues
-    for i in range(0, x.shape[0], max_batch_size):
-        x_batch = torch.from_numpy(x[i:i + max_batch_size]).to(model_device)
-        batch_preds = model(x_batch).softmax(dim=-1).detach().cpu()
+    for minibatch in utils.make_device_batches(x, max_batch_size, model_device):
+        batch_preds = model(minibatch).softmax(dim=-1).detach().cpu()
         preds.append(batch_preds)
     preds = torch.cat(preds, dim=0)
 
@@ -287,3 +289,42 @@ def make_preds_df(
 
     df = pd.DataFrame(preds.numpy(force=True), index=index, columns=columns)
     return df
+
+
+def perturb(
+        x: Float[torch.Tensor, "batch_size channels height width"],
+        degree: float,
+) -> Float[torch.Tensor, "batch_size channels height width"]:
+    """
+    Perturb `x` (images) by adding Gaussian noise to it to the degree given.
+    Output is clamped to [-1, 1].
+    """
+    return (x + degree * torch.randn_like(x)).clamp(-1, 1)
+
+
+def check_pred_change(
+        original: Float[torch.Tensor, "batch_size channels height width"],
+        perturbed: Float[torch.Tensor, "batch_size channels height width"],
+        model: torch.nn.Module,
+        max_batch_size: int = 32,
+) -> list[bool]:
+    """
+    Returns a list of booleans indicating whether the model's prediction has
+    changed. i.e. All elements are True if the model's prediction has changed
+    for all images.
+    """
+
+    model.eval()
+    model_device = next(model.parameters()).device
+
+    preds = []
+    for x in [original, perturbed]:
+        preds.append([])
+        for minibatch in utils.make_device_batches(x, max_batch_size, model_device):
+            batch_preds = model(
+                minibatch
+            ).softmax(dim=-1).argmax(dim=-1).detach().cpu()
+            preds[-1].append(batch_preds)
+        preds[-1] = torch.cat(preds[-1], dim=0)
+
+    return preds[0] != preds[1]
