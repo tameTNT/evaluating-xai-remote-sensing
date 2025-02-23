@@ -4,6 +4,7 @@ import einops
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torchvision.utils
 from jaxtyping import Float, Int
 import pandas as pd
 
@@ -63,25 +64,29 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
 
 
 def show_image(
-        img: t.Union[Float[torch.Tensor, "channels height width"],
-        Float[np.ndarray, "channels height width"]],
+        x: t.Union[Float[t.Union[torch.Tensor, np.ndarray], "channels height width"],
+                   Float[t.Union[torch.Tensor, np.ndarray], "n channels height width"]],
         **kwargs
 ):
     """
-    Show an image using matplotlib.
+    Show an image (or n images) using matplotlib.
     The image is expected to be normalised (i.e. in the range [-1, 1])
     and with dimensions (C, H, W).
 
     kwargs are passed to `plt.imshow`.
     """
 
-    if isinstance(img, torch.Tensor):
-        img = img.numpy(force=True)
+    if isinstance(x, torch.Tensor):
+        x = x.numpy(force=True)
 
-    if img.min() < 0:
-        img = (img + 1) / 2  # un-normalise
-    img = np.transpose(img, (1, 2, 0))  # move colour channel to end
-    plt.imshow(img, **kwargs)
+    if x.ndim == 4:
+        x = einops.rearrange(x, "n c h w -> c h (n w)")
+        # x = torchvision.utils.make_grid(x, nrow=x.shape[0])
+
+    if x.min() < 0:
+        x = (x + 1) / 2  # un-normalise
+    x = np.transpose(x, (1, 2, 0))  # move colour channel to end
+    plt.imshow(x, **kwargs)
     plt.axis("off")
 
 
