@@ -302,16 +302,21 @@ def perturb(
     return (x + degree * torch.randn_like(x)).clamp(-1, 1)
 
 
-def check_pred_change(
+def pred_change_df(
+        model: torch.nn.Module,
         original: Float[torch.Tensor, "batch_size channels height width"],
         perturbed: Float[torch.Tensor, "batch_size channels height width"],
-        model: torch.nn.Module,
         max_batch_size: int = 32,
-) -> list[bool]:
+) -> pd.DataFrame:
     """
-    Returns a list of booleans indicating whether the model's prediction has
-    changed. i.e. All elements are True if the model's prediction has changed
-    for all images.
+    Returns a dataframe containing 3 columns for each input image index:
+    - original_pred: the prediction class index on the original image
+    - change_in_confidence: the change in confidence from the original
+        prediction on the perturbed image
+    - perturbed_pred: the prediction class index on the perturbed image
+
+    The predictions are made using the model provided with batches of size the
+    given max_batch_size.
     """
 
     model.eval()
@@ -320,11 +325,19 @@ def check_pred_change(
     preds = []
     for x in [original, perturbed]:
         preds.append([])
-        for minibatch in utils.make_device_batches(x, max_batch_size, model_device):
-            batch_preds = model(
-                minibatch
-            ).softmax(dim=-1).argmax(dim=-1).detach().cpu()
+        mb_gen = utils.make_device_batches(x, max_batch_size, model_device)
+        for minibatch in mb_gen:
+            batch_preds = model(minibatch).softmax(dim=-1).detach().cpu()
             preds[-1].append(batch_preds)
         preds[-1] = torch.cat(preds[-1], dim=0)
 
-    return preds[0] != preds[1]
+    df = pd.DataFrame(
+        preds[0].argmax(-1),
+        columns=["original_pred"],
+    )
+    df["change_in_confidence"] = torch.gather(
+        preds[1] - preds[0], dim=1, index=preds[0].argmax(-1, keepdim=True)
+    )
+    df["perturbed_pred"] = preds[1].argmax(-1)
+
+    return df
