@@ -64,14 +64,19 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
 
 
 def show_image(
-        x: t.Union[Float[t.Union[torch.Tensor, np.ndarray], "channels height width"],
-                   Float[t.Union[torch.Tensor, np.ndarray], "n channels height width"]],
+        x: t.Union[torch.Tensor, np.ndarray],
         **kwargs
 ):
     """
     Show an image (or n images) using matplotlib.
-    The image is expected to be normalised (i.e. in the range [-1, 1])
-    and with dimensions (C, H, W).
+    The image is assumed to be normalised if it contains values < 0.
+    Otherwise, it is expected to be in the range [0, 1].
+    The shape of x (a numpy array OR torch Tensor) can be:
+
+        - (c, h, w) OR (h, w, c) for a single image
+        - (n, c, h, w) OR (n, h, w, c) for n images
+
+    The number of channels (c) should either be 1 (grayscale) or 3 (RGB).
 
     kwargs are passed to `plt.imshow`.
     """
@@ -79,13 +84,22 @@ def show_image(
     if isinstance(x, torch.Tensor):
         x = x.numpy(force=True)
 
-    if x.ndim == 4:
-        x = einops.rearrange(x, "n c h w -> c h (n w)")
+    if x.ndim == 3:
+        if x.shape[0] in (1, 3):
+            x = einops.rearrange(x, "c h w -> h w c")
+
+    elif x.ndim == 4:
+        if x.shape[-1] in (1, 3):
+            x = einops.rearrange(x, "n h w c -> n c h w")
+
+        x = einops.rearrange(x, "n c h w -> h (n w) c")
         # x = torchvision.utils.make_grid(x, nrow=x.shape[0])
+    else:
+        raise ValueError(f"Invalid shape for x: {x.shape}")
 
     if x.min() < 0:
         x = (x + 1) / 2  # un-normalise
-    x = np.transpose(x, (1, 2, 0))  # move colour channel to end
+
     plt.imshow(x, **kwargs)
     plt.axis("off")
 
