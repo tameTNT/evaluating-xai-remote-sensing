@@ -1,5 +1,3 @@
-from helpers import utils
-
 import typing as t
 
 import numpy as np
@@ -9,6 +7,8 @@ import skimage
 import torch
 from jaxtyping import Float, Int
 from tqdm.autonotebook import tqdm
+
+from helpers import utils
 
 
 def reset_child_params(model: torch.nn.Module):
@@ -310,13 +310,14 @@ def pred_change_df(
 ) -> pd.DataFrame:
     """
     Returns a dataframe containing 3 columns for each input image index:
-    - original_pred: the prediction class index on the original image
-    - change_in_confidence: the change in confidence from the original
-        prediction on the perturbed image
-    - perturbed_pred: the prediction class index on the perturbed image
+
+        - `original_pred`: the prediction class index on the original image
+        - `change_in_confidence`: the change in confidence from the original
+          prediction on the perturbed image
+        - `perturbed_pred`: the prediction class index on the perturbed image
 
     The predictions are made using the model provided with batches of size the
-    given max_batch_size.
+    given `max_batch_size`.
     """
 
     model.eval()
