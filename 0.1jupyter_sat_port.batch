@@ -6,14 +6,14 @@
 #SBATCH --mem=28G                                ##Request 28Gb of System RAM. This is the most available on this partition
 #SBATCH -t 01-20:00:00                           ##Request 2 days for this job, the default is only 30 minutes
 ##SBATCH --gres=gpu:1                             ##Request 1 GPU, we don't mind what GPU we get given. We could use --gres=gpu:ampere:1 instead to ensure we get an 80Gb A100 for example.
-#SBATCH --gres=gpu:1g.10gb:1                     #Temporary sbatch bug workaround
-##SBATCH --gres=gpu:ampere:1                      ## In case we need lots of VRAM
+##SBATCH --gres=gpu:1g.10gb:1                     #Temporary sbatch bug workaround
+#SBATCH --gres=gpu:ampere:1                      ## In case we need lots of VRAM
 
 #SBATCH --mail-user=jgcw74@durham.ac.uk          ##Replace <username> with your CIS username to receive an email when the job starts
 #SBATCH --mail-type=BEGIN
 
-#SBATCH --job-name=sat_port_jupyter
-#SBATCH -o 1jupyterOnPort.log
+#SBATCH --job-name=Asat_port_jupyter
+#SBATCH -o 1.1jupyterOnPort.log
 
 ##Activate conda and environment
 eval "$(conda shell.bash hook)"
