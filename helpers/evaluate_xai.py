@@ -1,5 +1,6 @@
 import typing as t
 
+import einops
 import numpy as np
 import pandas as pd
 import scipy
@@ -25,18 +26,25 @@ def reset_child_params(model: torch.nn.Module):
 # for SHAP values this is better evaluated with L2 (hamming doesn't make sense
 # (not the same)); SSIM is for heatmaps
 def pixel_l2_distance_per_label(
-        x1: Float[np.ndarray, "batch_size num_labels height width channels"],
-        x2: Float[np.ndarray, "batch_size num_labels height width channels"],
+        x1: Float[np.ndarray, "batch_size height width channels num_labels"],
+        x2: Float[np.ndarray, "batch_size height width channels num_labels"],
         normalise: bool = True,
 ) -> Float[torch.Tensor, "num_labels"]:
     """
     Calculate normalised mean L2 distance between two sets of images
     (`x1`, `x2`) per label over the batch size.
+
+    Input arrays are expected to have the shape of (batch_size, height, width,
+    channels, num_labels).
+
     Each image (H, W) is flattened (i.e. to H*W) and the L2 distance is
-    calculated per element (normalised by default, after summing channels, to
-    the range [0, 1]).
+    calculated per element.
+    Each array is normalised by default, after summing channels, to
+    the range [0, 1].
     """
     assert x1.shape == x2.shape, "x1 and x2 must have the same shape"
+    x1 = einops.rearrange(x1, "b h w c l -> b l h w c")
+    x2 = einops.rearrange(x2, "b h w c l -> b l h w c")
     batch_size, num_labels, h, w, _ = x1.shape
 
     # sum over colour channels before normalising
