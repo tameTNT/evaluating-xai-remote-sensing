@@ -115,6 +115,7 @@ def visualise_importance(
     """
 
     show_image(x)
+    # todo: change this to plasma_r or viridis_r (clearer)
     plt.imshow(importance_rank, alpha=alpha, cmap="jet_r")
 
     cb = plt.colorbar(label="Importance Rank (0 = most important)")
