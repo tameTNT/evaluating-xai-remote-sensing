@@ -104,6 +104,35 @@ def show_image(
     plt.axis("off")
 
 
+def show_ms_images(
+        x: Float[np.ndarray, "batch_size channels height width"],
+):
+    """
+    Show all channels of multiple multi-spectral images in a nice labelled plot.
+    """
+
+    n_imgs, n_channels, h, w = x.shape
+
+    _, axes = plt.subplots(nrows=n_imgs, ncols=n_channels, figsize=(8, 8))
+
+    if n_imgs == 1:
+        axes = np.array([axes])
+
+    for i in range(n_imgs):
+        for c in range(n_channels):
+            plt.subplot(n_imgs, n_channels, i * n_channels + c + 1)
+            show_image(x[i, [c]], cmap="viridis")
+
+    for ax, col_name in zip(axes[0], [f"{c}" for c in range(n_channels)]):
+        ax.set_title(col_name)
+    for ax, row_name in zip(axes[:, 0], [f"{c}" for c in range(n_imgs)]):
+        ax.annotate(row_name, xy=(0, 0.5), xytext=(-1, 0),
+                    xycoords="axes fraction", textcoords="offset fontsize",
+                    size="large", ha="right", va="center")
+
+    plt.tight_layout()
+
+
 def visualise_importance(
         x: Float[np.ndarray, "batch_size height width channels"],
         importance_rank: Int[np.ndarray, "batch_size height width"],
