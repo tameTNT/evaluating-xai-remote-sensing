@@ -283,3 +283,21 @@ def pred_change_df(
     df["perturbed_pred"] = preds[1].argmax(-1)
 
     return df
+
+
+def compactness(
+        x: Float[np.ndarray, "batch_size height width"],
+        threshold: float,
+) -> Float[np.ndarray, "batch_size"]:
+    """
+    Calculate the compactness of each image in `x` given a threshold ([0, 1]).
+    The compactness is defined as the proportion of the number of pixels
+    (normalised per image) above the threshold. Note that the absolute value of
+    the pixels is used since negative values also contribute to visual clutter
+    when plotted.
+    """
+
+    x = np.abs(x)  # negative values also contribute to visual clutter
+    x /= x.max(axis=(1, 2), keepdims=True)  # normalise
+
+    return np.sum(x > threshold, axis=(1, 2)) / x[0].size
