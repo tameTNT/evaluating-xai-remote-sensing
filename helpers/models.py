@@ -60,6 +60,8 @@ class FineTunedResNet50(FreezableModel):
         self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
         self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
 
+        self.expected_input_size = 224
+
     def forward(self, x):
         return self.model(x)
 
