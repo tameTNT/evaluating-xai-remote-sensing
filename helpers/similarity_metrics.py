@@ -1,11 +1,11 @@
+import einops
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import torch
+from jaxtyping import Float
 from scipy.stats import spearmanr
 from skimage.metrics import structural_similarity as ssim
-from jaxtyping import Float
-import torch
-import einops
-import pandas as pd
 
 
 # for SHAP values this is better evaluated with L2 (hamming doesn't make sense
