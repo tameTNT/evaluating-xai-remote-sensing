@@ -1,7 +1,7 @@
 __all__ = [
     "core",
     "eurosat",
-    "reBEN_dataset",
+    "reBEN",
     "sen12ms",
     "ucmerced",
 ]
