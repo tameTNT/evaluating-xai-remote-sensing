@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import spearmanr
+from skimage.metrics import structural_similarity as ssim
 from jaxtyping import Float
 import torch
 import einops
@@ -74,18 +75,25 @@ def make_l2_distance_per_label_df(
 
 
 def spearman_rank(
-        x_original: Float[np.ndarray, "batch_size height width channels num_labels"],
-        x_new: Float[np.ndarray, "batch_size height width channels num_labels"],
+        x_original: Float[np.ndarray, "batch_size height width channels"],
+        x_new: Float[np.ndarray, "batch_size height width channels"],
         show_plot: bool = False,
 ) -> Float[np.ndarray, "batch_size"]:
     """
-    Calculate the Spearman rank correlation between two sets of
-    images/explanations.
+    Calculate the Spearman rank correlation between two sets of ranked
+    images/explanations. That is, inputs should be rankings ranging from 0 to
+    num_pixels-1.
 
-    Optionally also show the scatter plots of the rankings for each image.
+    Optionally also shows the scatter plots of the rankings for each image.
+
+    A score of 1 indicates perfect correlation with the rankings agreeing
+    entirely on the importance of pixels.
+    A score of -1 indicates perfect anti-correlation with the rankings saying
+    exactly the opposite of each other.
+    A score of 0 indicates no correlation at all between images/explanations.
     """
 
-    assert x_original.shape == x_new.shape, "x1_ranked and x2_ranked must have the same shape"
+    assert x_original.shape == x_new.shape, "x_original and x_new must have the same shape"
 
     num_x = x_original.shape[0]
 
@@ -110,3 +118,49 @@ def spearman_rank(
         fig.tight_layout()
 
     return spearman_coeffs
+
+
+def top_k_intersection(
+        x_original: Float[np.ndarray, "batch_size height width channels"],
+        x_new: Float[np.ndarray, "batch_size height width channels"],
+        k: int = 5000,
+) -> Float[np.ndarray, "batch_size"]:
+    """
+    Calculate the percentage intersection of the top-k ranked pixels between
+    two sets of ranked images/explanations. That is, inputs should be rankings
+    ranging from 0 to num_pixels-1.
+
+    A score of 1 indicates perfect intersection (the top k are the same in both
+    images/explanations).
+    A score of 0 indicates no intersection (the top k are completely different
+    in both images/explanations).
+    """
+
+    assert x_original.shape == x_new.shape, "x_original and x_new must have the same shape"
+
+    originals_flattened = x_original.reshape(x_original.shape[0], -1)
+    new_flattened = x_new.reshape(x_new.shape[0], -1)
+    intersection = np.sum(np.logical_and(originals_flattened < k, new_flattened < k), axis=1) / k
+
+    return intersection
+
+
+def structural_similarity(
+        x_original: Float[np.ndarray, "batch_size height width channels"],
+        x_new: Float[np.ndarray, "batch_size height width channels"],
+) -> Float[np.ndarray, "batch_size"]:
+    """
+    Calculate the structural similarity index (SSIM) between two sets of ranked
+    images/explanations. That is, inputs should be rankings ranging from 0 to
+    num_pixels-1.
+
+    A score of 1 indicates perfect structural similarity.
+    A score of 0 indicates no structural similarity between the two
+    images/explanations.
+    """
+
+    ssims = np.zeros(0)
+    for og, new in zip(x_original, x_new):
+        ssims = np.append(ssims, ssim(og, new, data_range=new.max()))
+
+    return ssims
