@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 from torch import Tensor
 
-logger = logging.getLogger("projectLog")
+logger = logging.getLogger("main")
 
 
 def get_dataset_root() -> Path:
@@ -50,26 +50,35 @@ class RSNormaliseTransform:
             # For EuroSAT, authors claim range is 0-2750. Other torchgeo datasets use 3000.
             input_max: t.Optional[float] = None,
             percentiles: t.Optional[t.Tuple[float, float]] = (.01, .99),
+            channel_wise: bool = False,
     ):
         self.min = input_min
         self.max = input_max
         self.percentiles = percentiles
+        self.channel_wise = channel_wise
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
+        c, h, w = image.shape
+
+        # flatten final dimensions to allow for quantile/max/min per channel
+        image = image.reshape(c, -1)
+
+        scale_kwargs = {"dim": 1, "keepdim": True} if self.channel_wise else {}
         if self.max is None:
             # See article for further reasoning behind percentile normalization:
             # https://medium.com/sentinel-hub/how-to-normalize-satellite-images-for-deep-learning-d5b668c885af
             if self.percentiles:
-                self.max = image.quantile(self.percentiles[1])  # max as 99th percentile
+                self.max = image.quantile(self.percentiles[1], **scale_kwargs)  # max as 99th percentile
             else:
-                self.max = image.max()
+                self.max = image.amax(**scale_kwargs)  # a variant is consistent in return type
         if self.min is None:
             if self.percentiles:
-                self.min = image.quantile(self.percentiles[0])  # min as 1st percentile
+                self.min = image.quantile(self.percentiles[0], **scale_kwargs)  # min as 1st percentile
             else:
-                self.min = image.min()
+                self.min = image.amin(**scale_kwargs)
 
-        return ((image - self.min) / (self.max - self.min)).clamp(0, 1)
+        image = ((image - self.min) / (self.max - self.min)).clamp(0, 1)
+        return image.reshape(c, w, h)  # reshape back to original dimensions (note: flipped h and w)
 
     def __repr__(self):
         return f"{__name__}.{self.__class__.__name__}(min={self.min}, max={self.max})"
