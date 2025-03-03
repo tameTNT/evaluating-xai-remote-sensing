@@ -1,3 +1,4 @@
+import typing
 from typing import Optional, Callable, Type, Union, List, Any
 
 import torch
@@ -10,6 +11,9 @@ from torchvision.models._utils import _ovewrite_named_param, handle_legacy_inter
 from torchvision.utils import _log_api_usage_once
 
 import helpers.logging
+
+MODEL_NAMES = typing.Literal["ResNet50"]
+
 
 logger = helpers.logging.get_logger("main")
 
