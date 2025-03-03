@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 from torch import Tensor
 
-DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS"]
+DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
 
 
 logger = logging.getLogger("main")

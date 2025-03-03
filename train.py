@@ -12,9 +12,6 @@ import torch.nn as nn
 import wandb
 from tqdm.autonotebook import tqdm
 
-# for when on NCC to be able to import local packages
-os.chdir(os.path.expanduser("~/l3_project"))
-
 import dataset_processing
 import helpers
 
@@ -161,7 +158,7 @@ lg.debug(f'Checkpoints directory set to {checkpoints_path.resolve()}.')
 
 
 def get_dataset_object(
-        name: dataset_processing.core.DATASET_NAMES,
+        name: str,
         split: t.Literal["train", "val", "test"],
         image_size: int,
         download: bool = False,
@@ -189,7 +186,7 @@ def get_dataset_object(
 
 
 def get_model_type(
-        name: helpers.models.MODEL_NAMES,
+        name: str,
 ) -> t.Type[helpers.models.FreezableModel]:
     if name == "ResNet50":
         lg.debug("Returning ResNet50 model type...")
