@@ -1,7 +1,7 @@
 import typing as t
 
 import torch
-import torchgeo.datasets
+from torchgeo.datasets import EuroSAT
 import torchvision.transforms.v2 as tv_transforms
 
 import dataset_processing.core
@@ -11,7 +11,9 @@ DATASET_ROOT = dataset_processing.core.get_dataset_root()
 logger = helpers.logging.get_logger("main")
 
 
-class EuroSATBase(torchgeo.datasets.EuroSAT):
+class EuroSATBase(EuroSAT):
+    N_CLASSES = 10
+
     def __init__(
             self,
             split: t.Literal["train", "val", "test"],
@@ -27,7 +29,7 @@ class EuroSATBase(torchgeo.datasets.EuroSAT):
         if self.rgb_only:
             bands = self.rgb_bands  # ("B04", "B03", "B02")
         else:
-            bands = self.all_band_names
+            bands = self.all_band_names  # todo: evaluation paper excludes B10 band?
 
         self.N_BANDS = len(bands)
 
