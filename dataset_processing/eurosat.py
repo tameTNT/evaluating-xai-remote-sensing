@@ -89,10 +89,8 @@ class EuroSATBase(EuroSAT):
 class EuroSATRGB(EuroSATBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, rgb_only=True)
-        self.save_path = "eurosat_rgb"
 
 
 class EuroSATMS(EuroSATBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, rgb_only=False)
-        self.save_path = "eurosat_ms"
