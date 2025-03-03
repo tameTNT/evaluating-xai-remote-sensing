@@ -102,8 +102,9 @@ def tensor_dict_transform_wrapper(
         :param dataset_dict: A dictionary which includes an "image" key with a torch.Tensor value.
         :return: The original dictionary with the "image" key transformed.
         """
-        logger.debug(f"Applying transform to 'image' key of `dataset_dict` "
-                     f"via `{tensor_dict_transform_wrapper.__name__}`'s `wrapper`.")
+
+        # logger.debug(f"Applying transform to 'image' key of `dataset_dict` "
+        #              f"via `{tensor_dict_transform_wrapper.__name__}`'s `wrapper`.")
         transformed_image = transform(dataset_dict["image"])
         return_dict = dataset_dict.copy()
         return_dict["image"] = transformed_image
