@@ -10,6 +10,10 @@ from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 from torchvision.utils import _log_api_usage_once
 
+import helpers.logging
+
+logger = helpers.logging.get_logger("main")
+
 
 class FreezableModel(nn.Module):
     def freeze_layers(self, keep: int):
@@ -19,11 +23,16 @@ class FreezableModel(nn.Module):
             e.g. keep=1 means only output layer is trainable.
         """
 
+        n_frozen = 0
         for dist_from_output, layer in enumerate(reversed(list(self.model.children()))):
             # print(dist_from_output, layer)
             if dist_from_output >= keep:
                 for param in layer.parameters():
                     param.requires_grad = False
+                n_frozen += 1
+                logger.debug(f"Froze layer {layer.__class__.__name__} of {self.__class__.__name__}")
+
+        logger.info(f"Froze {n_frozen} layers of {self.__class__.__name__}")
 
     def unfreeze_layers(self):
         """
@@ -32,6 +41,7 @@ class FreezableModel(nn.Module):
 
         for param in self.parameters():
             param.requires_grad = True
+        logger.info(f"Unfroze all layers of {self.__class__.__name__}")
 
     def extra_repr(self):
         """
@@ -51,16 +61,36 @@ class FreezableModel(nn.Module):
 
 
 class FineTunedResNet50(FreezableModel):
-    def __init__(self, num_classes: int):
+    expected_input_dim = 224
+
+    def __init__(self, n_input_bands: int, n_output_classes: int):
         """
         Initialise a ResNet-50 model with the final linear layer replaced to output the desired number of classes.
         """
 
         super().__init__()
         self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
 
-        self.expected_input_size = 224
+        logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
+
+        # modify model after loading pretrained weights
+        old_input_conv = self.model.conv1
+        # if necessary, change the input convolution
+        if n_input_bands != old_input_conv.in_channels:
+            logger.debug(f"Changing input conv layer from {old_input_conv.in_channels} "
+                         f"to {n_input_bands} input channels.")
+            self.model.conv1 = nn.Conv2d(
+                n_input_bands, old_input_conv.out_channels,
+                kernel_size=old_input_conv.kernel_size, stride=old_input_conv.stride,
+                padding=old_input_conv.padding, bias=old_input_conv.bias
+            )
+
+        # update the output linear layer
+        logger.debug(f"Changing output linear layer from to {n_output_classes} output channels.")
+        self.model.fc = nn.Linear(self.model.fc.in_features, n_output_classes)
+
+        logger.info(f"Model {self.__class__.__name__} successfully initialised with {n_input_bands} input channels "
+                    f"and {n_output_classes} output classes.")
 
     def forward(self, x):
         return self.model(x)
