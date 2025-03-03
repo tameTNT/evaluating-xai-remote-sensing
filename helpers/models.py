@@ -15,6 +15,8 @@ logger = helpers.logging.get_logger("main")
 
 
 class FreezableModel(nn.Module):
+    modified_input_layer = False
+
     def freeze_layers(self, keep: int):
         """
         Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
@@ -47,9 +49,12 @@ class FreezableModel(nn.Module):
         Unfreeze the input layer of the model.
         """
 
-        for param in list(model.model.children())[0].parameters():
+        for param in list(self.model.children())[0].parameters():
             param.requires_grad = True
         logger.info(f"Unfroze input layer of {self.__class__.__name__}")
+        if not self.modified_input_layer:
+            logger.debug(f"Input layer of {self.__class__.__name__} was unfrozen "
+                         f"but input layer does not differ from default weights.")
 
     def extra_repr(self):
         """
@@ -82,7 +87,6 @@ class FineTunedResNet50(FreezableModel):
         logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
 
         # modify model after loading pretrained weights
-        self.modified_input = False
         old_input_conv = self.model.conv1
         # if necessary, change the input convolution
         if n_input_bands != old_input_conv.in_channels:
@@ -93,7 +97,7 @@ class FineTunedResNet50(FreezableModel):
                 kernel_size=old_input_conv.kernel_size, stride=old_input_conv.stride,
                 padding=old_input_conv.padding, bias=old_input_conv.bias
             )
-            self.modified_input = True
+            self.modified_input_layer = True
 
         # update the output linear layer
         logger.debug(f"Changing output linear layer from to {n_output_classes} output channels.")
