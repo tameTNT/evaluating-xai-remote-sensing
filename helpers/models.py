@@ -17,6 +17,9 @@ logger = helpers.logging.get_logger("main")
 class FreezableModel(nn.Module):
     modified_input_layer = False
 
+    expected_input_dim: int
+    input_layers_to_train: int
+
     def freeze_layers(self, keep: int):
         """
         Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
@@ -31,7 +34,7 @@ class FreezableModel(nn.Module):
                 for param in layer.parameters():
                     param.requires_grad = False
                 n_frozen += 1
-                logger.debug(f"Froze layer {layer.__class__.__name__} of {self.__class__.__name__}")
+                logger.debug(f"Froze {layer.__class__.__name__} layer of {self.__class__.__name__}")
 
         logger.info(f"Froze {n_frozen} layers of {self.__class__.__name__}")
 
@@ -44,17 +47,22 @@ class FreezableModel(nn.Module):
             param.requires_grad = True
         logger.info(f"Unfroze all layers of {self.__class__.__name__}")
 
-    def unfreeze_input_layer(self):
+    def unfreeze_input_layers(self, k: int):
         """
-        Unfreeze the input layer of the model.
+        Unfreeze the first k input layers of the model.
         """
 
-        for param in list(self.model.children())[0].parameters():
-            param.requires_grad = True
-        logger.info(f"Unfroze input layer of {self.__class__.__name__}")
+        for layer_k, layer in enumerate(self.model.children()):
+            if layer_k >= k:
+                break
+            for param in layer.parameters():
+                param.requires_grad = True
+            logger.debug(f"Unfroze {layer.__class__.__name__} layer of {self.__class__.__name__}.")
+
         if not self.modified_input_layer:
-            logger.debug(f"Input layer of {self.__class__.__name__} was unfrozen "
+            logger.debug(f"Input layers of {self.__class__.__name__} was unfrozen "
                          f"but input layer does not differ from default weights.")
+        logger.info(f"Unfroze top {k} input layers of {self.__class__.__name__}.")
 
     def extra_repr(self):
         """
@@ -75,6 +83,7 @@ class FreezableModel(nn.Module):
 
 class FineTunedResNet50(FreezableModel):
     expected_input_dim = 224
+    input_layers_to_train = 2
 
     def __init__(self, n_input_bands: int, n_output_classes: int):
         """
