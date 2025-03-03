@@ -5,7 +5,6 @@ import torch.nn as nn
 import torchvision
 from torch import Tensor
 from torchvision.models import WeightsEnum, ResNet50_Weights, ResNet101_Weights
-from torchvision.models._api import register_model
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 from torchvision.utils import _log_api_usage_once
@@ -393,7 +392,6 @@ _COMMON_META = {
 }
 
 
-@register_model()
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
 def resnet50_new(*, weights: Optional[ResNet50_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-50 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.
@@ -425,7 +423,6 @@ def resnet50_new(*, weights: Optional[ResNet50_Weights] = None, progress: bool =
     return _resnet(Bottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
 
 
-@register_model()
 @handle_legacy_interface(weights=("pretrained", ResNet101_Weights.IMAGENET1K_V1))
 def resnet101_new(*, weights: Optional[ResNet101_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-101 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.
