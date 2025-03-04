@@ -1,13 +1,23 @@
+from typing import Generator
+
 import numpy as np
 import torch
 from jaxtyping import Float, Int
+
+
+def get_model_device(model: torch.nn.Module) -> torch.device:
+    """
+    Returns the torch device of a torch Module (model).
+    """
+
+    return next(model.parameters()).device
 
 
 def make_device_batches(
         x: torch.Tensor,
         max_batch_size: int,
         target_device: torch.device
-) -> torch.Tensor:
+) -> Generator[torch.Tensor]:
     """
     Splits a tensor `x` into mini batches and moves them to the target device.
     Yields these mini batches (of size up to max_batch_size) one by one.

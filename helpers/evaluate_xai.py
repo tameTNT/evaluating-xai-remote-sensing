@@ -195,7 +195,7 @@ def make_preds_df(
 ) -> pd.DataFrame:
 
     model.eval()
-    model_device = next(model.parameters()).device
+    model_device = utils.get_model_device(model)
     x = torch.from_numpy(x)
 
     preds = []
@@ -243,7 +243,7 @@ def pred_change_df(
     """
 
     model.eval()
-    model_device = next(model.parameters()).device
+    model_device = utils.get_model_device(model)
 
     preds = []
     for x in [original, perturbed]:
