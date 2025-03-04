@@ -21,7 +21,8 @@ parser.add_argument(
     "--random_seed",
     type=int,
     default=42,
-    help="Specify a random PyTorch seed for reproducibility.",
+    help="Specify a random PyTorch seed for reproducibility. "
+         "Note that this does not affect numpy randomness.",
 )
 parser.add_argument(
     "--checkpoints_root_name",
@@ -46,7 +47,6 @@ parser.add_argument(
 parser.add_argument(
     "--batch_size",
     type=int,
-    default=32,
     help="Batch size to use for DataLoaders.",
 )
 parser.add_argument(
@@ -58,7 +58,6 @@ parser.add_argument(
 parser.add_argument(
     "--optimiser_name",
     type=str,
-    default="SGD",
     choices=["SGD"],  # todo: support more optimisers
 )
 parser.add_argument(
@@ -71,7 +70,6 @@ parser.add_argument(
 parser.add_argument(
     "--frozen_lr",
     type=float,
-    default=0.01,
     help="Learning rate to use for training the partially frozen model.",
 )
 parser.add_argument(
@@ -81,16 +79,15 @@ parser.add_argument(
     help="Maximum number of epochs to train the partially frozen model.",
 )
 parser.add_argument(
-    "--full_lr",
-    type=float,
-    default=0.001,
-    help="Learning rate to use for training the full model.",
-)
-parser.add_argument(
     "--frozen_lr_early_stop_threshold",
     type=float,
     default=0.0001,
     help="Learning rate threshold for early stopping when training frozen model.",
+)
+parser.add_argument(
+    "--full_lr",
+    type=float,
+    help="Learning rate to use for training the full model.",
 )
 parser.add_argument(
     "--full_max_epochs",
@@ -105,9 +102,9 @@ parser.add_argument(
     help="Learning rate threshold for early stopping when training full model.",
 )
 parser.add_argument(
-    "--wandb_track_run",
+    "--do_not_track",
     action="store_true",
-    help="Whether to track the run with wandb.",
+    help="If given, do not track the run using WandB.",
 )
 
 # Parse arguments
@@ -120,7 +117,6 @@ dataset_name = args.dataset_name
 batch_size = args.batch_size
 num_workers = args.num_workers
 optimiser_name = args.optimiser_name
-wandb_track_run = args.wandb_track_run
 loss_criterion: nn.Module = getattr(nn, args.loss_criterion_name)()
 
 frozen_lr = args.frozen_lr
@@ -130,6 +126,8 @@ frozen_max_epochs = args.frozen_max_epochs
 full_lr = args.full_lr
 lr_early_stop_threshold = args.lr_early_stop_threshold
 full_max_epochs = args.full_max_epochs
+
+wandb_track_run = not args.wandb_track_run
 
 # Actual script starts here
 lg = helpers.logging.get_logger("main")
