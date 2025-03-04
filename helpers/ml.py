@@ -53,7 +53,7 @@ def validation_step(
     val_acc_arr = np.zeros(0)
 
     with torch.no_grad():
-        for _ in tqdm(range(num_val_batches), desc="Validating", leave=False):
+        for _ in tqdm(range(num_val_batches), desc="Validating", ncols=110, leave=False):
             val_data = next(val_data_gen)
             val_images = val_data["image"].to(model_device)
             val_labels = val_data["label"].to(model_device)
