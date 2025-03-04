@@ -17,22 +17,23 @@ logger = logging.get_logger("main")
 class SHAPExplainer(Explainer):
     """
     An Explainer object using SHAP Partition explanations for a model
-    with default save path of ~/l3_project/output/shap/
+    with default save path of BASE_OUTPUT_PATH/shap
     """
 
     def __init__(self, model: torch.nn.Module,
-                 save_path: Path = Path("~/l3_project/output/shap/")):
+                 save_path: Path = Path("shap")):
         super().__init__(model, save_path)
 
     def explain(
             self,
-            x: Float[torch.Tensor, "batch_size channels height width"],
+            x: Float[torch.Tensor, "n_samples channels height width"],
             max_evals: int = 10000,
             batch_size: int = 64,
     ):
         """
         Explains the model's predictions for the given images using the SHAP
-        Partition Explainer.
+        Partition Explainer. Requires a decent amount of memory
+        (approx 6GB for n_samples=5, batch_size=64).
         NB: Even though SHAP generates explanations for all model outputs, only
         the model's most confident prediction is saved.
 
@@ -62,8 +63,8 @@ class SHAPExplainer(Explainer):
             max_evals=max_evals,
             batch_size=batch_size,
             # order from most confident prediction (left) to lowest
-            # and only save the most confident prediction (sorted to be first)
             outputs=shap.Explanation.argsort.flip[:1],
         )
-        self.explanation = shap_values[0]
-        self.save_explanation()
+        # only save the most confident prediction (sorted to be first above)
+        self.explanation = shap_values.values[..., 0]
+        self.save_state()
