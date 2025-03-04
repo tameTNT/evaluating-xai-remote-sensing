@@ -71,9 +71,15 @@ class EuroSATBase(EuroSAT):
             # Add randomised transforms
             transform_list += [
                 tv_transforms.RandomHorizontalFlip(p=0.5),
-                # transforms.RandomAffine(0, shear=0.2),  # Shear with range 0.2
-                # transforms.RandomAffine(0, scale=(1., 1.2)),  # Zoom in with range 0.2
             ]
+            if not self.rgb_only:
+                transform_list += [
+                    tv_transforms.RandomVerticalFlip(p=0.5),
+                    tv_transforms.RandomAffine(
+                        degrees=2, translate=(0.1, 0.1), shear=0.2,
+                        scale=(0.95, 1.05), fill=0
+                    ),
+                ]
 
         transform_list += [
             # Shift to mean 0 and std 1 (i.e. [-1, 1])
