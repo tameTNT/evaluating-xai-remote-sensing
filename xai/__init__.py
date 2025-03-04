@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import torch
 import numpy as np
@@ -7,20 +8,41 @@ from helpers import utils, logging
 
 logger = logging.get_logger("main")
 
+BASE_OUTPUT_PATH = Path("~/l3_project/xai_output")
+logger.debug(f"Explanation default output path set to {BASE_OUTPUT_PATH}.")
+
 
 class Explainer:
+    """
+    Base class for all explainers.
+    The default save path is BASE_OUTPUT_PATH / {model.__class__.__name__}{.npz, .json}
+    """
     def __init__(
             self,
             model: torch.nn.Module,
-            save_path: Path = Path("~/l3_project/output/"),
+            save_path: Path = Path(""),
+            attempt_load: bool = False
     ):
         self.model = model
         self.device = utils.get_model_device(model)
 
-        self.save_path = save_path
+        self.save_path = BASE_OUTPUT_PATH / save_path
         self.save_path.mkdir(parents=True, exist_ok=True)
 
-        self.explanation = None
+        self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
+        self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
+
+        self.input = torch.tensor(0)
+        self.args = dict()
+        self.explanation = np.ndarray(0)
+
+        if attempt_load:
+            try:
+                self.load_state()
+            except FileNotFoundError:
+                logger.warning(f"Failed to load existing explanation from "
+                               f"{self.npz_path} and {self.json_path}. "
+                               f"Using null values.")
 
     def explain(
             self,
@@ -29,28 +51,36 @@ class Explainer:
     ):
         logger.info(f"Generating explanations in {self.__class__.__name__} "
                     f"for x.shape={x.shape}.")
+        self.input = x
+        self.args = kwargs
 
-    def save_explanation(self):
+    def save_state(self):
         """
-        Saves self.explanation to
+        Saves self.input, self.args and self.explanation to
         self.save_path / '{self.model.__class__.__name__}.npz'
         as a compressed npz file.
         """
 
         np.savez_compressed(
-            self.save_path / f"{self.model.__class__.__name__}.npz",
-            explanation=self.explanation
+            self.npz_path,
+            explanation_input=self.input.numpy(force=True),
+            explanation=self.explanation,
         )
-        logger.debug(f"Saved {self.__class__.__name__}'s explanation "
-                     f"to {self.save_path / f'{self.model.__class__.__name__}.npz'}")
 
-    def load_explanation(self):
+        json.dump(self.args, self.json_path.open("w+"))
+
+        logger.debug(f"Saved {self.__class__.__name__}'s explanation "
+                     f"to {self.npz_path}.")
+
+    def load_state(self):
         """
-        Loads self.explanation from self.save_path / '{self.model.__class__.__name__}.npz'
+        Loads self.input, self.args and self.explanation from self.npz_path
         """
 
         logger.debug(f"Attempting to load explanation from "
-                     f"{self.save_path / f'{self.model.__class__.__name__}.npz'} "
-                     f"to {self.__class__.__name__}.")
-        with np.load(self.save_path / f"{self.model.__class__.__name__}.npz") as data:
+                     f"{self.npz_path} to {self.__class__.__name__}.")
+        with np.load(self.npz_path) as data:
+            self.input = torch.from_numpy(data["input"])
             self.explanation = data["explanation"]
+
+        self.args = json.load(self.json_path.open("r"))
