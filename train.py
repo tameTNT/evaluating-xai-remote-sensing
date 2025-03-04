@@ -16,90 +16,21 @@ import dataset_processing
 import helpers
 
 # Create argument parser
-parser = argparse.ArgumentParser(description="Train a model on a dataset.")
+parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
+
+# General arguments
 parser.add_argument(
     "--random_seed",
     type=int,
     default=42,
     help="Specify a random PyTorch seed for reproducibility. "
-         "Note that this does not affect numpy randomness.",
+         "Note that this does not affect numpy randomness. Defaults to 42.",
 )
 parser.add_argument(
     "--checkpoints_root_name",
     type=Path,
     default="checkpoints",
-    help="Specify the directory for checkpoints with l3_project.",
-)
-parser.add_argument(
-    "--model_name",
-    type=str,
-    choices=helpers.models.MODEL_NAMES,
-    help="Name of the model to train.",
-    required=True,
-)
-parser.add_argument(
-    "--dataset_name",
-    type=str,
-    choices=dataset_processing.core.DATASET_NAMES,
-    help="Name of the dataset to train on.",
-    required=True,
-)
-parser.add_argument(
-    "--batch_size",
-    type=int,
-    help="Batch size to use for DataLoaders.",
-)
-parser.add_argument(
-    "--num_workers",
-    type=int,
-    default=4,
-    help="Number of workers to use for DataLoaders.",
-)
-parser.add_argument(
-    "--optimiser_name",
-    type=str,
-    choices=["SGD"],  # todo: support more optimisers
-)
-parser.add_argument(
-    "--loss_criterion_name",
-    type=str,
-    default="CrossEntropyLoss",
-    choices=["CrossEntropyLoss"],  # todo: support more loss criteria
-    help="Loss criterion to use.",
-)
-parser.add_argument(
-    "--frozen_lr",
-    type=float,
-    help="Learning rate to use for training the partially frozen model.",
-)
-parser.add_argument(
-    "--frozen_max_epochs",
-    type=int,
-    default=20,
-    help="Maximum number of epochs to train the partially frozen model.",
-)
-parser.add_argument(
-    "--frozen_lr_early_stop_threshold",
-    type=float,
-    default=0.0001,
-    help="Learning rate threshold for early stopping when training frozen model.",
-)
-parser.add_argument(
-    "--full_lr",
-    type=float,
-    help="Learning rate to use for training the full model.",
-)
-parser.add_argument(
-    "--full_max_epochs",
-    type=int,
-    default=50,
-    help="Maximum number of epochs to train the full model.",
-)
-parser.add_argument(
-    "--lr_early_stop_threshold",
-    type=float,
-    default=0.0001,
-    help="Learning rate threshold for early stopping when training full model.",
+    help="Specify the directory for checkpoints with l3_project. Defaults to ~/checkpoints",
 )
 parser.add_argument(
     "--do_not_track",
@@ -107,15 +38,111 @@ parser.add_argument(
     help="If given, do not track the run using WandB.",
 )
 
+# Model arguments
+parser.add_argument(
+    "--model_name",
+    type=str,
+    required=True,
+    choices=helpers.models.MODEL_NAMES,
+    help="Name of the model to train.",
+)
+parser.add_argument(
+    "--use_pretrained",
+    action="store_true",
+    help="If given, load the model's pretrained weights.",
+)
+
+# Dataset arguments
+parser.add_argument(
+    "--dataset_name",
+    type=str,
+    required=True,
+    choices=dataset_processing.core.DATASET_NAMES,
+    help="Name of the dataset to train on.",
+)
+parser.add_argument(
+    "--batch_size",
+    type=int,
+    required=True,
+    help="Batch size to use for DataLoaders.",
+)
+parser.add_argument(
+    "--num_workers",
+    type=int,
+    default=4,
+    help="Number of workers to use for DataLoaders. Defaults to 4.",
+)
+
+# Optimiser and loss criterion arguments
+parser.add_argument(
+    "--optimiser_name",
+    type=str,
+    default="SGD",
+    choices=["SGD", "Adam"],  # todo: support more optimisers
+    help="Name of the optimiser to use. Defaults to SGD.",
+)
+parser.add_argument(
+    "--loss_criterion_name",
+    type=str,
+    default="CrossEntropyLoss",
+    choices=["CrossEntropyLoss"],  # todo: support more loss criteria
+    help="Loss criterion to use. Defaults to CrossEntropyLoss.",
+)
+
+# Frozen model training arguments
+parser.add_argument(
+    "--frozen_lr",
+    type=float,
+    default=0.01,
+    help="(If using a pretrained model) Learning rate to use for training the partially frozen model.",
+)
+parser.add_argument(
+    "--frozen_max_epochs",
+    type=int,
+    default=20,
+    help="(If using a pretrained model) Maximum number of epochs to train the partially frozen model.",
+)
+parser.add_argument(
+    "--frozen_lr_early_stop_threshold",
+    type=float,
+    default=0.0001,
+    help="(If using a pretrained model) Learning rate threshold for early stopping when training frozen model.",
+)
+
+# Full model training arguments
+parser.add_argument(
+    "--full_lr",
+    type=float,
+    required=True,
+    help="Learning rate to use for training the full model.",
+)
+parser.add_argument(
+    "--full_max_epochs",
+    type=int,
+    required=True,
+    help="Maximum number of epochs to train the full model.",
+)
+parser.add_argument(
+    "--lr_early_stop_threshold",
+    type=float,
+    required=True,
+    help="Learning rate threshold for early stopping when training full model.",
+)
+
 # Parse arguments
 args = parser.parse_args()
+
 random_seed = args.random_seed
 checkpoints_root_name = args.checkpoints_root_name
-model_name = args.model_name
-dataset_name = args.dataset_name
+wandb_track_run = not args.wandb_track_run
 
+model_name = args.model_name
+use_pretrained = args.use_pretrained
+
+dataset_name = args.dataset_name
 batch_size = args.batch_size
 num_workers = args.num_workers
+
 optimiser_name = args.optimiser_name
 loss_criterion: nn.Module = getattr(nn, args.loss_criterion_name)()
 
@@ -127,7 +154,6 @@ full_lr = args.full_lr
 lr_early_stop_threshold = args.lr_early_stop_threshold
 full_max_epochs = args.full_max_epochs
 
-wandb_track_run = not args.wandb_track_run
 
 # Actual script starts here
 lg = helpers.logging.get_logger("main")
@@ -202,6 +228,7 @@ training_dataset = get_dataset_object(dataset_name, "train", model_type.expected
 validation_dataset = get_dataset_object(dataset_name, "val", model_type.expected_input_dim)
 
 model = model_type(
+    pretrained=use_pretrained,
     n_input_bands=training_dataset.N_BANDS,
     n_output_classes=training_dataset.N_CLASSES
 ).to(torch_device)
@@ -217,10 +244,15 @@ validation_iterator = iter(dataset_processing.core.cycle(validation_dataloader))
 
 
 def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
+    kwargs = {}
+    if optimiser_name == "SGD":
+        kwargs = {
+            "weight_decay": 1e-6, "momentum": 0.9, "nesterov": True
+        }
     opt: torch.optim.Optimizer = getattr(torch.optim, optimiser_name)(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=lr, weight_decay=1e-6, momentum=0.9, nesterov=True,
+        filter(lambda p: p.requires_grad, model.parameters()), lr=lr, **kwargs
     )
+
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
@@ -353,16 +385,17 @@ def train_model(
         lg.info(f"Finished wandb run, id={wandb_run.id}.")
 
 
-lg.info("Training partially frozen model...")
-model.freeze_layers(1)  # freeze all but the last layer
-if model.modified_input_layer:  # unfreeze the input layer if we need to train it too
-    model.unfreeze_input_layers(model.input_layers_to_train)
+if use_pretrained:
+    lg.info("Training partially frozen pretrained model...")
+    model.freeze_layers(1)  # freeze all but the last layer
+    if model.modified_input_layer:  # unfreeze the input layer if we need to train it too
+        model.unfreeze_input_layers(model.input_layers_to_train)
 
-try:
-    train_model(lr=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
-                early_stop_threshold=frozen_lr_early_stop_threshold)
-except Exception as e:
-    lg.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
+    try:
+        train_model(lr=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
+                    early_stop_threshold=frozen_lr_early_stop_threshold)
+    except Exception as e:
+        lg.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
 
 lg.info("Training full (unfrozen) model...")
 model.unfreeze_layers()

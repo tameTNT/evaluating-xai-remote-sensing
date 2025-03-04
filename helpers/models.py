@@ -88,15 +88,18 @@ class FineTunedResNet50(FreezableModel):
     expected_input_dim = 224
     input_layers_to_train = 2
 
-    def __init__(self, n_input_bands: int, n_output_classes: int):
+    def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int):
         """
         Initialise a ResNet-50 model with the final linear layer replaced to output the desired number of classes.
         """
 
         super().__init__()
-        self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-
-        logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
+        if pretrained:
+            self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
+            logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
+        else:
+            self.model = resnet50_new(weights=None)
+            logger.debug(f"Model {self.__class__.__name__} initialised without pretrained weights")
 
         # modify model after loading pretrained weights
         old_input_conv = self.model.conv1
