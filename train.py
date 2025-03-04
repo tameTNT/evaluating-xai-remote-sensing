@@ -34,7 +34,7 @@ parser.add_argument(
 parser.add_argument(
     "--do_not_track",
     action="store_true",
-    help="If given, do not track the run using WandB.",
+    help="If present, do not track the run using WandB.",
 )
 
 # Model arguments
@@ -130,11 +130,11 @@ parser.add_argument(
 
 # Parse arguments
 args = parser.parse_args()
-print("Got args:", args)
+print("Got args:", args, "\n")
 
 random_seed = args.random_seed
 checkpoints_root_name = args.checkpoints_root_name
-wandb_track_run = not args.wandb_track_run
+do_not_track = args.do_not_track
 
 model_name = args.model_name
 use_pretrained = args.use_pretrained
@@ -157,7 +157,7 @@ full_max_epochs = args.full_max_epochs
 
 # Actual script starts here
 lg = helpers.logging.get_logger("main")
-print(f"Logging to {lg.handlers[0].baseFilename}. See file for details.")
+print(f"Logging to {lg.handlers[0].baseFilename}. See file for details.\n")
 lg.debug("Successfully imported packages.")
 
 if torch.cuda.is_available():
@@ -280,7 +280,7 @@ def train_model(
     optimiser, scheduler = get_opt_and_scheduler(lr, scheduler_reduction_steps)
     lg.debug(f"Initialised optimiser (lr={lr}) and scheduler.")
 
-    if wandb_track_run:
+    if not do_not_track:
         wandb_run = wandb.init(
             save_code=True,
             project="evaluating_xAI_for_RS",
@@ -312,13 +312,13 @@ def train_model(
     else:
         wandb_run = None
 
-    with tqdm(total=max_epochs, desc="Epochs") as prog_bar1:
+    with tqdm(total=max_epochs, desc="Epochs", ncols=50) as prog_bar1:
         for epoch in range(max_epochs):
             training_loss_arr = np.zeros(0)
             training_acc_arr = np.zeros(0)
 
             lg.info(str(prog_bar1))
-            with tqdm(total=len(training_dataloader), desc="Batches", leave=False) as prog_bar2:
+            with tqdm(total=len(training_dataloader), desc="Batches", ncols=50, leave=False) as prog_bar2:
                 for i, data in enumerate(training_dataloader):  # type: int, dict[str, torch.Tensor]
                     images: torch.Tensor = data["image"]
                     labels: torch.Tensor = data["label"]

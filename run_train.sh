@@ -16,4 +16,5 @@ txt_args=$(grep -vE "$pattern" $1)
 
 echo "Using following args from $1 to run train.py:"
 echo $txt_args
+echo
 python train.py $txt_args
