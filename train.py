@@ -1,5 +1,4 @@
 import argparse
-import os
 import platform
 import time
 import typing as t
@@ -9,11 +8,11 @@ import numpy as np
 import safetensors.torch as st
 import torch
 import torch.nn as nn
-import wandb
 from tqdm.autonotebook import tqdm
 
 import dataset_processing
 import helpers
+import wandb
 
 # Create argument parser
 parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
@@ -131,6 +130,7 @@ parser.add_argument(
 
 # Parse arguments
 args = parser.parse_args()
+print("Got args:", args)
 
 random_seed = args.random_seed
 checkpoints_root_name = args.checkpoints_root_name
@@ -157,6 +157,7 @@ full_max_epochs = args.full_max_epochs
 
 # Actual script starts here
 lg = helpers.logging.get_logger("main")
+print(f"Logging to {lg.handlers[0].baseFilename}. See file for details.")
 lg.debug("Successfully imported packages.")
 
 if torch.cuda.is_available():

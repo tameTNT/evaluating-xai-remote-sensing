@@ -1,8 +1,8 @@
 import typing as t
 
 import torch
-from torchgeo.datasets import EuroSAT
 import torchvision.transforms.v2 as tv_transforms
+from torchgeo.datasets import EuroSAT
 
 import dataset_processing.core
 import helpers.logging
@@ -28,8 +28,13 @@ class EuroSATBase(EuroSAT):
 
         if self.rgb_only:
             bands = self.rgb_bands  # ("B04", "B03", "B02")
+        # todo: new combination of bands e.g. NDVI, NDWI, etc.
+        #   see indicies in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
         else:
             bands = self.all_band_names  # todo: evaluation paper excludes B10 band?
+            # bands 1, 9, 10 are for atmospheric correction? (https://doi.org/10.1109/IGARSS47720.2021.9553337)
+            # bands 1, 9, 10, 11 not used:
+            # https://ceurspt.wikidata.dbis.rwth-aachen.de/Vol-2771/AICS2020_paper_50.pdf
 
         self.N_BANDS = len(bands)
 
@@ -46,7 +51,7 @@ class EuroSATBase(EuroSAT):
             download=download
         )
 
-    def get_transforms(self):
+    def get_transforms(self):  # todo: customise for RGB/MS and add more?
         transform_list = [
             tv_transforms.ToImage(),
         ]
