@@ -4,6 +4,8 @@ import numpy as np
 import torch
 from tqdm.autonotebook import tqdm
 
+import utils
+
 
 def make_preds(
         model: torch.nn.Module,
@@ -27,8 +29,9 @@ def train_step(
         train_criterion: torch.nn.Module,
         model_optimiser: torch.optim.Optimizer,
 ) -> typing.Tuple[float, float]:
+
     model_to_train.train()
-    model_device = next(model_to_train.parameters()).device
+    model_device = utils.get_model_device(model_to_train)
 
     loss, accuracy = make_preds(model_to_train, input_img.to(model_device), targets.to(model_device), train_criterion)
 
@@ -47,7 +50,7 @@ def validation_step(
 ) -> typing.Tuple[float, float]:
 
     model_to_validate.eval()
-    model_device = next(model_to_validate.parameters()).device
+    model_device = utils.get_model_device(model_to_validate)
 
     val_loss_arr = np.zeros(0)
     val_acc_arr = np.zeros(0)

@@ -61,11 +61,13 @@ class EuroSATBase(EuroSAT):
                 tv_transforms.ToDtype(torch.float32, scale=False),  # scaling handles by normalise below
                 dataset_processing.core.RSNormaliseTransform(0, 2750),
             ]
+            logger.debug(f"Using 0-2750 initial transforms for {self.__class__.__name__}")
         else:
             transform_list += [
                 tv_transforms.ToDtype(torch.float32, scale=False),
                 dataset_processing.core.RSNormaliseTransform(channel_wise=True),
             ]
+            logger.debug(f"Using channel_wise initial transforms for {self.__class__.__name__}")
 
         if self.split == "train":
             # Add randomised transforms
@@ -80,6 +82,7 @@ class EuroSATBase(EuroSAT):
                         scale=(0.95, 1.05), fill=0
                     ),
                 ]
+                logger.debug(f"Applying additional random transforms for {self.__class__.__name__}")
 
         transform_list += [
             # Shift to mean 0 and std 1 (i.e. [-1, 1])

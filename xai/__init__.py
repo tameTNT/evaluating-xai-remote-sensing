@@ -1,8 +1,8 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
-import torch
 import numpy as np
+import torch
 
 from helpers import utils, logging
 
@@ -79,7 +79,7 @@ class Explainer:
 
         logger.debug(f"Attempting to load explanation from "
                      f"{self.npz_path} to {self.__class__.__name__}.")
-        with np.load(self.npz_path) as data:
+        with np.load(self.npz_path) as data:  # type: dict[str, np.ndarray]
             self.input = torch.from_numpy(data["input"])
             self.explanation = data["explanation"]
 
