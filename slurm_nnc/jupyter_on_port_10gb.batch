@@ -18,6 +18,8 @@
 eval "$(conda shell.bash hook)"
 conda activate sat_project
 
+cd ~/l3_project
+
 export DATASET_ROOT=~/datasets
 
 port=36429                                       ##Replace <port_number> with the same port number we selected earlier
