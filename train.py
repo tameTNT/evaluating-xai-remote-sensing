@@ -146,7 +146,7 @@ model_name = args.model_name
 use_pretrained = args.use_pretrained
 
 dataset_name = args.dataset_name
-no_resize = args.no_resize
+use_resize = not args.no_resize
 batch_size = args.batch_size
 num_workers = args.num_workers
 
@@ -193,16 +193,18 @@ def get_dataset_object(
         name: str,
         split: t.Literal["train", "val", "test"],
         image_size: int,
-        no_resize: bool,
         download: bool = False,
-        do_transforms: bool = True,
+        use_normalisation: bool = True,
+        use_augmentations: bool = True,
+        use_resize: bool = True,
 ):
     kwargs = {
         "split": split,
         "image_size": image_size,
         "download": download,
-        "do_transforms": do_transforms,
-        "no_resize": no_resize,
+        "use_normalisation": use_normalisation,
+        "use_augmentations": use_augmentations,
+        "use_resize": use_resize,
     }
 
     if name == "EuroSATRGB":
@@ -235,10 +237,10 @@ def get_model_type(
 model_type = get_model_type(model_name)
 
 training_dataset = get_dataset_object(
-    dataset_name, "train", model_type.expected_input_dim, no_resize
+    dataset_name, "train", model_type.expected_input_dim, use_resize=use_resize
 )
 validation_dataset = get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim, no_resize
+    dataset_name, "val", model_type.expected_input_dim, use_resize=use_resize
 )
 
 model = model_type(
@@ -379,6 +381,7 @@ def train_model(
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
 
             if wandb_run:
+                lg.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
                     model, sampling_iterator, 1
                 )

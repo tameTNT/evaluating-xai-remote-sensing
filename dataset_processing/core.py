@@ -52,7 +52,7 @@ class RSNormaliseTransform:
             input_min: t.Optional[float] = None,
             # For EuroSAT, authors claim range is 0-2750. Other torchgeo datasets use 3000.
             input_max: t.Optional[float] = None,
-            percentiles: t.Optional[t.Tuple[float, float]] = (.01, .99),
+            percentiles: t.Optional[t.Tuple[float, float]] = (.02, .98),
             channel_wise: bool = False,
             clamp: bool = False,
     ):
@@ -73,12 +73,12 @@ class RSNormaliseTransform:
             # See article for further reasoning behind percentile normalization:
             # https://medium.com/sentinel-hub/how-to-normalize-satellite-images-for-deep-learning-d5b668c885af
             if self.percentiles:
-                self.max = image.quantile(self.percentiles[1], **scale_kwargs)  # max as 99th percentile
+                self.max = image.quantile(self.percentiles[1], **scale_kwargs)  # use (98th) percentile as max
             else:
                 self.max = image.amax(**scale_kwargs)  # a variant is consistent in return type
         if self.min is None:
             if self.percentiles:
-                self.min = image.quantile(self.percentiles[0], **scale_kwargs)  # min as 1st percentile
+                self.min = image.quantile(self.percentiles[0], **scale_kwargs)  # use (2nd) percentile as min
             else:
                 self.min = image.amin(**scale_kwargs)
 
