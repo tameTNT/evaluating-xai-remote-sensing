@@ -18,23 +18,27 @@ class EuroSATBase(EuroSAT):
             self,
             split: t.Literal["train", "val", "test"],
             image_size: int,
-            rgb_only: bool = True,
+            variant: t.Literal["rgb", "ms"] = "rgb",
             download: bool = False,
             do_transforms: bool = True,
     ):
         self.split = split
         self.image_size = image_size
-        self.rgb_only = rgb_only
+        self.variant = variant
 
-        if self.rgb_only:
+        if self.variant == "rgb":
             bands = self.rgb_bands  # ("B04", "B03", "B02")
-        # todo: new combination of bands e.g. NDVI, NDWI, etc.
-        #   see indicies in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
-        else:
-            bands = self.all_band_names  # todo: evaluation paper excludes B10 band?
-            # bands 1, 9, 10 are for atmospheric correction? (https://doi.org/10.1109/IGARSS47720.2021.9553337)
+        elif self.variant == "ms":
+            # bands = self.all_band_names
+            bands = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B08A", "B12")
+
+            # bands 1, 9, 10 only for atmospheric correction? (https://doi.org/10.1109/IGARSS47720.2021.9553337)
             # bands 1, 9, 10, 11 not used:
             # https://ceurspt.wikidata.dbis.rwth-aachen.de/Vol-2771/AICS2020_paper_50.pdf
+        else:
+            raise NotImplementedError(f"Unsupported EuroSAT version: {self.variant}")
+            # todo: new combination of bands e.g. NDVI, NDWI, etc.
+            #   see indicies in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
 
         self.N_BANDS = len(bands)
 
@@ -56,7 +60,7 @@ class EuroSATBase(EuroSAT):
             tv_transforms.ToImage(),
         ]
 
-        if self.rgb_only:
+        if self.variant == "rgb":
             transform_list += [
                 tv_transforms.ToDtype(torch.float32, scale=False),  # scaling handles by normalise below
                 dataset_processing.core.RSNormaliseTransform(0, 2750),
@@ -74,7 +78,7 @@ class EuroSATBase(EuroSAT):
             transform_list += [
                 tv_transforms.RandomHorizontalFlip(p=0.5),
             ]
-            if not self.rgb_only:
+            if self.variant != "rgb":
                 transform_list += [
                     tv_transforms.RandomVerticalFlip(p=0.5),
                     tv_transforms.RandomAffine(
@@ -102,9 +106,9 @@ class EuroSATBase(EuroSAT):
 
 class EuroSATRGB(EuroSATBase):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, rgb_only=True)
+        super().__init__(*args, **kwargs, variant="rgb")
 
 
 class EuroSATMS(EuroSATBase):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, rgb_only=False)
+        super().__init__(*args, **kwargs, variant="ms")
