@@ -70,6 +70,34 @@ def validation_step(
     return val_loss_arr.mean(), val_acc_arr.mean()
 
 
+def sample_outputs(
+        model_to_test: torch.nn.Module,
+        sample_iterator: typing.Generator[dict[str, torch.Tensor], None, None],
+        num_batches: int,
+) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
+    model_to_test.eval()
+    model_device = utils.get_model_device(model_to_test)
+
+    with torch.no_grad():
+        all_samples = torch.zeros(0).to(model_device)
+        all_labels = torch.zeros(0).to(model_device)
+        all_outputs = torch.zeros(0).to(model_device)
+
+        for _ in tqdm(range(num_batches), desc="Sampling", ncols=110, leave=False):
+            data = next(sample_iterator)
+            images = data["image"].to(model_device)
+            labels = data["label"].to(model_device)
+
+            all_samples = torch.cat([all_samples, images], dim=0) if all_samples.size else images
+            all_labels = torch.cat([all_labels, labels], dim=0) if all_labels.size else labels
+
+            output = model_to_test(images)
+            all_outputs = torch.cat([all_outputs, output], dim=0) if all_outputs.size else output
+
+    return all_samples.cpu(), all_labels.cpu().int(), all_outputs.cpu()
+
+
 def test_model(model_to_test, testing_dataloader, device):
     model_to_test.eval()
     with torch.no_grad():

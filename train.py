@@ -253,8 +253,12 @@ training_dataloader = torch.utils.data.DataLoader(
 validation_dataloader = torch.utils.data.DataLoader(
     validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, drop_last=False
 )
+sampling_dataloader = torch.utils.data.DataLoader(
+    validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True
+)
 
 validation_iterator = iter(dataset_processing.core.cycle(validation_dataloader))
+sampling_iterator = iter(dataset_processing.core.cycle(sampling_dataloader))
 
 
 def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
@@ -270,7 +274,7 @@ def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
-        patience=5, threshold=0.005  # todo: check this threshold for a loss??
+        patience=5, threshold=0.1  # todo: add these as args
     )
     return opt, sch
 
@@ -375,10 +379,26 @@ def train_model(
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
 
             if wandb_run:
+                samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
+                    model, sampling_iterator, 1
+                )
+                predicted_labels = sample_outputs.argmax(dim=1)
+                incorrect_mask = predicted_labels != samples_labels
+                incorrect_samples = samples[incorrect_mask]
+                scaled_incorrect_samples = (incorrect_samples[:, 0] + 1) / 2
+                incorrect_labels = samples_labels[incorrect_mask]
+                incorrect_preds = predicted_labels[incorrect_mask]
+
                 wandb_run.log({
                     "loss/validation": val_mean_loss,
                     "accuracy/validation": val_mean_acc,
                     "learning_rate": current_lr,
+                    "samples/incorrect": [
+                        wandb.Image(
+                            scaled_incorrect_samples[i].numpy(),
+                            caption=f"P:{incorrect_preds[i]}/T:{incorrect_labels[i]}"
+                        ) for i in range(len(scaled_incorrect_samples))
+                    ],
                 })
 
                 if epoch != 0 and epoch % 10 == 0:
