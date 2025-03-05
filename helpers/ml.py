@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from tqdm.autonotebook import tqdm
 
-import utils
+from helpers import utils
 
 
 def make_preds(

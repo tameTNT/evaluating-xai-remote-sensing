@@ -105,10 +105,10 @@ def show_image(
 
 
 def show_ms_images(
-        x: Float[np.ndarray, "batch_size channels height width"],
+        x: Float[t.Union[torch.Tensor, np.ndarray], "n_samples channels height width"],
 ):
     """
-    Show all channels of multiple multi-spectral images in a nice labelled plot.
+    Show all channels of multiple multi-spectral images (n, c, h, w) in a nice labelled plot.
     """
 
     n_imgs, n_channels, h, w = x.shape
