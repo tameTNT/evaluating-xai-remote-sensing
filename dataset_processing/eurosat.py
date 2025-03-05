@@ -73,6 +73,14 @@ class EuroSATBase(EuroSAT):
             ]
             logger.debug(f"Using channel_wise initial transforms for {self.__class__.__name__}")
 
+        transform_list += [
+            # Shift to mean 0 and std 1 (i.e. approx [-1, 1])
+            tv_transforms.Normalize(mean=[0.5]*self.N_BANDS, std=[0.5]*self.N_BANDS, inplace=True),
+
+            # Scale as expected by ResNet (see torchvision docs)
+            # tv_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+
         if self.split == "train":
             # Add randomised transforms
             transform_list += [
@@ -89,12 +97,6 @@ class EuroSATBase(EuroSAT):
                 logger.debug(f"Applying additional random transforms for {self.__class__.__name__}")
 
         transform_list += [
-            # Shift to mean 0 and std 1 (i.e. [-1, 1])
-            tv_transforms.Normalize(mean=[0.5]*self.N_BANDS, std=[0.5]*self.N_BANDS, inplace=True),
-
-            # Scale as expected by ResNet (see torchvision docs)
-            # tv_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-
             # Resize to image size required by input layer of model
             tv_transforms.Resize(self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR),
         ]

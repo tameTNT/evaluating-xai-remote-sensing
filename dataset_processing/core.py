@@ -54,11 +54,13 @@ class RSNormaliseTransform:
             input_max: t.Optional[float] = None,
             percentiles: t.Optional[t.Tuple[float, float]] = (.01, .99),
             channel_wise: bool = False,
+            clamp: bool = False,
     ):
         self.min = input_min
         self.max = input_max
         self.percentiles = percentiles
         self.channel_wise = channel_wise
+        self.clamp = clamp
 
     def __call__(self, image: torch.Tensor) -> torch.Tensor:
         c, h, w = image.shape
@@ -80,8 +82,10 @@ class RSNormaliseTransform:
             else:
                 self.min = image.amin(**scale_kwargs)
 
-        image = ((image - self.min) / (self.max - self.min)).clamp(0, 1)
-        return image.reshape(c, w, h)  # reshape back to original dimensions (note: flipped h and w)
+        image = ((image - self.min) / (self.max - self.min))
+        if self.clamp:
+            image = image.clamp(0, 1)
+        return image.reshape(c, h, w)  # reshape back to original dimensions
 
     def __repr__(self):
         return f"{__name__}.{self.__class__.__name__}(min={self.min}, max={self.max})"
