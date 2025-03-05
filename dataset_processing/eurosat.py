@@ -100,8 +100,10 @@ class EuroSATBase(EuroSAT):
         # Resize to image size required by input layer of model
         if no_resize:  # just put the image in the middle and pad around it
             scaling_transform = tv_transforms.CenterCrop(self.image_size)
+            logger.debug(f"Upsizing {self.__class__.__name__} images via CenterCrop.")
         else:  # rescale the image to the required size via interpolation
             scaling_transform = tv_transforms.Resize(self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR)
+            logger.debug(f"Upsizing {self.__class__.__name__} images via Resize.")
 
         transform_list += [scaling_transform]
 

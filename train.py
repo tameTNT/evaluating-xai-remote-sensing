@@ -270,7 +270,7 @@ def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
-        patience=5, threshold=0.005
+        patience=5, threshold=0.005  # todo: check this threshold for a loss??
     )
     return opt, sch
 
