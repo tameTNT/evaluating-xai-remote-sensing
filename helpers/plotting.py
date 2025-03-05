@@ -65,12 +65,14 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
 
 def show_image(
         x: t.Union[torch.Tensor, np.ndarray],
+        is_normalised: bool = True,
         **kwargs
 ):
     """
     Show an image (or n images) using matplotlib.
-    The image is assumed to be normalised if it contains values < 0.
-    Otherwise, it is expected to be in the range [0, 1].
+    If `is_normalised` is True, the image is assumed to be in the range [-1, 1]
+    and will be scaled to [0, 1] for display.
+
     The shape of x (a numpy array OR torch Tensor) can be:
 
         - (c, h, w) OR (h, w, c) for a single image
@@ -78,7 +80,7 @@ def show_image(
 
     The number of channels (c) should either be 1 (grayscale) or 3 (RGB).
 
-    kwargs are passed to `plt.imshow`.
+    kwargs (e.g. vmin, vmax) are passed to `plt.imshow`.
     """
 
     if isinstance(x, torch.Tensor):
@@ -97,8 +99,8 @@ def show_image(
     else:
         raise ValueError(f"Invalid shape for x: {x.shape}")
 
-    if x.min() < 0:
-        x = (x + 1) / 2  # un-normalise
+    if is_normalised:
+        x = (x + 1) / 2  # un-normalise from [-1, 1] to [0, 1]
 
     plt.imshow(x, **kwargs)
     plt.axis("off")
@@ -106,9 +108,17 @@ def show_image(
 
 def show_ms_images(
         x: Float[t.Union[torch.Tensor, np.ndarray], "n_samples channels height width"],
+        normalisation_type: t.Literal["all", "each", "img", "channel", "none"] = "all",
 ):
     """
     Show all channels of multiple multi-spectral images (n, c, h, w) in a nice labelled plot.
+
+    Performs normalisation based on `normalisation_type`:
+        - "all": use min/max across all images and channels to normalise images
+        - "each": use min/max per image and channel (i.e. each plot is normalised separately)
+        - "img": min/max per image (across all channels in a row)
+        - "channel": min/max per channel (across all plots in a column)
+        - "none": no normalisation (let plt.imshow do its thing)
     """
 
     n_imgs, n_channels, h, w = x.shape
@@ -121,7 +131,18 @@ def show_ms_images(
     for i in range(n_imgs):
         for c in range(n_channels):
             plt.subplot(n_imgs, n_channels, i * n_channels + c + 1)
-            show_image(x[i, [c]], cmap="viridis")
+
+            norm_args = dict()
+            if normalisation_type == "all":
+                norm_args = dict(vmin=x.min(), vmax=x.max())
+            elif normalisation_type == "each":
+                norm_args = dict(vmin=x[i, c].min(), vmax=x[i, c].max())
+            elif normalisation_type == "img":
+                norm_args = dict(vmin=x[i].min(), vmax=x[i].max())
+            elif normalisation_type == "channel":
+                norm_args = dict(vmin=x[:, c].min(), vmax=x[:, c].max())
+
+            show_image(x[i, [c]], is_normalised=False, cmap="viridis", **norm_args)
 
     for ax, col_name in zip(axes[0], [f"{c}" for c in range(n_channels)]):
         ax.set_title(col_name)
