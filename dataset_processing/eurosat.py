@@ -52,6 +52,7 @@ class EuroSATBase(EuroSAT):
             raise NotImplementedError(f"Unsupported EuroSAT version: {self.variant}")
             # todo: new combination of bands e.g. NDVI, NDWI, etc.
             #   see indicies in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
+            #   see also https://torchgeo.readthedocs.io/en/stable/tutorials/transforms.html
 
         self.N_BANDS = len(bands)
 
