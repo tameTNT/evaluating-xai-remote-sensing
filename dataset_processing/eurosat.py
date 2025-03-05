@@ -21,6 +21,7 @@ class EuroSATBase(EuroSAT):
             variant: t.Literal["rgb", "ms"] = "rgb",
             download: bool = False,
             do_transforms: bool = True,
+            no_resize: bool = False,
     ):
         self.split = split
         self.image_size = image_size
@@ -43,7 +44,7 @@ class EuroSATBase(EuroSAT):
         self.N_BANDS = len(bands)
 
         if do_transforms:
-            transforms = self.get_transforms()
+            transforms = self.get_transforms(no_resize)
         else:
             transforms = None
 
@@ -55,7 +56,7 @@ class EuroSATBase(EuroSAT):
             download=download
         )
 
-    def get_transforms(self):  # todo: customise for RGB/MS and add more?
+    def get_transforms(self, no_resize):  # todo: customise for RGB/MS and add more?
         transform_list = [
             tv_transforms.ToImage(),
         ]
@@ -96,10 +97,13 @@ class EuroSATBase(EuroSAT):
                 ]
                 logger.debug(f"Applying additional random transforms for {self.__class__.__name__}")
 
-        transform_list += [
-            # Resize to image size required by input layer of model
-            tv_transforms.Resize(self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR),
-        ]
+        # Resize to image size required by input layer of model
+        if no_resize:  # just put the image in the middle and pad around it
+            scaling_transform = tv_transforms.CenterCrop(self.image_size)
+        else:  # rescale the image to the required size via interpolation
+            scaling_transform = tv_transforms.Resize(self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR)
+
+        transform_list += [scaling_transform]
 
         transforms = tv_transforms.Compose(transform_list)
 

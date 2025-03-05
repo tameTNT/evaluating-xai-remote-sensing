@@ -60,6 +60,12 @@ parser.add_argument(
     help="Name of the dataset to train on.",
 )
 parser.add_argument(
+    "--no_resize",
+    action="store_true",
+    help="If given, use the original images centred with padding. "
+         "Otherwise, resize and interpolate the images to the model's expected input size.",
+)
+parser.add_argument(
     "--batch_size",
     type=int,
     required=True,
@@ -140,6 +146,7 @@ model_name = args.model_name
 use_pretrained = args.use_pretrained
 
 dataset_name = args.dataset_name
+no_resize = args.no_resize
 batch_size = args.batch_size
 num_workers = args.num_workers
 
@@ -186,6 +193,7 @@ def get_dataset_object(
         name: str,
         split: t.Literal["train", "val", "test"],
         image_size: int,
+        no_resize: bool,
         download: bool = False,
         do_transforms: bool = True,
 ):
@@ -194,6 +202,7 @@ def get_dataset_object(
         "image_size": image_size,
         "download": download,
         "do_transforms": do_transforms,
+        "no_resize": no_resize,
     }
 
     if name == "EuroSATRGB":
@@ -225,8 +234,12 @@ def get_model_type(
 
 model_type = get_model_type(model_name)
 
-training_dataset = get_dataset_object(dataset_name, "train", model_type.expected_input_dim)
-validation_dataset = get_dataset_object(dataset_name, "val", model_type.expected_input_dim)
+training_dataset = get_dataset_object(
+    dataset_name, "train", model_type.expected_input_dim, no_resize
+)
+validation_dataset = get_dataset_object(
+    dataset_name, "val", model_type.expected_input_dim, no_resize
+)
 
 model = model_type(
     pretrained=use_pretrained,
@@ -288,6 +301,9 @@ def train_model(
             tags=[dataset_name, model_name, "frozen" if is_frozen_model else "full"],
             config={
                 "dataset": dataset_name,
+                "transform_options": {
+                    "no_resize": no_resize,
+                },
                 "batch_size": batch_size,
 
                 "model": model_name,
