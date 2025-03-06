@@ -193,26 +193,19 @@ def get_dataset_object(
         name: str,
         split: t.Literal["train", "val", "test"],
         image_size: int,
-        download: bool = False,
-        use_normalisation: bool = True,
-        use_augmentations: bool = True,
-        use_resize: bool = True,
+        **kwargs
 ):
-    kwargs = {
+    standard_kwargs = {
         "split": split,
         "image_size": image_size,
-        "download": download,
-        "use_normalisation": use_normalisation,
-        "use_augmentations": use_augmentations,
-        "use_resize": use_resize,
     }
 
     if name == "EuroSATRGB":
         lg.debug("Loading EuroSATRGB dataset...")
-        ds = dataset_processing.eurosat.EuroSATRGB(**kwargs)
+        ds = dataset_processing.eurosat.EuroSATRGB(**standard_kwargs, **kwargs)
     elif name == "EuroSATMS":
         lg.debug("Loading EuroSATMS dataset...")
-        ds = dataset_processing.eurosat.EuroSATMS(**kwargs)
+        ds = dataset_processing.eurosat.EuroSATMS(**standard_kwargs, **kwargs)
     else:
         lg.error(f"Invalid dataset name ({name}) provided to get_dataset_object.")
         raise ValueError(f"Dataset {name} does not exist.")
@@ -236,11 +229,17 @@ def get_model_type(
 
 model_type = get_model_type(model_name)
 
+manual_mean_std_calc = [[1118.3116455078125, 1043.06982421875, 947.53662109375, 1199.5548095703125, 1999.6763916015625,
+                         2368.963134765625, 2296.98486328125, 732.1416015625, 2594.695068359375],
+                        [327.0133056640625, 388.61962890625, 586.3471069335938, 565.2821655273438, 859.8197631835938,
+                         1084.8768310546875, 1107.9259033203125, 404.88214111328125, 1229.2401123046875]]
 training_dataset = get_dataset_object(
-    dataset_name, "train", model_type.expected_input_dim, use_resize=use_resize
+    dataset_name, "train", model_type.expected_input_dim, use_resize=use_resize,
+    use_normalisation=manual_mean_std_calc
 )
 validation_dataset = get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim, use_resize=use_resize
+    dataset_name, "val", model_type.expected_input_dim, use_resize=use_resize,
+    use_normalisation=manual_mean_std_calc
 )
 
 model = model_type(
@@ -308,7 +307,9 @@ def train_model(
             config={
                 "dataset": dataset_name,
                 "transform_options": {
-                    "no_resize": no_resize,
+                    "use_normalisation": True,  # todo: make this a script arg
+                    "use_augmentations": True,  # todo: make this an explicit list
+                    "use_resize": use_resize,
                 },
                 "batch_size": batch_size,
 
