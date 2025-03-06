@@ -82,7 +82,7 @@ class RSNormaliseTransform:
             else:
                 self.min = image.amin(**scale_kwargs)
 
-        image = ((image - self.min) / (self.max - self.min))
+        image = (image - self.min) / (self.max - self.min)
         if self.clamp:
             image = image.clamp(0, 1)
         return image.reshape(c, h, w)  # reshape back to original dimensions

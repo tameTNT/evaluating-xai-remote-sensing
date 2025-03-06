@@ -73,23 +73,22 @@ class EuroSATBase(EuroSAT):
             use_resize: bool
     ):  # todo: customise for RGB/MS and add more?
         # todo: generalise this to core dataset type/class
-        transform_list = [tv_transforms.ToImage()]
+
+        # scaling handled by normalise below
+        transform_list = [tv_transforms.ToImage(), tv_transforms.ToDtype(torch.float32, scale=False)]
 
         if self.variant == "rgb":
-            # scaling handled by normalise below
-            transform_list.append(tv_transforms.ToDtype(torch.float32, scale=False))
             if use_normalisation and isinstance(use_normalisation, bool):
                 transform_list.append(
                     dataset_processing.core.RSNormaliseTransform(input_min=0, input_max=2750, clamp=True)
                 )
-                logger.debug(f"Using 0-2750 initial transforms for {self.__class__.__name__}")
+                logger.debug(f"Used 0-2750 initial normalise transforms for {self.__class__.__name__}")
         else:
-            transform_list.append(tv_transforms.ToDtype(torch.float32, scale=False))
             if use_normalisation and isinstance(use_normalisation, bool):
                 transform_list.append(
                     dataset_processing.core.RSNormaliseTransform(channel_wise=True)
                 )
-                logger.debug(f"Using channel_wise initial transforms for {self.__class__.__name__}")
+                logger.debug(f"Used channel_wise initial transforms for {self.__class__.__name__}")
 
         if use_normalisation:  # Shift to mean 0 and std 1, [-1, 1]
             if isinstance(use_normalisation, bool):  # assume input is uniform [0, 1]. Same as 2x - 1 =(x - 0.5)/0.5
@@ -99,10 +98,12 @@ class EuroSATBase(EuroSAT):
                     # Scale as expected by ResNet (see torchvision docs)
                     # tv_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                 )
+                logger.debug(f"Normalised for {self.__class__.__name__} assuming mean and std of 0.5.")
             else:
                 transform_list.append(
                     tv_transforms.Normalize(mean=use_normalisation[0], std=use_normalisation[1], inplace=True),
                 )
+                logger.debug(f"Normalised for {self.__class__.__name__} using given mean and std.")
 
         # Add randomised transforms
         if self.split == "train" and use_augmentations:
@@ -117,17 +118,17 @@ class EuroSATBase(EuroSAT):
                         scale=(0.95, 1.05), fill=0
                     ),
                 ]
-                logger.debug(f"Applying additional random transforms for {self.__class__.__name__}")
+                logger.debug(f"Applied additional random transforms for {self.__class__.__name__}")
 
         # Resize to image size required by input layer of model
         if use_resize:  # rescale the image to the required size via interpolation
             scaling_transform = tv_transforms.Resize(
                 self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR
             )
-            logger.debug(f"Upsizing {self.__class__.__name__} images via Resize.")
+            logger.debug(f"Upsized {self.__class__.__name__} images via Resize.")
         else:  # just put the image in the middle and pad around it
             scaling_transform = tv_transforms.CenterCrop(self.image_size)
-            logger.debug(f"Upsizing {self.__class__.__name__} images via CenterCrop.")
+            logger.debug(f"Upsized {self.__class__.__name__} images via CenterCrop.")
         transform_list.append(scaling_transform)
 
         transforms = tv_transforms.Compose(transform_list)  # todo: move transforms to cuda?
