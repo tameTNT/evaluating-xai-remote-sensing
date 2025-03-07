@@ -23,6 +23,11 @@ class FreezableModel(nn.Module):
     expected_input_dim: int
     input_layers_to_train: int
 
+    def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert n_input_bands > 0, "Number of input bands must be greater than 0."
+        assert n_output_classes > 0, "Number of output classes must be greater than 0."
+
     def freeze_layers(self, keep: int):
         """
         Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
@@ -88,12 +93,15 @@ class FineTunedResNet50(FreezableModel):
     expected_input_dim = 224
     input_layers_to_train = 2  # we want to train layer 2 too (BatchNorm)
 
-    def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int):
+    def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int, *args, **kwargs):
         """
-        Initialise a ResNet-50 model with the final linear layer replaced to output the desired number of classes.
+        Initialise a ResNet-50 model with:
+            - the input layer replaced to accept the desired number of input bands.
+            - the final linear layer replaced to output the desired number of classes.
         """
 
-        super().__init__()
+        super().__init__(pretrained, n_input_bands, n_output_classes, *args, **kwargs)
+
         if pretrained:
             self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
             logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
