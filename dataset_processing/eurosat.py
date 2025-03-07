@@ -12,8 +12,6 @@ logger = helpers.logging.get_logger("main")
 
 
 class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
-    N_CLASSES = 10
-
     def __init__(
             self,
             split: t.Literal["train", "val", "test"],
@@ -24,6 +22,8 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             use_augmentations: bool = True,
             use_resize: bool = True,
             batch_size: int = 32,
+            num_workers: int = 4,
+            device: torch.device = "cpu",
     ):
         """
         :param split: Which dataset split to use. One of "train", "val", or "test".
@@ -39,18 +39,17 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             If False, torchvision.transforms.CenterCrop is used instead, placing images in the centre with padding.
         :param batch_size: The batch size to use for the dataloader should mean_std be specified.
         """
-        dataset_processing.core.RSDatasetMixin.__init__(self)
+        dataset_processing.core.RSDatasetMixin.__init__(
+            self, split=split, image_size=image_size, batch_size=batch_size, num_workers=num_workers, device=device,
+        )
 
-        self.split = split
-        self.image_size = image_size
         self.variant = variant
-        self.batch_size = batch_size
 
         if self.variant == "rgb":
-            bands = self.rgb_bands  # ("B04", "B03", "B02")
+            self.bands = self.rgb_bands  # ("B04", "B03", "B02")
         elif self.variant == "ms":
             # bands = self.all_band_names
-            bands = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B08A", "B12")
+            self.bands = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B08A", "B12")
 
             # bands 1, 9, 10 only for atmospheric correction? (https://doi.org/10.1109/IGARSS47720.2021.9553337)
             # bands 1, 9, 10, 11 not used:
@@ -61,7 +60,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             #   see indices in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
             #   see also https://torchgeo.readthedocs.io/en/stable/tutorials/transforms.html
 
-        self.N_BANDS = len(bands)
+        self.N_BANDS = len(self.bands)
 
         # Build transforms
         scaling_transform = None
@@ -74,7 +73,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
 
             # Shift to mean 0 and std 1, [-1, 1] assuming input is uniform [0, 1]. Same as 2x - 1 =(x - 0.5)/0.5
             normalisation = vision_transforms.Normalize(mean=[0.5] * self.N_BANDS,
-                                                        std=[0.5] * self.N_BANDS, inplace=True),
+                                                        std=[0.5] * self.N_BANDS, inplace=True)
             logger.debug(f"Normalising {self.repr_name} assuming mean and std of 0.5.")
             # Scale as expected by ResNet (see torchvision docs)
             # vision_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -82,13 +81,13 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
         elif normalisation_type == "mean_std":
             mean, std = self.get_mean_std()
             normalisation = vision_transforms.Normalize(mean=mean, std=std, inplace=True)
-            logger.debug(f"Normalising {self.repr_name} using given mean and std.")
+            logger.debug(f"Normalising {self.repr_name} using calculated mean and std.")
 
         elif normalisation_type != "none":
             raise ValueError(f"Unsupported normalisation type: {normalisation_type}")
 
-        augmentations = None
         # Add randomised transforms
+        augmentations = None
         if self.split == "train" and use_augmentations:
             augmentations = [vision_transforms.RandomHorizontalFlip(p=0.5)]
             if self.variant != "rgb":
@@ -105,10 +104,12 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
         super().__init__(
             root=str(DATASET_ROOT / "eurosat"),
             split=split,
-            bands=bands,
+            bands=self.bands,
             transforms=self.transforms,
             download=download
         )
+
+        self.N_CLASSES = len(self.classes)
 
     def get_original_train_dataloader(self):
         return torch.utils.data.DataLoader(EuroSAT(
@@ -117,7 +118,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             bands=self.bands,
             transforms=None,
             download=False
-        ), batch_size=self.batch_size, num_workers=4, shuffle=False)
+        ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
 
 
 class EuroSATRGB(EuroSATBase):

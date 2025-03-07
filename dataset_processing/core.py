@@ -130,26 +130,41 @@ def cycle(iterable):
 
 
 class RSDatasetMixin:
-    def __init__(self):
+    def __init__(
+            self,
+            split: t.Literal["train", "val", "test"],
+            image_size: int,
+            batch_size: int,
+            num_workers: int,
+            device: torch.device,
+    ):
         self.root = ""
 
-        self.split = ""
+        self.split = split
 
-        self.image_size = 0
+        self.image_size = image_size
         self.N_BANDS = 0
         self.bands: list[str] = []
 
         self.classes: list[str] = []
         self.N_CLASSES = 0
 
-        self.mean = torch.zeros(0)
-        self.var = torch.zeros(0)
-        self.std = torch.zeros(0)
+        self.composed_transforms = None
+
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.device = device
+
+        self.mean = torch.zeros(0).to(self.device)
+        self.var = torch.zeros(0).to(self.device)
+        self.std = torch.zeros(0).to(self.device)
 
     @property
     def mean_std_path(self) -> Path:
         band_string = "_".join(self.bands)
-        return Path(self.root) / f"{band_string}_mean_std.npz"
+        dir_path = get_dataset_root() / "mean_stds"
+        dir_path.mkdir(parents=True, exist_ok=True)
+        return dir_path / f"{self.__class__.__name__}_{band_string}.npz"
 
     @property
     def repr_name(self) -> str:
@@ -241,6 +256,6 @@ class RSDatasetMixin:
             logger.debug(f"Upsizing {self.repr_name} images via CenterCrop.")
         transform_list.append(scaling_transform)
 
-        transforms = vision_transforms.Compose(transform_list)  # todo: move transforms to cuda?
+        self.composed_transforms = vision_transforms.Compose(transform_list)  # todo: move transforms to cuda?
         logger.info(f"Built transforms for {self.repr_name}.")
-        return tensor_dict_transform_wrapper(transforms)
+        return tensor_dict_transform_wrapper(self.composed_transforms)
