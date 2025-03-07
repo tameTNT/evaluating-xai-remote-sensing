@@ -335,13 +335,14 @@ def train_model(
     else:
         wandb_run = None
 
-    with tqdm(total=max_epochs, desc="Epochs", ncols=110) as prog_bar1:
+    with tqdm(total=max_epochs, unit="epoch", ncols=110) as prog_bar1:
         for epoch in range(max_epochs):
             training_loss_arr = np.zeros(0)
             training_acc_arr = np.zeros(0)
 
             lg.info(str(prog_bar1))
-            with tqdm(total=len(training_dataloader), desc="Batches", ncols=110, leave=False) as prog_bar2:
+            with tqdm(total=len(training_dataloader), desc="Training",
+                      unit="batch", ncols=110, leave=False) as prog_bar2:
                 for i, data in enumerate(training_dataloader):  # type: int, dict[str, torch.Tensor]
                     images: torch.Tensor = data["image"]
                     labels: torch.Tensor = data["label"]

@@ -56,7 +56,7 @@ def validation_step(
     val_acc_arr = np.zeros(0)
 
     with torch.no_grad():
-        for _ in tqdm(range(num_val_batches), desc="Validating", ncols=110, leave=False):
+        for _ in tqdm(range(num_val_batches), desc="Validating", unit="batch", ncols=110, leave=False):
             val_data = next(val_data_gen)
             val_images = val_data["image"].to(model_device)
             val_labels = val_data["label"].to(model_device)
@@ -84,7 +84,7 @@ def sample_outputs(
         all_labels = torch.zeros(0).to(model_device)
         all_outputs = torch.zeros(0).to(model_device)
 
-        for _ in tqdm(range(num_batches), desc="Sampling", ncols=110, leave=False):
+        for _ in tqdm(range(num_batches), desc="Sampling", unit="batch", ncols=110, leave=False):
             data = next(sample_iterator)
             images = data["image"].to(model_device)
             labels = data["label"].to(model_device)

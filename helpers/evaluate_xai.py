@@ -166,7 +166,7 @@ def incrementally_delete(
                                      dtype=x.dtype)
 
     for i, k in tqdm(enumerate(k_values), total=len(k_values), ncols=110,
-                     desc="Incrementally deleting important pixels"):
+                     desc="Deleting important pixels"):
         if is_random:
             for j in range(num_trials):
                 if random_gen is None:
