@@ -1,8 +1,8 @@
 import typing as t
 
 import torch
-import torchvision.transforms.v2 as tv_transforms
 from torchgeo.datasets import EuroSAT
+from torchvision.transforms import v2 as vision_transforms
 
 import dataset_processing.core
 import helpers.logging
@@ -11,7 +11,7 @@ DATASET_ROOT = dataset_processing.core.get_dataset_root()
 logger = helpers.logging.get_logger("main")
 
 
-class EuroSATBase(EuroSAT):
+class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
     N_CLASSES = 10
 
     def __init__(
@@ -20,24 +20,31 @@ class EuroSATBase(EuroSAT):
             image_size: int,
             variant: t.Literal["rgb", "ms"] = "rgb",
             download: bool = False,
-            use_normalisation: t.Union[bool, list[list[float], list[float]]] = True,
+            normalisation_type: t.Literal["scaling", "mean_std", "none"] = "scaling",
             use_augmentations: bool = True,
             use_resize: bool = True,
+            batch_size: int = 32,
     ):
         """
         :param split: Which dataset split to use. One of "train", "val", or "test".
         :param image_size: The size images should be scaled to before being passed to the model.
         :param variant: Which variant of EuroSAT to use. One of "rgb" or "ms".
         :param download: Whether to download the dataset if it is not already present in DATASET_ROOT.
-        :param use_normalisation: Whether to apply normalisation to the images to attempt scaling to [-1, 1] range.
+        :param normalisation_type: Which type of normalisation to apply to the dataset.
+            One of "scaling" (uses min/max or percentile scaling depending on variant),
+            "mean_std" (which computes the mean/std for each channel across the whole train dataset),
+            or "none" (which applies no normalisation).
         :param use_augmentations: Whether to apply random augmentations to the data. N/A if split != "train".
         :param use_resize: Whether to use torchvision.transforms.Resize to scale images.
             If False, torchvision.transforms.CenterCrop is used instead, placing images in the centre with padding.
+        :param batch_size: The batch size to use for the dataloader should mean_std be specified.
         """
+        dataset_processing.core.RSDatasetMixin.__init__(self)
 
         self.split = split
         self.image_size = image_size
         self.variant = variant
+        self.batch_size = batch_size
 
         if self.variant == "rgb":
             bands = self.rgb_bands  # ("B04", "B03", "B02")
@@ -51,88 +58,66 @@ class EuroSATBase(EuroSAT):
         else:
             raise NotImplementedError(f"Unsupported EuroSAT version: {self.variant}")
             # todo: new combination of bands e.g. NDVI, NDWI, etc.
-            #   see indicies in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
+            #   see indices in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
             #   see also https://torchgeo.readthedocs.io/en/stable/tutorials/transforms.html
 
         self.N_BANDS = len(bands)
 
-        transforms = self.get_transforms(use_normalisation, use_augmentations, use_resize)
+        # Build transforms
+        scaling_transform = None
+        normalisation = None
+        if normalisation_type == "scaling":
+            if self.variant == "rgb":
+                scaling_transform = dataset_processing.core.RSScalingTransform(input_min=0, input_max=2750, clamp=True)
+            else:
+                scaling_transform = dataset_processing.core.RSScalingTransform(channel_wise=True)
+
+            # Shift to mean 0 and std 1, [-1, 1] assuming input is uniform [0, 1]. Same as 2x - 1 =(x - 0.5)/0.5
+            normalisation = vision_transforms.Normalize(mean=[0.5] * self.N_BANDS,
+                                                        std=[0.5] * self.N_BANDS, inplace=True),
+            logger.debug(f"Normalising {self.repr_name} assuming mean and std of 0.5.")
+            # Scale as expected by ResNet (see torchvision docs)
+            # vision_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+        elif normalisation_type == "mean_std":
+            mean, std = self.get_mean_std()
+            normalisation = vision_transforms.Normalize(mean=mean, std=std, inplace=True)
+            logger.debug(f"Normalising {self.repr_name} using given mean and std.")
+
+        elif normalisation_type != "none":
+            raise ValueError(f"Unsupported normalisation type: {normalisation_type}")
+
+        augmentations = None
+        # Add randomised transforms
+        if self.split == "train" and use_augmentations:
+            augmentations = [vision_transforms.RandomHorizontalFlip(p=0.5)]
+            if self.variant != "rgb":
+                augmentations += [
+                    vision_transforms.RandomVerticalFlip(p=0.5),
+                    vision_transforms.RandomAffine(
+                        degrees=2, translate=(0.1, 0.1), shear=0.2,
+                        scale=(0.95, 1.05), fill=0
+                    ),
+                ]
+
+        self.transforms = self.get_transforms(scaling_transform, normalisation, augmentations, use_resize)
 
         super().__init__(
             root=str(DATASET_ROOT / "eurosat"),
             split=split,
             bands=bands,
-            transforms=transforms,
+            transforms=self.transforms,
             download=download
         )
 
-    def get_transforms(
-            self,
-            use_normalisation: t.Union[bool, list[list[float], list[float]]],
-            use_augmentations: bool,
-            use_resize: bool
-    ):  # todo: customise for RGB/MS and add more?
-        # todo: generalise this to core dataset type/class
-
-        # scaling handled by normalise below
-        transform_list = [tv_transforms.ToImage(), tv_transforms.ToDtype(torch.float32, scale=False)]
-
-        if self.variant == "rgb":
-            if use_normalisation and isinstance(use_normalisation, bool):
-                transform_list.append(
-                    dataset_processing.core.RSNormaliseTransform(input_min=0, input_max=2750, clamp=True)
-                )
-                logger.debug(f"Used 0-2750 initial normalise transforms for {self.__class__.__name__}")
-        else:
-            if use_normalisation and isinstance(use_normalisation, bool):
-                transform_list.append(
-                    dataset_processing.core.RSNormaliseTransform(channel_wise=True)
-                )
-                logger.debug(f"Used channel_wise initial transforms for {self.__class__.__name__}")
-
-        if use_normalisation:  # Shift to mean 0 and std 1, [-1, 1]
-            if isinstance(use_normalisation, bool):  # assume input is uniform [0, 1]. Same as 2x - 1 =(x - 0.5)/0.5
-                transform_list.append(
-                    tv_transforms.Normalize(mean=[0.5]*self.N_BANDS, std=[0.5]*self.N_BANDS, inplace=True),
-
-                    # Scale as expected by ResNet (see torchvision docs)
-                    # tv_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                )
-                logger.debug(f"Normalised for {self.__class__.__name__} assuming mean and std of 0.5.")
-            else:
-                transform_list.append(
-                    tv_transforms.Normalize(mean=use_normalisation[0], std=use_normalisation[1], inplace=True),
-                )
-                logger.debug(f"Normalised for {self.__class__.__name__} using given mean and std.")
-
-        # Add randomised transforms
-        if self.split == "train" and use_augmentations:
-            transform_list += [
-                tv_transforms.RandomHorizontalFlip(p=0.5),
-            ]
-            if self.variant != "rgb":
-                transform_list += [
-                    tv_transforms.RandomVerticalFlip(p=0.5),
-                    tv_transforms.RandomAffine(
-                        degrees=2, translate=(0.1, 0.1), shear=0.2,
-                        scale=(0.95, 1.05), fill=0
-                    ),
-                ]
-                logger.debug(f"Applied additional random transforms for {self.__class__.__name__}")
-
-        # Resize to image size required by input layer of model
-        if use_resize:  # rescale the image to the required size via interpolation
-            scaling_transform = tv_transforms.Resize(
-                self.image_size, interpolation=tv_transforms.InterpolationMode.BILINEAR
-            )
-            logger.debug(f"Upsized {self.__class__.__name__} images via Resize.")
-        else:  # just put the image in the middle and pad around it
-            scaling_transform = tv_transforms.CenterCrop(self.image_size)
-            logger.debug(f"Upsized {self.__class__.__name__} images via CenterCrop.")
-        transform_list.append(scaling_transform)
-
-        transforms = tv_transforms.Compose(transform_list)  # todo: move transforms to cuda?
-        return dataset_processing.core.tensor_dict_transform_wrapper(transforms)
+    def get_original_train_dataloader(self):
+        return torch.utils.data.DataLoader(EuroSAT(
+            root=str(DATASET_ROOT / "eurosat"),
+            split="train",
+            bands=self.bands,
+            transforms=None,
+            download=False
+        ), batch_size=self.batch_size, num_workers=4, shuffle=False)
 
 
 class EuroSATRGB(EuroSATBase):

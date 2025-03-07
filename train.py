@@ -194,7 +194,7 @@ def get_dataset_object(
         split: t.Literal["train", "val", "test"],
         image_size: int,
         **kwargs
-):
+) -> t.Union[dataset_processing.eurosat.EuroSATBase]:
     standard_kwargs = {
         "split": split,
         "image_size": image_size,
@@ -229,17 +229,17 @@ def get_model_type(
 
 model_type = get_model_type(model_name)
 
-manual_mean_std_calc = [[1118.3116455078125, 1043.06982421875, 947.53662109375, 1199.5548095703125, 1999.6763916015625,
-                         2368.963134765625, 2296.98486328125, 732.1416015625, 2594.695068359375],
-                        [327.0133056640625, 388.61962890625, 586.3471069335938, 565.2821655273438, 859.8197631835938,
-                         1084.8768310546875, 1107.9259033203125, 404.88214111328125, 1229.2401123046875]]
+# manual_mean_std_calc = [[1118.3116455078125, 1043.06982421875, 947.53662109375, 1199.5548095703125, 1999.6763916015625,
+#                          2368.963134765625, 2296.98486328125, 732.1416015625, 2594.695068359375],
+#                         [327.0133056640625, 388.61962890625, 586.3471069335938, 565.2821655273438, 859.8197631835938,
+#                          1084.8768310546875, 1107.9259033203125, 404.88214111328125, 1229.2401123046875]]
 training_dataset = get_dataset_object(
-    dataset_name, "train", model_type.expected_input_dim, use_resize=use_resize,
-    use_normalisation=manual_mean_std_calc
+    dataset_name, "train", model_type.expected_input_dim, normalisation_type="scaling",
+    use_augmentations=True, use_resize=use_resize, batch_size=batch_size,
 )
 validation_dataset = get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim, use_resize=use_resize,
-    use_normalisation=manual_mean_std_calc
+    dataset_name, "val", model_type.expected_input_dim, normalisation_type="scaling",
+    use_augmentations=True, use_resize=use_resize, batch_size=batch_size,
 )
 
 model = model_type(
