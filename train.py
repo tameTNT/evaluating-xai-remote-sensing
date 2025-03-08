@@ -60,10 +60,25 @@ parser.add_argument(
     help="Name of the dataset to train on.",
 )
 parser.add_argument(
+    "--normalisation_type",
+    type=str,
+    required=True,
+    choices=["scaling", "mean_std", "none"],
+    help="The type of normalisation to apply to all images in the dataset."
+         "'scaling' uses min/max or percentile scaling. Note that 'mean_std' "
+         "will initially calculate these values across the whole dataset the "
+         "first time it is used. 'none' applies no normalisation.",
+)
+parser.add_argument(
     "--no_resize",
     action="store_true",
     help="If given, use the original images centred with padding. "
          "Otherwise, resize and interpolate the images to the model's expected input size.",
+)
+parser.add_argument(
+    "--no_augmentations",
+    action="store_true",
+    help="If given, apply no random augmentations to training set images. ",
 )
 parser.add_argument(
     "--batch_size",
@@ -98,7 +113,7 @@ parser.add_argument(
 parser.add_argument(
     "--frozen_lr",
     type=float,
-    default=0.01,
+    default=1e-2,
     help="(If using a pretrained model) Learning rate to use for training the partially frozen model.",
 )
 parser.add_argument(
@@ -110,7 +125,7 @@ parser.add_argument(
 parser.add_argument(
     "--frozen_lr_early_stop_threshold",
     type=float,
-    default=0.0001,
+    default=1e-4,
     help="(If using a pretrained model) Learning rate threshold for early stopping when training frozen model.",
 )
 
@@ -146,7 +161,9 @@ model_name = args.model_name
 use_pretrained = args.use_pretrained
 
 dataset_name = args.dataset_name
+normalisation_type = args.normalisation_type
 use_resize = not args.no_resize
+use_augmentations = not args.no_augmentations
 batch_size = args.batch_size
 num_workers = args.num_workers
 
@@ -230,13 +247,15 @@ def get_model_type(
 model_type = get_model_type(model_name)
 
 training_dataset = get_dataset_object(
-    dataset_name, "train", model_type.expected_input_dim, normalisation_type="mean_std",  # todo: make arg
-    use_augmentations=True, use_resize=use_resize, batch_size=batch_size, num_workers=num_workers, device=torch_device,
+    dataset_name, "train", model_type.expected_input_dim,
+    normalisation_type=normalisation_type, use_augmentations=use_augmentations, use_resize=use_resize,
+    batch_size=batch_size, num_workers=num_workers, device=torch_device,
 )
 
 validation_dataset = get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim, normalisation_type="mean_std",
-    use_resize=use_resize, batch_size=batch_size, num_workers=num_workers, device=torch_device,
+    dataset_name, "val", model_type.expected_input_dim,
+    normalisation_type=normalisation_type, use_resize=use_resize,
+    batch_size=batch_size, num_workers=num_workers, device=torch_device,
 )
 
 model = model_type(
@@ -304,9 +323,10 @@ def train_model(
             config={
                 "dataset": dataset_name,
                 "transform_options": {
-                    "use_normalisation": True,  # todo: make this a script arg
-                    "use_augmentations": True,  # todo: make this an explicit list
+                    "normalisation_type": normalisation_type,
+                    "use_augmentations": use_augmentations,
                     "use_resize": use_resize,
+                    "transforms": training_dataset.composed_transforms,
                 },
                 "batch_size": batch_size,
 
