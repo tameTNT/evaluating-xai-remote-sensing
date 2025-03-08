@@ -7,6 +7,7 @@ import torch
 import torchvision.utils
 from jaxtyping import Float, Int
 import pandas as pd
+from skimage import color
 
 
 def show_sample_of_incorrect(
@@ -66,6 +67,7 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
 def show_image(
         x: t.Union[torch.Tensor, np.ndarray],
         is_normalised: bool = True,
+        grayscale: bool = False,
         **kwargs
 ):
     """
@@ -102,6 +104,10 @@ def show_image(
 
     if is_normalised:
         x = (x + 1) / 2  # un-normalise from [-1, 1] to [0, 1]
+
+    if grayscale:
+        x = color.rgb2gray(x)
+        kwargs["cmap"] = "gray"
 
     plt.imshow(x, **kwargs)
     plt.axis("off")
@@ -159,20 +165,22 @@ def visualise_importance(
         x: Float[np.ndarray, "n_samples height width channels"],
         importance_rank: Int[np.ndarray, "n_samples height width"],
         alpha: float = 0.2,
+        with_colorbar: bool = True,
+        **kwargs,
 ):
     """
     Overlay (with transparency `alpha`) the importance rank over the image with
     a colour bar.
     """
 
-    show_image(x)
+    show_image(x, grayscale=True, **kwargs)
     rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
-    # todo: change this to plasma_r or viridis_r (clearer)
-    plt.imshow(rank_img, alpha=alpha, cmap="jet_r")
+    plt.imshow(rank_img, alpha=alpha, cmap="plasma_r", **kwargs)
 
-    cb = plt.colorbar(label="Importance Rank (0 = most important)")
-    cb.ax.invert_yaxis()
-    _ = cb.solids.set(alpha=1)
+    if with_colorbar:
+        cb = plt.colorbar(label="Importance Rank (0 = most important)")
+        cb.ax.invert_yaxis()
+        _ = cb.solids.set(alpha=1)
 
 
 def make_deletions_plot(
