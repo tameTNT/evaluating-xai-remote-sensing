@@ -94,6 +94,7 @@ def show_image(
         if x.shape[-1] in (1, 3):
             x = einops.rearrange(x, "n h w c -> n c h w")
 
+        # todo: use torchvision image grid instead to add padding
         x = einops.rearrange(x, "n c h w -> h (n w) c")
         # x = torchvision.utils.make_grid(x, nrow=x.shape[0])
     else:
@@ -155,8 +156,8 @@ def show_ms_images(
 
 
 def visualise_importance(
-        x: Float[np.ndarray, "batch_size height width channels"],
-        importance_rank: Int[np.ndarray, "batch_size height width"],
+        x: Float[np.ndarray, "n_samples height width channels"],
+        importance_rank: Int[np.ndarray, "n_samples height width"],
         alpha: float = 0.2,
 ):
     """
@@ -165,8 +166,9 @@ def visualise_importance(
     """
 
     show_image(x)
+    rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
     # todo: change this to plasma_r or viridis_r (clearer)
-    plt.imshow(importance_rank, alpha=alpha, cmap="jet_r")
+    plt.imshow(rank_img, alpha=alpha, cmap="jet_r")
 
     cb = plt.colorbar(label="Importance Rank (0 = most important)")
     cb.ax.invert_yaxis()

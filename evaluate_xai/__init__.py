@@ -32,10 +32,10 @@ class Similarity:
         return metrics
 
     def l2_distance(self, normalise: bool = True) -> Float[np.ndarray, "n_samples"]:
-        n, h, w, c = self.shape
-        # sum over colour channels before normalising
-        x1: np.ndarray = self.x1.sum(-1)
-        x2: np.ndarray = self.x2.sum(-1)
+        n, h, w = self.shape
+
+        x1: np.ndarray = self.x1
+        x2: np.ndarray = self.x2
 
         if normalise:
             x1_range = x1.max() - x1.min()
