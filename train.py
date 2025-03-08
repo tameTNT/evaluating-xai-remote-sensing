@@ -1,5 +1,4 @@
 import argparse
-import platform
 import time
 from pathlib import Path
 
@@ -184,18 +183,7 @@ logger = helpers.log.get_logger("main")
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
 logger.debug("Successfully imported packages.")
 
-if torch.cuda.is_available():
-    torch_device = torch.device('cuda')
-    logger.debug(f'Found {torch.cuda.get_device_name()} to use as a cuda device.')
-elif platform.system() == 'Darwin':
-    torch_device = torch.device('mps')
-else:
-    torch_device = torch.device('cpu')
-logger.info(f'Using {torch_device} as torch device.')
-
-if platform.system() != 'Linux':
-    torch.set_num_threads(1)
-    logger.debug('Set number of threads to 1 as using a non-Linux machine.')
+torch_device = helpers.utils.get_torch_device()
 
 np_rng = np.random.default_rng(random_seed)
 _ = torch.manual_seed(random_seed)
