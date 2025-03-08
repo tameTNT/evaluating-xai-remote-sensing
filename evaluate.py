@@ -13,7 +13,7 @@ from xai.shap_method import SHAPExplainer
 random_seed = 42
 dataset_name = "EuroSATRGB"
 normalisation_type = "scaling"
-use_resize = False
+use_resize = True
 batch_size = 32
 
 model_name = "ResNet50"
@@ -45,19 +45,20 @@ logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
 
 imgs_to_explain = torch.stack(
-    [dataset[i]["image"] for i in torch.randint(0, len(dataset), (5,))]
+    [dataset[i]["image"] for i in torch.randint(0, len(dataset), (10,))]
 )
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
 shap_explainer = SHAPExplainer(model_to_explain, attempt_load=imgs_to_explain)
 if not shap_explainer.has_explanation_for(imgs_to_explain):
-    logger.info(f"No existing explanation for imgs_to_explain. Generating new one.")
+    logger.info(f"No existing explanation for imgs_to_explain. Generating a new one.")
     shap_explainer.explain(imgs_to_explain)
 else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
-helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation)
+helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
+                                      alpha=0.2, with_colorbar=False)
 
 correctness_metric = Correctness(shap_explainer)
 similarity = correctness_metric.evaluate()

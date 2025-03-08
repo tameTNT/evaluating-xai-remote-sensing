@@ -8,6 +8,9 @@ from xai import Explainer
 from . import Co12Metric, Similarity
 
 
+logger = helpers.log.get_logger("main")
+
+
 class Correctness(Co12Metric):
     def __init__(self, exp: Explainer):
         super().__init__(exp)
@@ -34,11 +37,14 @@ class Correctness(Co12Metric):
         exp_for_randomised_model = original_explainer(
             randomised_model, Path(f"randomised_{self.exp.__class__.__name__}"), attempt_load=self.exp.attempt_load,
         )
+
         if not exp_for_randomised_model.has_explanation_for(self.exp.input):
             # only generate explanation if no existing one
             logger.info(f"No existing explanation for self.exp.input in exp_for_randomised_model. "
                         f"Generating a new one.")
             exp_for_randomised_model.explain(self.exp.input, **self.exp.kwargs)
+        else:
+            logger.info(f"Existing explanation found for self.exp.input in exp_for_randomised_model.")
 
         return exp_for_randomised_model
 

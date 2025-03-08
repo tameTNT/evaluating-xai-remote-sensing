@@ -30,7 +30,7 @@ class SHAPExplainer(Explainer):
     def explain(
             self,
             x: Float[torch.Tensor, "n_samples channels height width"],
-            max_evals: int = 10000,
+            max_evals: int = 10000,  # todo: reduce this?
             batch_size: int = 64,
     ):
         """
