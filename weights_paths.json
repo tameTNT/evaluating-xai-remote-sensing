@@ -1,0 +1,8 @@
+{
+  "EuroSATRGB": {
+    "ResNet50": "~/l3_project/checkpoints/EuroSATRGB/ResNet50/full/zxyyp118_final_0.990.st"
+  },
+  "EuroSATMS": {
+    "ResNet50": "~/l3_project/checkpoints/EuroSATMS/ResNet50/full/pjvc8fso_final_0.967.st"
+  }
+}
