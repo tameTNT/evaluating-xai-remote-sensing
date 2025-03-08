@@ -219,7 +219,7 @@ def get_model_type(
 ) -> t.Type[helpers.models.FreezableModel]:
     if name == "ResNet50":
         lg.debug("Returning ResNet50 model type...")
-        m = helpers.models.FineTunedResNet50
+        m = helpers.models.ResNet50
     else:
         lg.error(f"Invalid model name ({name}) provided to get_model_type.")
         raise ValueError(f"Model {name} does not exist.")

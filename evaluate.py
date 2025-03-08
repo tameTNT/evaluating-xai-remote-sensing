@@ -5,12 +5,12 @@ import torch
 
 import dataset_processing
 from evaluate_xai.correctness import Correctness
-from helpers.models import FineTunedResNet50
+from helpers.models import ResNet50
 from xai.shap_method import SHAPExplainer
 
 model_weights_path = Path('/home2/jgcw74/l3_project/checkpoints/resnet50/FineTunedResNet50_final_ft_weights(0.989).st')
 # todo: modularise get_model_type functions from train.py
-model_to_explain = FineTunedResNet50(
+model_to_explain = ResNet50(
     pretrained=False, n_input_bands=3, n_output_classes=10
 )
 st.load_model(model_to_explain, model_weights_path)

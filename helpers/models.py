@@ -89,7 +89,7 @@ class FreezableModel(nn.Module):
         return f"> {num_frozen} layers frozen: {', '.join([layer.__class__.__name__ for layer in frozen_layers])} <"
 
 
-class FineTunedResNet50(FreezableModel):
+class ResNet50(FreezableModel):
     expected_input_dim = 224
     input_layers_to_train = 2  # we want to train layer 2 too (BatchNorm)
 
