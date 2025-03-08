@@ -174,20 +174,20 @@ class RSDatasetMixin:
         pass
 
     def get_mean_std(self) -> t.Tuple[Tensor, Tensor]:
-        if self.mean is None or self.var is None or self.std is None:
+        if self.mean.numel() == 0 or self.var.numel() == 0 or self.std.numel() == 0:
             logger.info(f"Mean and std not yet stored in {self.__class__.__name__}.")
             try:
                 with np.load(self.mean_std_path) as data:  # type: dict[str, np.ndarray]
                     logger.debug(f"Loading mean, var, and std from {self.mean_std_path}.")
-                    self.mean = torch.from_numpy(data["mean"])
-                    self.var = torch.from_numpy(data["var"])
-                    self.std = torch.from_numpy(data["std"])
+                    self.mean = torch.from_numpy(data["mean"]).to(self.device)
+                    self.var = torch.from_numpy(data["var"]).to(self.device)
+                    self.std = torch.from_numpy(data["std"]).to(self.device)
             except FileNotFoundError:
                 logger.warning(f"Mean and std not found in {self.mean_std_path}. "
                                f"Calculating from dataloader instead.")
                 self.calculate_channel_wise_mean_std(self.get_original_train_dataloader())
 
-        return self.mean, self.std
+        return self.mean.cpu(), self.std.cpu()
 
     def calculate_channel_wise_mean_std(
             self,
@@ -195,29 +195,44 @@ class RSDatasetMixin:
     ):
         # Adapted from https://stackoverflow.com/a/60803379/7253717
         n_images = 0
-        mean = torch.zeros(self.N_BANDS)
-        var = torch.zeros(self.N_BANDS)
-        with tqdm(total=len(dataloader), desc=f"Mean/std of {self.__class__.__name__}",
+        self.mean = torch.zeros(self.N_BANDS).to(self.device)
+        self.var = torch.zeros(self.N_BANDS).to(self.device)
+        with tqdm(total=len(dataloader)*2, desc=f"Mean/std of {self.__class__.__name__}",
                   unit="batch", ncols=110, leave=False) as pbar:
-            for _, batch in enumerate(dataloader):  # type: _, dict[str, torch.Tensor]
-                images = batch["image"]
+            for i, batch in enumerate(dataloader):  # type: _, dict[str, torch.Tensor]
+                images = batch["image"].to(self.device)
                 b, c, h, w = images.shape
                 # Rearrange batch to be the shape of [B, C, H*W]
                 images = images.view(b, c, -1)
                 # Update total number of images
                 n_images += b
                 # Compute mean and std here (over H*W and then sum over b)
-                mean += images.mean(2).sum(0)
-                var += images.var(2).sum(0)
+                self.mean += images.mean(2).sum(0)
 
                 pbar.update()
-                logger.debug(str(pbar))
+                logger.debug(str(pbar)) if i % 100 == 0 else None
+            self.mean /= n_images
 
-        self.mean /= n_images
-        self.var /= n_images
-        self.std = torch.sqrt(var)
-        logger.info(f"Calculated mean and std for {self.repr_name}) "
+            # Variance calculation requires whole dataset's mean
+            for i, batch in enumerate(dataloader):  # type: _, dict[str, torch.Tensor]
+                images = batch["image"].to(self.device)
+                b, c, h, w = images.shape
+                images = images.view(b, c, -1)
+                self.var += ((images - self.mean.view(1, c, 1)) ** 2).mean(2).sum(0)
+
+                pbar.update()
+                logger.debug(str(pbar)) if i % 100 == 0 else None
+            self.var /= n_images
+            self.std = torch.sqrt(self.var)
+
+        logger.info(f"Calculated mean and std for {self.repr_name} "
                     f"with {len(self.bands)} bands: mean={self.mean}, std={self.std}.")
+
+        np.savez_compressed(self.mean_std_path,
+                            mean=self.mean.cpu().numpy(),
+                            var=self.var.cpu().numpy(),
+                            std=self.std.cpu().numpy())
+        logger.info(f"Saved mean and std for {self.repr_name} to {self.mean_std_path}.")
 
     def get_transforms(
             self,
