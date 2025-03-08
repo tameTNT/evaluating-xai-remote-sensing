@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from jaxtyping import Int, Float
 
 import helpers
 
@@ -34,7 +35,8 @@ class Explainer:
 
         self.input = torch.tensor(0)
         self.args = dict()
-        self.explanation = np.ndarray(0)
+        # All explanations should attribute one value to each pixel of each image in the batch
+        self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
 
         if attempt_load:
             try:
@@ -43,6 +45,15 @@ class Explainer:
                 logger.warning(f"Failed to load existing explanation from "
                                f"{self.npz_path} and {self.json_path}. "
                                f"Using null values.")
+
+    @property
+    def ranked_explanation(self) -> Int[np.ndarray, "n_samples height width"]:
+        """
+        Convert pixel importance to rank pixel importance (0 = most important)
+        for each sample image in self.explanation.
+        """
+
+        return helpers.utils.rank_pixel_importance(self.explanation)
 
     def explain(
             self,
