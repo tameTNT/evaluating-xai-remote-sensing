@@ -32,11 +32,13 @@ class Correctness(Co12Metric):
 
         original_explainer = self.exp.__class__
         exp_for_randomised_model = original_explainer(
-            randomised_model, Path(f"randomised_{self.exp.__class__.__name__}"), attempt_load=True
+            randomised_model, Path(f"randomised_{self.exp.__class__.__name__}"), attempt_load=self.exp.attempt_load,
         )
-        if not exp_for_randomised_model.input.is_nonzero():
-            # only generate explanation if not already done
-            exp_for_randomised_model.explain(self.exp.input, **self.exp.args)
+        if not exp_for_randomised_model.has_explanation_for(self.exp.input):
+            # only generate explanation if no existing one
+            logger.info(f"No existing explanation for self.exp.input in exp_for_randomised_model. "
+                        f"Generating a new one.")
+            exp_for_randomised_model.explain(self.exp.input, **self.exp.kwargs)
 
         return exp_for_randomised_model
 

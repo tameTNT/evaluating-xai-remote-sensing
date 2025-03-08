@@ -50,8 +50,14 @@ imgs_to_explain = torch.stack(
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = SHAPExplainer(model_to_explain, attempt_load=True)
-shap_explainer.explain(imgs_to_explain)
+shap_explainer = SHAPExplainer(model_to_explain, attempt_load=imgs_to_explain)
+if not shap_explainer.has_explanation_for(imgs_to_explain):
+    logger.info(f"No existing explanation for imgs_to_explain. Generating new one.")
+    shap_explainer.explain(imgs_to_explain)
+else:
+    logger.info(f"Existing explanation found for imgs_to_explain.")
+
+helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation)
 
 correctness_metric = Correctness(shap_explainer)
 similarity = correctness_metric.evaluate()

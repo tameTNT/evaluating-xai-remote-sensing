@@ -22,7 +22,7 @@ class Explainer:
             self,
             model: torch.nn.Module,
             save_path: Path = Path(""),
-            attempt_load: bool = False
+            attempt_load: torch.Tensor = None,
     ):
         self.model = model
         self.device = helpers.utils.get_model_device(model)
@@ -35,11 +35,12 @@ class Explainer:
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
 
         self.input = torch.tensor(0)
-        self.args = dict()
+        self.kwargs = dict()
         # All explanations should attribute one value to each pixel of each image in the batch
         self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
 
-        if attempt_load:
+        self.attempt_load = attempt_load
+        if self.attempt_load is not None:
             try:
                 self.load_state()
             except FileNotFoundError:
@@ -56,6 +57,16 @@ class Explainer:
 
         return helpers.utils.rank_pixel_importance(self.explanation)
 
+    def has_explanation_for(self, x: torch.Tensor) -> bool:
+        """
+        Returns True if the explanation has been generated for a specific input x.
+        """
+
+        if self.explanation is not None:
+            return torch.equal(self.input, x)
+        else:
+            return False
+
     def explain(
             self,
             x: torch.Tensor,
@@ -64,7 +75,7 @@ class Explainer:
         logger.info(f"Generating explanations in {self.__class__.__name__} "
                     f"for x.shape={x.shape}.")
         self.input = x
-        self.args = kwargs
+        self.kwargs = kwargs
 
     def save_state(self):
         """
@@ -93,6 +104,13 @@ class Explainer:
                      f"{self.npz_path} to {self.__class__.__name__}.")
         with np.load(self.npz_path) as data:  # type: dict[str, np.ndarray]
             self.input = torch.from_numpy(data["explanation_input"])
-            self.explanation = data["explanation"]
+            temp = data["explanation"]
 
+        if torch.equal(self.input, self.attempt_load):
+            self.explanation = temp
+        else:
+            logger.warning(
+                f"Loaded input (shape={self.input.shape}) does not match the provided check input "
+                f"(shape={self.attempt_load.shape}). Using null values."
+            )
         self.args = json.load(self.json_path.open("r"))
