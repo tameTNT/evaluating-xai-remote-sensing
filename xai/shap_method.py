@@ -65,5 +65,6 @@ class SHAPExplainer(Explainer):
             outputs=shap.Explanation.argsort.flip[:1],
         )
         # only save the most confident prediction (sorted to be first above)
-        self.explanation = shap_values.values[..., 0]
+        # summing over the colour channels (final axis of output)
+        self.explanation: Float[np.ndarray, "n_samples height width"] = shap_values.values[..., 0].sum(-1)
         self.save_state()
