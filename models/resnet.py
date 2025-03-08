@@ -10,7 +10,7 @@ from torchvision.models._utils import _ovewrite_named_param, handle_legacy_inter
 from torchvision.utils import _log_api_usage_once
 
 import helpers.log
-from core import FreezableModel
+from models.core import FreezableModel
 
 logger = helpers.log.get_logger("main")
 

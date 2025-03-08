@@ -6,6 +6,7 @@
 /checkpoints/
 /wandb/
 /output/
+/xai_output/
 
 */*__pycache__/
 *pycharm-support-libs/

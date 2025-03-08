@@ -9,7 +9,7 @@ import helpers
 
 logger = helpers.log.get_logger("main")
 
-BASE_OUTPUT_PATH = Path("~/l3_project/xai_output")
+BASE_OUTPUT_PATH = Path("~/l3_project/xai_output").expanduser()
 logger.debug(f"Explanation default output path set to {BASE_OUTPUT_PATH}.")
 
 
@@ -27,8 +27,9 @@ class Explainer:
         self.model = model
         self.device = helpers.utils.get_model_device(model)
 
-        self.save_path = BASE_OUTPUT_PATH / save_path
+        self.save_path = (BASE_OUTPUT_PATH / save_path).resolve()
         self.save_path.mkdir(parents=True, exist_ok=True)
+        logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
         self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
@@ -91,7 +92,7 @@ class Explainer:
         logger.debug(f"Attempting to load explanation from "
                      f"{self.npz_path} to {self.__class__.__name__}.")
         with np.load(self.npz_path) as data:  # type: dict[str, np.ndarray]
-            self.input = torch.from_numpy(data["input"])
+            self.input = torch.from_numpy(data["explanation_input"])
             self.explanation = data["explanation"]
 
         self.args = json.load(self.json_path.open("r"))

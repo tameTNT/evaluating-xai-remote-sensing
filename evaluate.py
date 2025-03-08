@@ -34,13 +34,13 @@ dataset = dataset_processing.get_dataset_object(
 logger.info("Creating model and loading pretrained weights.")
 
 weights_paths = json.load(Path("weights_paths.json").open("r"))
-model_weights_path = Path(weights_paths[dataset_name][model_name]).resolve()
+model_weights_path = Path(weights_paths[dataset_name][model_name]).expanduser()
 
 model_to_explain = model_type(
     pretrained=False, n_input_bands=dataset.N_BANDS, n_output_classes=dataset.N_CLASSES,
 )
 st.load_model(model_to_explain, model_weights_path)
-model_to_explain.eval()
+model_to_explain.eval().to(torch_device)
 logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
 
@@ -50,7 +50,7 @@ imgs_to_explain = torch.stack(
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = SHAPExplainer(model_to_explain)
+shap_explainer = SHAPExplainer(model_to_explain, attempt_load=True)
 shap_explainer.explain(imgs_to_explain)
 
 correctness_metric = Correctness(shap_explainer)

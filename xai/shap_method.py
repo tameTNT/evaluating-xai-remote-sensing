@@ -19,9 +19,13 @@ class SHAPExplainer(Explainer):
     with default save path of BASE_OUTPUT_PATH/shap
     """
 
-    def __init__(self, model: torch.nn.Module,
-                 save_path: Path = Path("shap")):
-        super().__init__(model, save_path)
+    def __init__(
+            self,
+            model: torch.nn.Module,
+            save_path: Path = Path("shap"),
+            **kwargs
+    ):
+        super().__init__(model, save_path, **kwargs)
 
     def explain(
             self,
