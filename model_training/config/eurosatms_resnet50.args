@@ -1,2 +1,1 @@
---random_seed 42 --model_name ResNet50 --dataset_name EuroSATMS --batch_size 96 --optimiser_name Adam --full_lr 1e-5 --full_max_epochs 50 --lr_early_stop_threshold 1e-7
-# Based loosely on regime in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
+--model_name ResNet50 --dataset_name EuroSATMS --normalisation_type mean_std --batch_size 96 --optimiser_name Adam --full_lr 1e-5 --full_max_epochs 50 --lr_early_stop_threshold 1e-7
