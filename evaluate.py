@@ -1,11 +1,12 @@
+import json
 from pathlib import Path
 
 import safetensors.torch as st
 import torch
 
 import dataset_processing
+import models
 from evaluate_xai.correctness import Correctness
-from helpers.models import ResNet50
 from xai.shap_method import SHAPExplainer
 
 model_weights_path = Path('/home2/jgcw74/l3_project/checkpoints/resnet50/FineTunedResNet50_final_ft_weights(0.989).st')

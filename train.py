@@ -1,7 +1,6 @@
 import argparse
 import platform
 import time
-import typing as t
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +11,7 @@ from tqdm.autonotebook import tqdm
 
 import dataset_processing
 import helpers
+import models
 import wandb
 
 # Create argument parser
@@ -42,7 +42,7 @@ parser.add_argument(
     "--model_name",
     type=str,
     required=True,
-    choices=helpers.models.MODEL_NAMES,
+    choices=models.MODEL_NAMES,
     help="Name of the model to train.",
 )
 parser.add_argument(
@@ -56,7 +56,7 @@ parser.add_argument(
     "--dataset_name",
     type=str,
     required=True,
-    choices=dataset_processing.core.DATASET_NAMES,
+    choices=dataset_processing.DATASET_NAMES,
     help="Name of the dataset to train on.",
 )
 parser.add_argument(
