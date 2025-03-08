@@ -11,8 +11,7 @@ from tqdm.autonotebook import tqdm
 
 from helpers import logging
 
-
-logger = logging.getLogger("main")
+logger = logging.get_logger("main")
 
 
 def get_dataset_root() -> Path:

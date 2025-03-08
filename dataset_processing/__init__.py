@@ -4,7 +4,7 @@ from helpers import logging
 from . import core
 from . import eurosat
 
-lg = logging.get_logger("main")
+logger = logging.get_logger("main")
 
 DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
 
@@ -29,15 +29,15 @@ def get_dataset_object(
     }
 
     if name == "EuroSATRGB":
-        lg.debug("Loading EuroSATRGB dataset...")
+        logger.debug("Loading EuroSATRGB dataset...")
         ds = eurosat.EuroSATRGB(**standard_kwargs, **kwargs)
     elif name == "EuroSATMS":
-        lg.debug("Loading EuroSATMS dataset...")
+        logger.debug("Loading EuroSATMS dataset...")
         ds = eurosat.EuroSATMS(**standard_kwargs, **kwargs)
     else:
-        lg.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
+        logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
                  f"Must be one of {DATASET_NAMES}.")
         raise ValueError(f"Dataset {name} does not exist.")
 
-    lg.info(f"Dataset {name} ({split}) loaded with {len(ds)} samples.")
+    logger.info(f"Dataset {name} ({split}) loaded with {len(ds)} samples.")
     return ds

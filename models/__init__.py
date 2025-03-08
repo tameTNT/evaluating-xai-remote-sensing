@@ -4,7 +4,7 @@ from helpers import logging
 from . import core
 from . import resnet
 
-lg = logging.get_logger("main")
+logger = logging.get_logger("main")
 
 MODEL_NAMES = ["ResNet50", "ResNet101"]
 
@@ -19,10 +19,10 @@ def get_model_type(
     """
 
     if name == "ResNet50":
-        lg.debug("Returning ResNet50 model type...")
+        logger.debug("Returning ResNet50 model type...")
         m = resnet.ResNet50
     else:
-        lg.error(f"Invalid model name ({name}) provided to get_model_type. "
+        logger.error(f"Invalid model name ({name}) provided to get_model_type. "
                  f"Must be one of {MODEL_NAMES}.")
         raise ValueError(f"Model {name} does not exist.")
 

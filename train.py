@@ -180,30 +180,30 @@ full_max_epochs = args.full_max_epochs
 
 
 # Actual script starts here
-lg = helpers.logging.get_logger("main")
-print(f"Logging to {lg.handlers[0].baseFilename}. See file for details.\n")
-lg.debug("Successfully imported packages.")
+logger = helpers.logging.get_logger("main")
+print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
+logger.debug("Successfully imported packages.")
 
 if torch.cuda.is_available():
     torch_device = torch.device('cuda')
-    lg.debug(f'Found {torch.cuda.get_device_name()} to use as a cuda device.')
+    logger.debug(f'Found {torch.cuda.get_device_name()} to use as a cuda device.')
 elif platform.system() == 'Darwin':
     torch_device = torch.device('mps')
 else:
     torch_device = torch.device('cpu')
-lg.info(f'Using {torch_device} as torch device.')
+logger.info(f'Using {torch_device} as torch device.')
 
 if platform.system() != 'Linux':
     torch.set_num_threads(1)
-    lg.debug('Set number of threads to 1 as using a non-Linux machine.')
+    logger.debug('Set number of threads to 1 as using a non-Linux machine.')
 
 np_rng = np.random.default_rng(random_seed)
 _ = torch.manual_seed(random_seed)
-lg.debug(f'Random seed set to {random_seed}.')
+logger.debug(f'Random seed set to {random_seed}.')
 
 checkpoints_path = Path.home() / "l3_project" / checkpoints_root_name
 checkpoints_path.mkdir(exist_ok=True)
-lg.debug(f'Checkpoints directory set to {checkpoints_path.resolve()}.')
+logger.debug(f'Checkpoints directory set to {checkpoints_path.resolve()}.')
 
 model_type = models.get_model_type(model_name)
 
@@ -270,10 +270,10 @@ def train_model(
     else:
         weights_save_path /= "full"
     weights_save_path.mkdir(parents=True, exist_ok=True)
-    lg.debug(f"Output path set to {weights_save_path.resolve()}.")
+    logger.debug(f"Output path set to {weights_save_path.resolve()}.")
 
     optimiser, scheduler = get_opt_and_scheduler(lr, scheduler_reduction_steps)
-    lg.debug(f"Initialised optimiser (lr={lr}) and scheduler.")
+    logger.debug(f"Initialised optimiser (lr={lr}) and scheduler.")
 
     if not do_not_track:
         wandb_run = wandb.init(
@@ -309,7 +309,7 @@ def train_model(
                 "save_path": str(weights_save_path.resolve()),
             }
         )
-        lg.info(f"Initialised wandb run, id={wandb_run.id}.")
+        logger.info(f"Initialised wandb run, id={wandb_run.id}.")
     else:
         wandb_run = None
 
@@ -318,7 +318,7 @@ def train_model(
             training_loss_arr = np.zeros(0)
             training_acc_arr = np.zeros(0)
 
-            lg.info(str(prog_bar1))
+            logger.info(str(prog_bar1))
             with tqdm(total=len(training_dataloader), desc="Training",
                       unit="batch", ncols=110, leave=False) as prog_bar2:
                 for i, data in enumerate(training_dataloader):  # type: int, dict[str, torch.Tensor]
@@ -338,7 +338,7 @@ def train_model(
                         training_mean_acc = training_acc_arr.mean()
 
                         prog_bar2.set_postfix(train_loss=training_mean_loss, train_acc=training_mean_acc)
-                        lg.debug(str(prog_bar2))
+                        logger.debug(str(prog_bar2))
 
                         if wandb_run:
                             wandb_run.log({
@@ -361,7 +361,7 @@ def train_model(
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
 
             if wandb_run:
-                lg.info("Sampling incorrect predictions for logging to WandB...")
+                logger.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
                     model, sampling_iterator, 1
                 )
@@ -391,26 +391,26 @@ def train_model(
                 if epoch != 0 and epoch % 10 == 0:
                     model_save_path = weights_save_path / f"{wandb_run.id}_epoch{epoch:03}.st"
                     st.save_model(model, model_save_path)
-                    lg.info(f"Saved model at epoch {epoch} to {model_save_path}.")
+                    logger.info(f"Saved model at epoch {epoch} to {model_save_path}.")
 
             if current_lr < early_stop_threshold:
-                lg.info(
+                logger.info(
                     f"Early stopping on low learning rate {current_lr} "
                     f"(loss plateaued at {val_mean_loss} after lr reductions).")
                 break
 
     model_save_path = weights_save_path / f"{wandb_run.id}_final_{val_mean_acc:.3f}.st"
     st.save_model(model, model_save_path)
-    lg.info(f"Saved final model to {model_save_path}.")
+    logger.info(f"Saved final model to {model_save_path}.")
 
     if wandb_run:
         wandb_run.summary["n_epochs"] = epoch
         wandb_run.finish(0)
-        lg.info(f"Finished wandb run, id={wandb_run.id}.")
+        logger.info(f"Finished wandb run, id={wandb_run.id}.")
 
 
 if use_pretrained:
-    lg.info("Training partially frozen pretrained model...")
+    logger.info("Training partially frozen pretrained model...")
     model.freeze_layers(1)  # freeze all but the last layer
     if model.modified_input_layer:  # unfreeze the input layer if we need to train it too
         model.unfreeze_input_layers(model.input_layers_to_train)
@@ -419,15 +419,15 @@ if use_pretrained:
         train_model(lr=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
                     early_stop_threshold=frozen_lr_early_stop_threshold)
     except Exception as e:
-        lg.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
+        logger.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
 
-lg.info("Training full (unfrozen) model...")
+logger.info("Training full (unfrozen) model...")
 model.unfreeze_layers()
 
 try:
     train_model(lr=full_lr, is_frozen_model=False, max_epochs=full_max_epochs,
                 early_stop_threshold=lr_early_stop_threshold)
 except Exception as e:
-    lg.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
+    logger.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
 
-lg.info("Script execution complete.")
+logger.info("Script execution complete.")
