@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH -N 1                                     ##Request a single node
+#SBATCH -c 4                                     ##Request 4 cores
+#SBATCH -p ug-gpu-small                          ##Use the research GPU partition if I'm a PhD student for example.
+#SBATCH --qos="short"                            ##Use the short QoS to run jobs for up to 2 days
+#SBATCH --mem=28G                                ##Request 28Gb of System RAM. This is the most available on this partition
+#SBATCH -t 00-05:00:00                           ##Request 2 days for this job, the default is only 30 minutes
+#SBATCH --gres=gpu:1g.10gb:1                     #Temporary sbatch bug workaround
+
+#SBATCH --mail-user=jgcw74@durham.ac.uk          ##Replace <username> with your CIS username to receive an email when the job starts
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --job-name=ES_M_RN50
+#SBATCH -o 1es_m_rn50.log
+
+##Activate conda and environment
+eval "$(conda shell.bash hook)"
+conda activate sat_project
+
+cd ~/l3_project
+
+export DATASET_ROOT=~/datasets
+
+bash run_train.sh model_training/config/eurosatms_resnet50.args
