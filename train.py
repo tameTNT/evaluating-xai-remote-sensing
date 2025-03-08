@@ -180,7 +180,7 @@ full_max_epochs = args.full_max_epochs
 
 
 # Actual script starts here
-logger = helpers.logging.get_logger("main")
+logger = helpers.log.get_logger("main")
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
 logger.debug("Successfully imported packages.")
 

@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from helpers import utils, logging
+import helpers
 
-logger = logging.get_logger("main")
+logger = helpers.log.get_logger("main")
 
 BASE_OUTPUT_PATH = Path("~/l3_project/xai_output")
 logger.debug(f"Explanation default output path set to {BASE_OUTPUT_PATH}.")
@@ -24,7 +24,7 @@ class Explainer:
             attempt_load: bool = False
     ):
         self.model = model
-        self.device = utils.get_model_device(model)
+        self.device = helpers.utils.get_model_device(model)
 
         self.save_path = BASE_OUTPUT_PATH / save_path
         self.save_path.mkdir(parents=True, exist_ok=True)

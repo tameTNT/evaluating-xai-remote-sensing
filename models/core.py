@@ -1,8 +1,8 @@
 import torch.nn as nn
 
-from helpers import logging
+from helpers import log
 
-logger = logging.get_logger("main")
+logger = log.get_logger("main")
 
 
 class FreezableModel(nn.Module):

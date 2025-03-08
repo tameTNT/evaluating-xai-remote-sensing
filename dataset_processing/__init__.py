@@ -1,10 +1,10 @@
 import typing as t
 
-from helpers import logging
+from helpers import log
 from . import core
 from . import eurosat
 
-logger = logging.get_logger("main")
+logger = log.get_logger("main")
 
 DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
 

@@ -1,10 +1,10 @@
 import numpy as np
 from jaxtyping import Float
 
-from helpers import logging
+from helpers import log
 from xai import Explainer
 
-logger = logging.get_logger("main")
+logger = log.get_logger("main")
 
 
 class Similarity:

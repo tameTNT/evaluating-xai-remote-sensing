@@ -5,10 +5,10 @@ from torchgeo.datasets import EuroSAT
 from torchvision.transforms import v2 as vision_transforms
 
 import dataset_processing.core
-import helpers.logging
+import helpers.log
 
 DATASET_ROOT = dataset_processing.core.get_dataset_root()
-logger = helpers.logging.get_logger("main")
+logger = helpers.log.get_logger("main")
 
 
 class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):

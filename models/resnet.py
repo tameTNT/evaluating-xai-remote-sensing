@@ -9,10 +9,10 @@ from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 from torchvision.utils import _log_api_usage_once
 
-import helpers.logging
+import helpers.log
 from core import FreezableModel
 
-logger = helpers.logging.get_logger("main")
+logger = helpers.log.get_logger("main")
 
 
 class ResNet50(FreezableModel):

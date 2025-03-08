@@ -2,16 +2,15 @@ from pathlib import Path
 
 import einops
 import numpy as np
+import shap
+import shap.maskers
 import torch
 from jaxtyping import Float
 
-import shap
-import shap.maskers
-
+from helpers import log
 from xai import Explainer
-from helpers import logging
 
-logger = logging.get_logger("main")
+logger = log.get_logger("main")
 
 
 class SHAPExplainer(Explainer):

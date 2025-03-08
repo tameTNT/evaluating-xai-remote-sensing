@@ -9,9 +9,9 @@ from torch import Tensor
 from torchvision.transforms import v2 as vision_transforms
 from tqdm.autonotebook import tqdm
 
-from helpers import logging
+from helpers import log
 
-logger = logging.get_logger("main")
+logger = log.get_logger("main")
 
 
 def get_dataset_root() -> Path:
