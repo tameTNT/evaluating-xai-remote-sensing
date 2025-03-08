@@ -205,54 +205,15 @@ checkpoints_path = Path.home() / "l3_project" / checkpoints_root_name
 checkpoints_path.mkdir(exist_ok=True)
 lg.debug(f'Checkpoints directory set to {checkpoints_path.resolve()}.')
 
+model_type = models.get_model_type(model_name)
 
-def get_dataset_object(
-        name: str,
-        split: t.Literal["train", "val", "test"],
-        image_size: int,
-        **kwargs
-) -> t.Union[dataset_processing.eurosat.EuroSATBase]:
-    standard_kwargs = {
-        "split": split,
-        "image_size": image_size,
-    }
-
-    if name == "EuroSATRGB":
-        lg.debug("Loading EuroSATRGB dataset...")
-        ds = dataset_processing.eurosat.EuroSATRGB(**standard_kwargs, **kwargs)
-    elif name == "EuroSATMS":
-        lg.debug("Loading EuroSATMS dataset...")
-        ds = dataset_processing.eurosat.EuroSATMS(**standard_kwargs, **kwargs)
-    else:
-        lg.error(f"Invalid dataset name ({name}) provided to get_dataset_object.")
-        raise ValueError(f"Dataset {name} does not exist.")
-
-    lg.info(f"Dataset {name} ({split}) loaded with {len(ds)} samples.")
-    return ds
-
-
-def get_model_type(
-        name: str,
-) -> t.Type[helpers.models.FreezableModel]:
-    if name == "ResNet50":
-        lg.debug("Returning ResNet50 model type...")
-        m = helpers.models.ResNet50
-    else:
-        lg.error(f"Invalid model name ({name}) provided to get_model_type.")
-        raise ValueError(f"Model {name} does not exist.")
-
-    return m
-
-
-model_type = get_model_type(model_name)
-
-training_dataset = get_dataset_object(
+training_dataset = dataset_processing.get_dataset_object(
     dataset_name, "train", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_augmentations=use_augmentations, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
 )
 
-validation_dataset = get_dataset_object(
+validation_dataset = dataset_processing.get_dataset_object(
     dataset_name, "val", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,

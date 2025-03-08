@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import typing as t
 from pathlib import Path
@@ -10,7 +9,7 @@ from torch import Tensor
 from torchvision.transforms import v2 as vision_transforms
 from tqdm.autonotebook import tqdm
 
-DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
+from helpers import logging
 
 
 logger = logging.getLogger("main")
