@@ -7,7 +7,6 @@ import helpers
 from xai import Explainer
 from . import Co12Metric, Similarity
 
-
 logger = helpers.log.get_logger("main")
 
 
@@ -23,7 +22,7 @@ class Correctness(Co12Metric):
 
         if method == "model_randomisation":
             random_exp = self._model_randomisation()
-            return Similarity(self.exp.explanation, random_exp.explanation)
+            return Similarity(self.exp, random_exp)
         else:
             raise ValueError(f"Unknown method: {method}")
 
