@@ -3,12 +3,15 @@ from pathlib import Path
 
 import safetensors.torch as st
 import torch
+# from remote_plot import plt
 
 import dataset_processing
 import helpers
 import models
 from evaluate_xai.correctness import Correctness
 from xai.shap_method import SHAPExplainer
+
+# plt.port = 36422
 
 random_seed = 42
 dataset_name = "EuroSATRGB"
@@ -26,7 +29,7 @@ torch.manual_seed(random_seed)
 
 model_type = models.get_model_type(model_name)
 dataset = dataset_processing.get_dataset_object(
-    dataset_name, "test", model_type.expected_input_dim,
+    dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
 )
@@ -43,10 +46,9 @@ st.load_model(model_to_explain, model_weights_path)
 model_to_explain.eval().to(torch_device)
 logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
-
-imgs_to_explain = torch.stack(
-    [dataset[i]["image"] for i in torch.randint(0, len(dataset), (10,))]
-)
+temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
+# random_idxs = torch.randint(0, len(dataset), (10,))
+imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
@@ -58,10 +60,9 @@ else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
-                                      alpha=0.2, with_colorbar=False)
+                                      alpha=.2, with_colorbar=False)
 
 correctness_metric = Correctness(shap_explainer)
-similarity = correctness_metric.evaluate()
-l2_args = {"normalise": True}
-metrics = similarity(l2_args=l2_args)
-print("L2 distance: ", metrics["l2_distance"])
+similarity = correctness_metric.evaluate(method="model_randomisation")
+metrics = similarity(l2_normalise=True, intersection_k=5000)
+print("Correctness evaluation via model randomisation", metrics)
