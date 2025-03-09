@@ -90,7 +90,7 @@ class Explainer:
             explanation=self.explanation,
         )
 
-        json.dump(self.args, self.json_path.open("w+"))
+        json.dump(self.kwargs, self.json_path.open("w+"))
 
         logger.debug(f"Saved {self.__class__.__name__}'s explanation "
                      f"to {self.npz_path}.")
@@ -113,4 +113,4 @@ class Explainer:
                 f"Loaded input (shape={self.input.shape}) does not match the provided check input "
                 f"(shape={self.attempt_load.shape}). Using null values."
             )
-        self.args = json.load(self.json_path.open("r"))
+        self.kwargs = json.load(self.json_path.open("r"))
