@@ -106,11 +106,14 @@ class Explainer:
             self.input = torch.from_numpy(data["explanation_input"])
             temp = data["explanation"]
 
-        if torch.equal(self.input, self.attempt_load):
+        diff = (self.input - self.attempt_load).abs().sum()
+        if diff < 1e-5:
+            logger.debug(f"Loaded input (shape={self.input.shape}) matches the provided check input "
+                         f"(shape={self.attempt_load.shape}) with diff={diff}.")
             self.explanation = temp
         else:
             logger.warning(
                 f"Loaded input (shape={self.input.shape}) does not match the provided check input "
-                f"(shape={self.attempt_load.shape}). Using null values."
+                f"(shape={self.attempt_load.shape}) with diff={diff}. Using null values."
             )
         self.kwargs = json.load(self.json_path.open("r"))
