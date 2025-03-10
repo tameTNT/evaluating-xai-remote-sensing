@@ -1,12 +1,14 @@
 import numpy as np
+import torch
 from jaxtyping import Float, Int
 from scipy.stats import spearmanr
 from skimage.metrics import structural_similarity as ssim
+from tqdm.autonotebook import tqdm
 
-from helpers import log
+import helpers
 from xai import Explainer
 
-logger = log.get_logger("main")
+logger = helpers.log.get_logger("main")
 
 
 class Similarity:
@@ -125,17 +127,38 @@ class Similarity:
 
         return ssims
 
-    def __bool__(self):
-        if self.x1 is None or self.x2 is None:
-            return False
-        return True
-
 
 class Co12Metric:
-    def __init__(self, exp: Explainer):
+    def __init__(self, exp: Explainer, max_batch_size: int = 32):
         self.exp = exp
+        self.max_batch_size = max_batch_size
 
     def evaluate(self, method: str):
         logger.info(f"Evaluating {self.__class__.__name__} (via {method}) "
                     f"of {self.exp.__class__.__name__} "
                     f"for {self.exp.model.__class__.__name__}.")
+
+    def run_model(
+            self,
+            x: Float[np.ndarray, "n_samples channels height width"],
+    ) -> Float[np.ndarray, "n_samples n_classes"]:
+        """
+        Run the model on the given input data x and return the softmax-ed output for all classes.
+        """
+
+        self.exp.model.eval()
+        model_device = helpers.utils.get_model_device(self.exp.model)
+        x = torch.from_numpy(x)
+
+        logger.info(f"Generating model predictions on new images (e.g. perturbed) "
+                    f"for {self.__class__.__name__}")
+        preds = []
+        for minibatch in tqdm(
+                helpers.utils.make_device_batches(x, self.max_batch_size, model_device),
+                total=np.ceil(x.shape[0] / self.max_batch_size), ncols=110,
+                desc=f"Predicting for {self.__class__.__name__}",
+        ):
+            batch_preds = self.exp.model(minibatch).softmax(dim=-1).detach().cpu()
+            preds.append(batch_preds)
+
+        return torch.cat(preds, dim=0).numpy(force=True)
