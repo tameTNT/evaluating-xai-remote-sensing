@@ -165,7 +165,7 @@ class RSDatasetMixin:
         return dir_path / f"{self.__class__.__name__}_{band_string}.npz"
 
     @property
-    def repr_name(self) -> str:
+    def logging_name(self) -> str:
         return f"{self.__class__.__name__}({self.split})"
 
     def get_original_train_dataloader(self) -> torch.utils.data.DataLoader[dict[str, Tensor]]:
@@ -223,14 +223,14 @@ class RSDatasetMixin:
             self.var /= n_images
             self.std = torch.sqrt(self.var)
 
-        logger.info(f"Calculated mean and std for {self.repr_name} "
+        logger.info(f"Calculated mean and std for {self.logging_name} "
                     f"with {len(self.bands)} bands: mean={self.mean}, std={self.std}.")
 
         np.savez_compressed(self.mean_std_path,
                             mean=self.mean.cpu().numpy(),
                             var=self.var.cpu().numpy(),
                             std=self.std.cpu().numpy())
-        logger.info(f"Saved mean and std for {self.repr_name} to {self.mean_std_path}.")
+        logger.info(f"Saved mean and std for {self.logging_name} to {self.mean_std_path}.")
 
     def get_transforms(
             self,
@@ -248,27 +248,27 @@ class RSDatasetMixin:
 
         if scaling_transform is not None:
             transform_list.append(scaling_transform)
-            logger.debug(f"Using {scaling_transform} for {self.repr_name}")
+            logger.debug(f"Using {scaling_transform} for {self.logging_name}")
 
         if normalisation is not None:
             transform_list.append(normalisation)
-            logger.debug(f"Using {normalisation} for {self.repr_name}")
+            logger.debug(f"Using {normalisation} for {self.logging_name}")
 
         if augmentations is not None:
             transform_list += augmentations
-            logger.debug(f"Applying additional augmentations={augmentations} for {self.repr_name}")
+            logger.debug(f"Applying additional augmentations={augmentations} for {self.logging_name}")
 
         # Resize to image size required by input layer of model
         if use_resize:  # rescale the image to the required size via interpolation
             scaling_transform = vision_transforms.Resize(
                 self.image_size, interpolation=vision_transforms.InterpolationMode.BILINEAR
             )
-            logger.debug(f"Upsizing {self.repr_name} images via Resize.")
+            logger.debug(f"Upsizing {self.logging_name} images via Resize.")
         else:  # just put the image in the middle and pad around it
             scaling_transform = vision_transforms.CenterCrop(self.image_size)
-            logger.debug(f"Upsizing {self.repr_name} images via CenterCrop.")
+            logger.debug(f"Upsizing {self.logging_name} images via CenterCrop.")
         transform_list.append(scaling_transform)
 
         self.composed_transforms = vision_transforms.Compose(transform_list)  # todo: move transforms to cuda?
-        logger.info(f"Built transforms for {self.repr_name}.")
+        logger.info(f"Built transforms for {self.logging_name}.")
         return tensor_dict_transform_wrapper(self.composed_transforms)

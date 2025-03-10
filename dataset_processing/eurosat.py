@@ -74,14 +74,14 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             # Shift to mean 0 and std 1, [-1, 1] assuming input is uniform [0, 1]. Same as 2x - 1 =(x - 0.5)/0.5
             normalisation = vision_transforms.Normalize(mean=[0.5] * self.N_BANDS,
                                                         std=[0.5] * self.N_BANDS, inplace=True)
-            logger.debug(f"Normalising {self.repr_name} assuming mean and std of 0.5.")
+            logger.debug(f"Normalising {self.logging_name} assuming mean and std of 0.5.")
             # Scale as expected by ResNet (see torchvision docs)
             # vision_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
         elif normalisation_type == "mean_std":
             mean, std = self.get_mean_std()
             normalisation = vision_transforms.Normalize(mean=mean, std=std, inplace=True)
-            logger.debug(f"Normalising {self.repr_name} using calculated mean and std.")
+            logger.debug(f"Normalising {self.logging_name} using calculated mean and std.")
 
         elif normalisation_type != "none":
             raise ValueError(f"Unsupported normalisation type: {normalisation_type}")
