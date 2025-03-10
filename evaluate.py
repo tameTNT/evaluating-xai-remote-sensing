@@ -7,7 +7,7 @@ import torch
 import dataset_processing
 import helpers
 import models
-from evaluate_xai.correctness import Correctness
+import evaluate_xai
 from xai.shap_method import SHAPExplainer
 
 # from remote_plot import plt
@@ -63,7 +63,7 @@ else:
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
 
-correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
+correctness_metric = evaluate_ai.correctness.Correctness(shap_explainer, max_batch_size=batch_size)
 similarity = correctness_metric.evaluate(method="model_randomisation")
 metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Correctness evaluation via model randomisation", metrics)

@@ -162,14 +162,15 @@ class Co12Metric:
 
         self.exp.model.eval()
         model_device = helpers.utils.get_model_device(self.exp.model)
-        x = torch.from_numpy(x)
+        model_dtype = helpers.utils.get_model_dtype(self.exp.model)
+        x = torch.from_numpy(x).to(model_dtype)
 
         logger.info(f"Generating model predictions on new images (e.g. perturbed) "
                     f"for {self.__class__.__name__}")
         preds = []
         for minibatch in tqdm(
                 helpers.utils.make_device_batches(x, self.max_batch_size, model_device),
-                total=np.ceil(x.shape[0] / self.max_batch_size), ncols=110,
+                total=np.ceil(x.shape[0] / self.max_batch_size).astype(int), ncols=110,
                 desc=f"Predicting for {self.__class__.__name__}",
         ):
             batch_preds = self.exp.model(minibatch).softmax(dim=-1).detach().cpu()

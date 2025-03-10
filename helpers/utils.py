@@ -37,6 +37,14 @@ def get_model_device(model: torch.nn.Module) -> torch.device:
     return next(model.parameters()).device
 
 
+def get_model_dtype(model: torch.nn.Module) -> torch.dtype:
+    """
+    Returns the torch dtype used by a torch Module (model).
+    """
+
+    return next(model.parameters()).dtype
+
+
 def make_device_batches(
         x: torch.Tensor,
         max_batch_size: int,

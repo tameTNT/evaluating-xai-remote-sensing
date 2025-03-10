@@ -9,6 +9,7 @@ import skimage
 import torch
 from jaxtyping import Int, Float
 from tqdm.autonotebook import tqdm
+import einops
 
 import helpers
 from xai import Explainer
@@ -64,45 +65,58 @@ class Correctness(Co12Metric):
             self,
             iterations: int = 30,
             n_random_ranks: int = 16,
+            random_seed: int = 42,
             deletion_method: DELETION_METHODS = "nn",
             visualise: bool = False,
     ) -> Float[np.ndarray, "2 n_samples"]:
 
         n_samples = self.exp.input.shape[0]
         image_shape = self.exp.input.shape[1:]
-        imgs_with_deletions = self.incrementally_delete(self.exp.ranked_explanation, iterations, deletion_method)[1]
+        imgs_with_deletions, k_values = self.incrementally_delete(
+            self.exp.ranked_explanation, iterations, deletion_method
+        )
+        if visualise:
+            helpers.plotting.show_image(
+                einops.rearrange(imgs_with_deletions, "n i c h w -> (n h) (i w) c"),
+            )
+
         flattened_imgs = imgs_with_deletions.reshape(n_samples * iterations, *image_shape)
-        exp_informed_model_confidences = (self.run_model(flattened_imgs)
-                                          .reshape(n_samples, iterations, -1))  # final dim is num_classes
+        exp_informed_model_confidences = (self.run_model(flattened_imgs)  # final dim is num_classes
+                                          .reshape(n_samples, iterations, -1))
+
         # max confidence class on the original img
         original_pred_class = exp_informed_model_confidences[:, 0].argmax(axis=1)
-        # care about confidence of the original class
-        exp_informed_class_confidence = exp_informed_model_confidences[..., original_pred_class]
+        # we only care about confidence of the original prediction class
+        exp_informed_class_confidence = exp_informed_model_confidences[np.arange(n_samples), ..., original_pred_class]
 
+        # calculate area under the curve along iterations axis
         exp_informed_area_under_curves_per_img = np.trapz(exp_informed_class_confidence, axis=1)
-
+        print(exp_informed_class_confidence)
         logger.debug("Repeating for randomised deletions.")
-        seeds = np.random.default_rng(42).choice(100, n_random_ranks, replace=False)
+        seeds = np.random.default_rng(random_seed).choice(100, n_random_ranks, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_ranks, n_samples, iterations, *image_shape))
-        for i, seed in enumerate(seeds):
-            random_ranking = self.generate_random_ranking(16, seed).repeat(n_samples, axis=0)
-            imgs_with_random_deletions[i] = self.incrementally_delete(random_ranking, iterations, deletion_method)[1]
+        for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
+                            desc="Randomly perturbing"):
+            a_random_ranking = self.generate_random_ranking(16, seed)
+            random_rankings = a_random_ranking[np.newaxis, ...].repeat(n_samples, axis=0)
+            imgs_with_random_deletions[i] = self.incrementally_delete(random_rankings, iterations, deletion_method)[0]
 
         flattened_imgs = imgs_with_random_deletions.reshape(n_random_ranks * n_samples * iterations, *image_shape)
         random_model_confidences = (self.run_model(flattened_imgs)  # take mean over n_random_ranks
                                     .reshape(n_random_ranks, n_samples, iterations, -1).mean(axis=0))
-        random_class_confidence = random_model_confidences[..., original_pred_class]
+        random_class_confidence = random_model_confidences[np.arange(n_samples), ..., original_pred_class]
 
         random_area_under_curves_per_img = np.trapz(random_class_confidence, axis=1)
 
         if visualise:
-            fig, axes = plt.subplots(1, n_samples)
+            fig, axes = plt.subplots(1, n_samples, sharey=True, figsize=(3 * n_samples, 3))
             for i, ax in enumerate(axes):  # type: int, plt.Axes
-                ax.plot(range(iterations), exp_informed_class_confidence[i], label="exp_informed")
-                ax.plot(range(iterations), random_class_confidence[i], label="random")
+                ax.plot(k_values, exp_informed_class_confidence[i], label="exp_informed")
+                ax.plot(k_values, random_class_confidence[i], label="random")
                 ax.set_title(f"Image {i}")
+                ax.set_ylim([0, 1])
             fig.suptitle(f"Model confidence over deletion process")
-            fig.legend()
+            fig.tight_layout()
             plt.show()
 
         return np.stack([exp_informed_area_under_curves_per_img, random_area_under_curves_per_img], axis=0)
@@ -136,22 +150,21 @@ class Correctness(Co12Metric):
         values of k used.
         """
 
-        num_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]
+        num_img_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]
 
         k_values = np.floor(
-            np.linspace(0, num_pixels, num_iterations + 1)  # +1 because of 0 step
+            np.linspace(0, num_img_pixels, num_iterations)
         ).astype(int)
 
-        incrementally_deleted = np.zeros(
-            (importance_ranking.shape[0], num_iterations + 1, *self.exp.input.shape),
-        )
+        incrementally_deleted = np.zeros((num_iterations, *self.exp.input.shape))
 
         for i, k in tqdm(enumerate(k_values), total=len(k_values), ncols=110,
-                         desc="Deleting important pixels"):
+                         desc="Deleting important pixels", leave=False):
             output = self.delete_top_k_important(importance_ranking, k, method)
             incrementally_deleted[i] = output
 
-        return incrementally_deleted, k_values
+        # swap n_samples and num_iterations axes
+        return incrementally_deleted.swapaxes(0, 1), k_values
 
     def delete_top_k_important(
             self,
@@ -180,9 +193,10 @@ class Correctness(Co12Metric):
         """
 
         masked_imgs = self.exp.input.numpy(force=True)
+        n_channels = self.exp.input.shape[1]
 
         top_k_mask = importance_ranking < k
-        top_k_mask = top_k_mask[:, np.newaxis, ...]  # mask across all colour channels
+        top_k_mask = np.expand_dims(top_k_mask, 1).repeat(n_channels, 1)  # mask across all input channels
         # top_k_mask.shape = (n_samples, 1, height, width)
         target_regions = masked_imgs[top_k_mask]
 
@@ -246,16 +260,15 @@ class Correctness(Co12Metric):
             self,
             resolution: int = 16,
             random_seed: int = 42
-    ) -> Int[np.ndarray, "n_samples height width"]:
-        x = self.exp.input
-        num_pixels = x.shape[-2] * x.shape[-1]
+    ) -> Int[np.ndarray, "height width"]:
+        _, _, h, w = self.exp.input.shape
 
         random_gen = np.random.default_rng(random_seed)
         random_importance = random_gen.permuted(
-            np.floor(np.linspace(0, num_pixels, resolution ** 2))
+            np.floor(np.linspace(0, h*w, resolution ** 2))
         ).reshape(resolution, resolution)
 
         return skimage.transform.resize(
-            random_importance, output_shape=x.shape[1:],
+            random_importance, output_shape=(h, w),
             order=0, clip=False, preserve_range=True
         )
