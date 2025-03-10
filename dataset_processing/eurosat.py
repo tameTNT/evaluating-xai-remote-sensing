@@ -5,9 +5,9 @@ from torchgeo.datasets import EuroSAT
 from torchvision.transforms import v2 as vision_transforms
 
 import dataset_processing.core
-import helpers.log
+import helpers
 
-DATASET_ROOT = dataset_processing.core.get_dataset_root()
+DATASET_ROOT = helpers.env_var.get_dataset_root()
 logger = helpers.log.get_logger("main")
 
 

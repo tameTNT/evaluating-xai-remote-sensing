@@ -11,4 +11,3 @@
 */*__pycache__/
 *pycharm-support-libs/
 .ipynb_checkpoints/
-/env.json

@@ -1,16 +1,16 @@
 import json
 from pathlib import Path
 
+# from remote_plot import plt
+import matplotlib.pyplot as plt
 import safetensors.torch as st
 import torch
 
 import dataset_processing
 import helpers
 import models
-import evaluate_xai
+from evaluate_xai.correctness import Correctness
 from xai.shap_method import SHAPExplainer
-
-# from remote_plot import plt
 
 # plt.port = 36422
 
@@ -37,8 +37,8 @@ dataset = dataset_processing.get_dataset_object(
 
 logger.info("Creating model and loading pretrained weights.")
 
-weights_paths = json.load(Path("weights_paths.json").open("r"))
-model_weights_path = Path(weights_paths[dataset_name][model_name]).expanduser()
+weights_paths = json.load(Path("weights_paths.json").open("r"))[dataset_name][model_name]
+model_weights_path = (helpers.env_var.get_project_root() / weights_paths)
 
 model_to_explain = model_type(
     pretrained=False, n_input_bands=dataset.N_BANDS, n_output_classes=dataset.N_CLASSES,
@@ -50,6 +50,8 @@ logger.info(f"Loaded weights from {model_weights_path} successfully.")
 temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
+helpers.plotting.show_image(imgs_to_explain)
+plt.show()
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
@@ -62,8 +64,9 @@ else:
 
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
+plt.show()
 
-correctness_metric = evaluate_ai.correctness.Correctness(shap_explainer, max_batch_size=batch_size)
+correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
 similarity = correctness_metric.evaluate(method="model_randomisation")
 metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Correctness evaluation via model randomisation", metrics)

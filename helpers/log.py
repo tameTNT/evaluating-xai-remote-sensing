@@ -1,7 +1,9 @@
 import logging
 from pathlib import Path
 
-LOG_DIR = Path("~/l3_project/.logs").expanduser()
+import helpers.env_var
+
+LOG_DIR = Path(f"{helpers.env_var.get_project_root()}/.logs")
 LOG_DIR.mkdir(parents=False, exist_ok=True)
 
 
@@ -21,7 +23,8 @@ def get_logger(name: str) -> logging.Logger:
 
         # create formatter and add it to the handlers
         formatter = logging.Formatter(
-            "%(asctime)s | %(name)s | %(levelname)s | %(pathname)s | %(funcName)s | %(message)s"
+            "%(asctime)s | %(name)s (%(process)d) | %(levelname)s | "
+            "%(filename)s | %(funcName)s | %(message)s"
         )
         fh.setFormatter(formatter)
         ch.setFormatter(formatter)

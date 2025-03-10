@@ -6,12 +6,12 @@ import numpy as np
 import safetensors.torch as st
 import torch
 import torch.nn as nn
+import wandb
 from tqdm.autonotebook import tqdm
 
 import dataset_processing
 import helpers
 import models
-import wandb
 
 # Create argument parser
 parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
@@ -28,7 +28,7 @@ parser.add_argument(
     "--checkpoints_root_name",
     type=Path,
     default="checkpoints",
-    help="Specify the directory for checkpoints with l3_project. Defaults to ~/checkpoints",
+    help="Specify the directory for checkpoints with the project. Defaults to checkpoints",
 )
 parser.add_argument(
     "--do_not_track",
@@ -189,9 +189,9 @@ np_rng = np.random.default_rng(random_seed)
 _ = torch.manual_seed(random_seed)
 logger.debug(f'Random seed set to {random_seed}.')
 
-checkpoints_path = Path.home() / "l3_project" / checkpoints_root_name
+checkpoints_path = helpers.env_var.get_project_root() / checkpoints_root_name
 checkpoints_path.mkdir(exist_ok=True)
-logger.debug(f'Checkpoints directory set to {checkpoints_path.resolve()}.')
+logger.debug(f'Checkpoints directory set to {checkpoints_path}.')
 
 model_type = models.get_model_type(model_name)
 

@@ -1,13 +1,12 @@
-import logging
 import typing as t
 
 import torch
 import torchgeo.datasets
 
-import dataset_processing.core
+import helpers
 
-DATASET_ROOT = dataset_processing.dataset_core.get_dataset_root()
-logger = logging.getLogger("projectLog")
+DATASET_ROOT = helpers.env_var.get_dataset_root()
+logger = helpers.log.get_logger("main")
 
 
 def get_dataset(
