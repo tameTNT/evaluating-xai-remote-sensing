@@ -3,10 +3,9 @@ import typing as t
 import einops
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import torchvision.utils
-from jaxtyping import Float, Int
 import pandas as pd
+import torch
+from jaxtyping import Float, Int
 from skimage import color
 
 
@@ -162,7 +161,7 @@ def show_ms_images(
 
 
 def visualise_importance(
-        x: Float[np.ndarray, "n_samples height width channels"],
+        x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples height width channels"],
         importance_rank: Int[np.ndarray, "n_samples height width"],
         alpha: float = 0.2,
         with_colorbar: bool = True,

@@ -20,7 +20,7 @@ def get_torch_device() -> torch.device:
 
     else:
         torch_device = torch.device('cpu')
-        logger.info(f'Using {torch_device} as torch device.')
+    logger.info(f'Using {torch_device} as torch device.')
 
     if platform.system() != 'Linux':
         torch.set_num_threads(1)
