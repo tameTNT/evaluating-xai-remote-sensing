@@ -147,8 +147,8 @@ class Co12Metric:
         self.exp = exp
         self.max_batch_size = max_batch_size
 
-    def evaluate(self, method: str):
-        logger.info(f"Evaluating {self.__class__.__name__} (via {method}) "
+    def evaluate(self, method: str, **kwargs):
+        logger.info(f"Evaluating {self.__class__.__name__} (via {method} with {kwargs}) "
                     f"of {self.exp.__class__.__name__} "
                     f"for {self.exp.model.__class__.__name__}.")
 

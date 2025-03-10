@@ -1,3 +1,4 @@
+from . import evaluate_xai
 from . import log
 from . import ml
 from . import plotting
