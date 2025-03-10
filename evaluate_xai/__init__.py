@@ -12,6 +12,7 @@ logger = helpers.log.get_logger("main")
 
 
 class Similarity:
+    # todo: add docstrings
     def __init__(self, exp1: Explainer, exp2: Explainer):
         x1 = exp1.explanation
         x2 = exp2.explanation
@@ -26,11 +27,15 @@ class Similarity:
         self.x1_rank: Int[np.ndarray, "n_samples height width"] = x1_rank
         self.x2_rank: Int[np.ndarray, "n_samples height width"] = x2_rank
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(shape={self.shape})"
+
     def __call__(
             self,
             l2_normalise: bool = True,
             intersection_k: int = 5000,
     ) -> dict:
+        logger.info(f"Generating similarity metrics for {self}.")
         metrics = {
             "l2_distance": self.l2_distance(normalise=l2_normalise),
             "spearman_rank": self.spearman_rank(),
@@ -40,6 +45,9 @@ class Similarity:
         return metrics
 
     def l2_distance(self, normalise: bool = True) -> Float[np.ndarray, "n_samples"]:
+        # todo: add docstring
+
+        logger.debug(f"Calculating L2 distance for {self}.")
         n, h, w = self.shape
 
         x1: np.ndarray = self.x1
@@ -84,6 +92,8 @@ class Similarity:
         A score of 0 indicates no correlation at all between images/explanations.
         """
 
+        logger.debug(f"Calculating Spearman rank for {self}.")
+
         spearman_coeffs = np.zeros(0)
 
         for i, (im1, im2) in enumerate(zip(self.x1_rank, self.x2_rank)):
@@ -104,6 +114,8 @@ class Similarity:
         in both images/explanations).
         """
 
+        logger.debug(f"Calculating Top-k-intersection for {self}.")
+
         x1_flat = self.x1_rank.reshape(self.shape[0], -1)
         x2_flat = self.x2_rank.reshape(self.shape[0], -1)
         intersection = np.sum(np.logical_and(x1_flat < k, x2_flat < k), axis=1) / k
@@ -120,6 +132,8 @@ class Similarity:
         A score of 0 indicates no structural similarity between the two
         images/explanations.
         """
+
+        logger.debug(f"Calculating structural similarity for {self}.")
 
         ssims = np.zeros(0)
         for im1, im2 in zip(self.x1_rank, self.x2_rank):
