@@ -5,9 +5,9 @@ import numpy as np
 import torch
 from jaxtyping import Float, Int
 
-import helpers
+from helpers import log  # direct import to avoid circular import
 
-logger = helpers.log.get_logger("main")
+logger = log.get_logger("main")
 
 
 def get_torch_device() -> torch.device:
