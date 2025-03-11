@@ -55,7 +55,7 @@ temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain)
-plt.show()
+# plt.show()
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
@@ -77,11 +77,17 @@ sim_metrics = correctness_metric.evaluate(method="model_randomisation")(
 print("Correctness evaluation via model randomisation", sim_metrics)
 
 nn_aucs = correctness_metric.evaluate(
-    method="incremental_deletion", deletion_method="nn",
+    method="incremental_deletion",
+    deletion_method="nn",
     iterations=10, n_random_rankings=5,
     random_seed=42, visualisation_option=None,
 )
 print("Correctness evaluation via incremental deletion", nn_aucs)
 
 output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
-_ = output_completeness_metric.evaluate(method="deletion_check", threshold=0.1)
+drop_in_confidence = output_completeness_metric.evaluate(
+    method="deletion_check", deletion_method="shuffle", threshold=0.1,
+    n_random_rankings=5, random_seed=42,
+)
+print("Output completeness evaluation via deletion check", end=" ")
+print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))

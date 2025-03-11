@@ -77,10 +77,10 @@ class Correctness(Co12Metric):
 
     def _incremental_deletion(
             self,
+            deletion_method: deletion.METHODS = "nn",
             iterations: int = 30,
             n_random_rankings: int = 5,
             random_seed: int = 42,
-            deletion_method: deletion.METHODS = "nn",
             visualisation_option: t.Optional[VisualisationOption] = None,
     ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
 
@@ -133,8 +133,8 @@ class Correctness(Co12Metric):
 
         # take mean over n_random_rankings
         random_model_confidences = random_outputs.reshape(n_random_rankings, n_samples, iterations, -1).mean(axis=0)
-
-        random_class_confidence = random_model_confidences[np.arange(n_samples), ..., original_pred_class]
+        # confidence class in the original prediction over the iterations for each sample
+        random_class_confidence = random_model_confidences[np.arange(n_samples), :, original_pred_class]
 
         # Second part of final output.
         random_area_under_curve_per_img = np.trapz(random_class_confidence, axis=1)
