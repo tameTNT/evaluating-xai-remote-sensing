@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 # from remote_plot import plt
-import matplotlib.pyplot as plt
+import matplotlib as mpl
 import safetensors.torch as st
 import torch
 
@@ -13,6 +13,7 @@ from evaluate_xai.correctness import Correctness
 from xai.shap_method import SHAPExplainer
 
 # plt.port = 36422
+mpl.rcParams['savefig.pad_inches'] = 0
 
 random_seed = 42
 dataset_name = "EuroSATRGB"
@@ -52,7 +53,7 @@ temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain)
-plt.show()
+# plt.show()
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
@@ -65,9 +66,16 @@ else:
 
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
-plt.show()
+# plt.show()
 
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
 similarity = correctness_metric.evaluate(method="model_randomisation")
-metrics = similarity(l2_normalise=True, intersection_k=5000)
-print("Correctness evaluation via model randomisation", metrics)
+sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
+# print("Correctness evaluation via model randomisation", sim_metrics)
+
+aucs = correctness_metric.evaluate(
+    method="incremental_deletion", deletion_method="nn",
+    iterations=8, n_random_ranks=3,
+    random_seed=42, visualise=True
+)
+print("Correctness evaluation via incremental deletion", aucs)

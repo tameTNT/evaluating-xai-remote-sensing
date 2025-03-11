@@ -2,6 +2,7 @@ import copy
 import typing as t
 from pathlib import Path
 
+import einops
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
@@ -9,7 +10,6 @@ import skimage
 import torch
 from jaxtyping import Int, Float
 from tqdm.autonotebook import tqdm
-import einops
 
 import helpers
 from xai import Explainer
@@ -29,7 +29,7 @@ class Correctness(Co12Metric):
             self,
             method: t.Literal["model_randomisation", "incremental_deletion"],
             **kwargs,
-    ) -> t.Union[Similarity, Float[np.ndarray, "2 n_samples"]]:
+    ) -> t.Union[Similarity, dict]:
         super().evaluate(method, **kwargs)
 
         if method == "model_randomisation":
@@ -68,7 +68,7 @@ class Correctness(Co12Metric):
             random_seed: int = 42,
             deletion_method: DELETION_METHODS = "nn",
             visualise: bool = False,
-    ) -> Float[np.ndarray, "2 n_samples"]:
+    ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
 
         n_samples = self.exp.input.shape[0]
         image_shape = self.exp.input.shape[1:]
@@ -79,6 +79,8 @@ class Correctness(Co12Metric):
             helpers.plotting.show_image(
                 einops.rearrange(imgs_with_deletions, "n i c h w -> (n h) (i w) c"),
             )
+            plt.tight_layout()
+            plt.show()
 
         flattened_imgs = imgs_with_deletions.reshape(n_samples * iterations, *image_shape)
         exp_informed_model_confidences = (self.run_model(flattened_imgs)  # final dim is num_classes
@@ -91,7 +93,7 @@ class Correctness(Co12Metric):
 
         # calculate area under the curve along iterations axis
         exp_informed_area_under_curves_per_img = np.trapz(exp_informed_class_confidence, axis=1)
-        print(exp_informed_class_confidence)
+
         logger.debug("Repeating for randomised deletions.")
         seeds = np.random.default_rng(random_seed).choice(100, n_random_ranks, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_ranks, n_samples, iterations, *image_shape))
@@ -111,15 +113,17 @@ class Correctness(Co12Metric):
         if visualise:
             fig, axes = plt.subplots(1, n_samples, sharey=True, figsize=(3 * n_samples, 3))
             for i, ax in enumerate(axes):  # type: int, plt.Axes
-                ax.plot(k_values, exp_informed_class_confidence[i], label="exp_informed")
-                ax.plot(k_values, random_class_confidence[i], label="random")
+                ax.plot(range(len(k_values)), exp_informed_class_confidence[i], "-", label="exp_informed")
+                ax.plot(range(len(k_values)), random_class_confidence[i], "--", label="random")
                 ax.set_title(f"Image {i}")
+                ax.set_xlim([0, len(k_values) - 1])
                 ax.set_ylim([0, 1])
             fig.suptitle(f"Model confidence over deletion process")
             fig.tight_layout()
             plt.show()
 
-        return np.stack([exp_informed_area_under_curves_per_img, random_area_under_curves_per_img], axis=0)
+        return {"informed": exp_informed_area_under_curves_per_img,
+                "random": random_area_under_curves_per_img}
 
     def reset_child_params(self, model: torch.nn.Module):
         """

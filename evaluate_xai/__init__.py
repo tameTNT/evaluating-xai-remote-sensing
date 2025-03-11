@@ -1,3 +1,5 @@
+import typing as t
+
 import numpy as np
 import torch
 from jaxtyping import Float, Int
@@ -34,15 +36,18 @@ class Similarity:
             self,
             l2_normalise: bool = True,
             intersection_k: int = 5000,
-    ) -> dict:
+    ) -> dict[t.Literal["l2_distance", "spearman_rank",
+    "top_k_intersection", "structural_similarity"],
+    Float[np.ndarray, "n_samples"]]:
+
         logger.info(f"Generating similarity metrics for {self}.")
-        metrics = {
+
+        return {
             "l2_distance": self.l2_distance(normalise=l2_normalise),
             "spearman_rank": self.spearman_rank(),
             "top_k_intersection": self.top_k_intersection(k=intersection_k),
             "structural_similarity": self.structural_similarity(),
         }
-        return metrics
 
     def l2_distance(self, normalise: bool = True) -> Float[np.ndarray, "n_samples"]:
         # todo: add docstring
