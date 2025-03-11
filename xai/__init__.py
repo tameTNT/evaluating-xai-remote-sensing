@@ -34,7 +34,7 @@ class Explainer:
         self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
 
-        self.input = torch.tensor(0)
+        self.input = torch.tensor(0).to(self.device)
         self.kwargs = dict()
         # All explanations should attribute one value to each pixel of each image in the batch
         self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
@@ -64,7 +64,7 @@ class Explainer:
         """
 
         if self.explanation is not None:
-            return torch.equal(self.input, x)
+            return torch.equal(self.input, x.to(self.device))
         else:
             return False
 

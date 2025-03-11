@@ -3,6 +3,7 @@ from pathlib import Path
 
 # from remote_plot import plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import safetensors.torch as st
 import torch
 
@@ -53,7 +54,7 @@ temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain)
-# plt.show()
+plt.show()
 
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
