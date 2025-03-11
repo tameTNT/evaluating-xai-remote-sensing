@@ -13,7 +13,7 @@ from tqdm.autonotebook import tqdm
 import helpers
 from xai import Explainer
 from . import Co12Metric, Similarity
-import deletion
+from . import deletion
 
 logger = helpers.log.get_logger("main")
 
@@ -89,22 +89,12 @@ class Correctness(Co12Metric):
         imgs_with_deletions, k_values = self.incrementally_delete(
             self.exp.ranked_explanation, iterations, deletion_method
         )
+        base_n = n_samples * iterations
+        flattened_imgs_a = imgs_with_deletions.reshape(base_n, *image_shape)
+
         if visualisation_option is VisualisationOption.PERTURBATIONS or \
                 visualisation_option is VisualisationOption.BOTH:
             show_perturbations(imgs_with_deletions)
-
-        # Generate model confidence for each iteration
-        flattened_imgs = imgs_with_deletions.reshape(n_samples * iterations, *image_shape)
-        exp_informed_model_confidences = (self.run_model(flattened_imgs)  # final dim is num_classes
-                                          .reshape(n_samples, iterations, -1))
-
-        # max confidence class on the original img
-        original_pred_class = exp_informed_model_confidences[:, 0].argmax(axis=1)
-        # we only care about confidence of the original prediction class
-        exp_informed_class_confidence = exp_informed_model_confidences[np.arange(n_samples), ..., original_pred_class]
-
-        # calculate area under the curve along iterations axis
-        exp_informed_area_under_curve_per_img = np.trapz(exp_informed_class_confidence, axis=1)
 
         # Do the same thing for randomised deletions
         logger.debug("Repeating _incremental_deletion for randomised deletions.")
@@ -120,16 +110,33 @@ class Correctness(Co12Metric):
                 random_rankings, iterations, deletion_method
             )[0]
 
+        flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
+
         if visualisation_option is VisualisationOption.PERTURBATIONS or \
                 visualisation_option is VisualisationOption.BOTH:
             show_perturbations(imgs_with_random_deletions[0])
 
-        # Generate model confidence for each iteration
-        flattened_imgs = imgs_with_random_deletions.reshape(n_random_rankings * n_samples * iterations, *image_shape)
-        random_model_confidences = (self.run_model(flattened_imgs)  # take mean over n_random_rankings
-                                    .reshape(n_random_rankings, n_samples, iterations, -1).mean(axis=0))
+        # Generate model confidence for all images (in one pass for efficiency)
+        all_outputs = self.run_model(np.concatenate([flattened_imgs_a, flattened_imgs_b], axis=0))
+        # Split up the outputs again from the concatenation
+        informed_outputs = all_outputs[:base_n]
+        random_outputs = all_outputs[base_n:]
+
+        # final dim is num_classes so use -1
+        exp_informed_model_confidences = informed_outputs.reshape(n_samples, iterations, -1)
+        # max confidence class on the original img
+        original_pred_class = exp_informed_model_confidences[:, 0].argmax(axis=1)
+        # we only care about confidence of the original prediction class
+        exp_informed_class_confidence = exp_informed_model_confidences[np.arange(n_samples), ..., original_pred_class]
+        # Calculate area under the curve along iterations axis. This is our final output.
+        exp_informed_area_under_curve_per_img = np.trapz(exp_informed_class_confidence, axis=1)
+
+        # take mean over n_random_rankings
+        random_model_confidences = random_outputs.reshape(n_random_rankings, n_samples, iterations, -1).mean(axis=0)
+
         random_class_confidence = random_model_confidences[np.arange(n_samples), ..., original_pred_class]
 
+        # Second part of final output.
         random_area_under_curve_per_img = np.trapz(random_class_confidence, axis=1)
 
         # Visualise the area under curve results by plotting confidence against iterations
