@@ -9,8 +9,8 @@ import helpers
 
 logger = helpers.log.get_logger("main")
 
-BASE_OUTPUT_PATH = Path(f"{helpers.env_var.get_project_root()}/xai_output")
-logger.debug(f"Explanation default output path set to {BASE_OUTPUT_PATH}.")
+BASE_OUTPUT_PATH = helpers.env_var.get_xai_output_root()
+logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}.")
 
 
 class Explainer:

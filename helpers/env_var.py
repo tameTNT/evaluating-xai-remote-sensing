@@ -1,4 +1,5 @@
 import os
+import platform
 from pathlib import Path
 
 
@@ -13,6 +14,22 @@ def get_project_root() -> Path:
         return path
     else:
         raise FileNotFoundError(f"The expected project root, {path}, doesn't exist.")
+
+
+def get_xai_output_root() -> Path:
+    """
+    Return the output directory to use for XAI results since there appears to
+    be a difference in pixel values depending on the platform.
+
+    Loading the windows images on Linux/MacOS gives a difference of 0.0111 on
+    eurosat for instance for exactly the same input eurosat image loaded
+    from disk.
+    """
+
+    if platform.system() == "Windows":
+        return get_project_root() / "xai_output_windows"
+    else:
+        return get_project_root() / "xai_output"
 
 
 def get_dataset_root() -> Path:

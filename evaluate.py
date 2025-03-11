@@ -33,6 +33,7 @@ dataset = dataset_processing.get_dataset_object(
     dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
+    download=False,
 )
 
 logger.info("Creating model and loading pretrained weights.")

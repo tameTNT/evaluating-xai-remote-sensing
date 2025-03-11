@@ -7,6 +7,7 @@
 /wandb/
 /output/
 /xai_output/
+/xai_output_windows/
 
 */*__pycache__/
 *pycharm-support-libs/
