@@ -41,6 +41,7 @@ class Explainer:
 
         self.attempt_load = attempt_load
         if self.attempt_load is not None:
+            self.attempt_load = self.attempt_load.to(self.device)
             try:
                 self.load_state()
             except FileNotFoundError:
@@ -103,7 +104,7 @@ class Explainer:
         logger.debug(f"Attempting to load explanation from "
                      f"{self.npz_path} to {self.__class__.__name__}.")
         with np.load(self.npz_path) as data:  # type: dict[str, np.ndarray]
-            self.input = torch.from_numpy(data["explanation_input"])
+            self.input = torch.from_numpy(data["explanation_input"]).to(self.device)
             temp = data["explanation"]
 
         diff = (self.input - self.attempt_load).abs().sum()

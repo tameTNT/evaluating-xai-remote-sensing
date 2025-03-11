@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 
+
+print("Numpy version:", np.__version__)
+
 with np.load("xai_output_windows/shap/ResNet50.npz") as data:  # type: dict[str, np.ndarray]
     a = torch.from_numpy(data["explanation_input"])
     exp_a = torch.from_numpy(data["explanation"])

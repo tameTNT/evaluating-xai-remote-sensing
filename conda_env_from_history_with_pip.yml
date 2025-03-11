@@ -4,14 +4,15 @@ channels:
 - defaults
 - conda-forge
 dependencies:
-  - python=3.10.16
-  - pip=24.2
+- python=3.10.16
+- pip=24.2
+- numpy=1.26.4
 - einops=0.8.0
 - jaxtyping=0.2.34
 - jupyter=1.0.0
 - plotly=5.24.1
 - pytorch=2.5.1
-  - pytorch-cuda=12.4
+- pytorch-cuda=12.4
 - safetensors=0.4.5
 - scikit-learn=1.5.2
 - torchaudio=2.5.1

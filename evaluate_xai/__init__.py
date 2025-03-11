@@ -37,8 +37,8 @@ class Similarity:
             l2_normalise: bool = True,
             intersection_k: int = 5000,
     ) -> dict[t.Literal["l2_distance", "spearman_rank",
-    "top_k_intersection", "structural_similarity"],
-    Float[np.ndarray, "n_samples"]]:
+                        "top_k_intersection", "structural_similarity"],
+              Float[np.ndarray, "n_samples"]]:
 
         logger.info(f"Generating similarity metrics for {self}.")
 
