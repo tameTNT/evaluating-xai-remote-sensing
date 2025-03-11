@@ -13,7 +13,7 @@ from tqdm.autonotebook import tqdm
 import helpers
 from xai import Explainer
 from . import Co12Metric, Similarity
-import evaluate_xai.deletion
+import deletion
 
 logger = helpers.log.get_logger("main")
 
@@ -35,7 +35,7 @@ def show_perturbations(
 
 
 class Correctness(Co12Metric):
-    # todo: add docstrings
+    # todo: add docstrings - discuss execution time and add definition from review paper
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -80,7 +80,7 @@ class Correctness(Co12Metric):
             iterations: int = 30,
             n_random_rankings: int = 5,
             random_seed: int = 42,
-            deletion_method: evaluate_xai.deletion.DELETION_METHODS = "nn",
+            deletion_method: deletion.METHODS = "nn",
             visualisation_option: t.Optional[VisualisationOption] = None,
     ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
 
@@ -107,12 +107,12 @@ class Correctness(Co12Metric):
         exp_informed_area_under_curve_per_img = np.trapz(exp_informed_class_confidence, axis=1)
 
         # Do the same thing for randomised deletions
-        logger.debug("Repeating for randomised deletions.")
-        seeds = np.random.default_rng(random_seed).choice(100, n_random_rankings, replace=False)
+        logger.debug("Repeating _incremental_deletion for randomised deletions.")
+        seeds = np.random.default_rng(random_seed).choice(10*n_random_rankings, n_random_rankings, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_rankings, n_samples, iterations, *image_shape))
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
                             desc="Randomly perturbing"):  # type: int, int
-            a_random_ranking = evaluate_xai.deletion.generate_random_ranking(
+            a_random_ranking = deletion.generate_random_ranking(
                 self.exp.input.shape[-2:], 16, seed
             )
             random_rankings = a_random_ranking[np.newaxis, ...].repeat(n_samples, axis=0)
@@ -163,7 +163,7 @@ class Correctness(Co12Metric):
             self,
             importance_ranking: Int[np.ndarray, "n_samples height width"],
             num_iterations: int,
-            method: evaluate_xai.deletion.DELETION_METHODS,
+            method: deletion.METHODS,
     ) -> tuple[
         Float[np.ndarray, "n_samples num_iterations channels height width"],
         Int[np.ndarray, "num_iterations"]
@@ -188,7 +188,7 @@ class Correctness(Co12Metric):
 
         for i, k in tqdm(enumerate(k_values), total=len(k_values), ncols=110,
                          desc="Deleting important pixels", leave=False):
-            output = evaluate_xai.deletion.delete_top_k_important(
+            output = deletion.delete_top_k_important(
                 self.exp.input, importance_ranking, k, method
             )
             incrementally_deleted[i] = output

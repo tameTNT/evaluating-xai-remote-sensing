@@ -6,14 +6,14 @@ from jaxtyping import Int, Float
 import scipy
 import skimage
 
-DELETION_METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn", "shuffle"]]
+METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn", "shuffle"]]
 
 
 def delete_top_k_important(
         x: Float[torch.Tensor, "n_samples channels height width"],
         importance_ranking: Int[np.ndarray, "n_samples height width"],
         k: int,
-        method: DELETION_METHODS,
+        method: METHODS,
 ) -> Float[np.ndarray, "n_samples channels height width"]:
     """
     'Delete' the top k most important pixels (as specified by `importance_rank`)

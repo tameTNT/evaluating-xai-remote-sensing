@@ -11,6 +11,7 @@ import dataset_processing
 import helpers
 import models
 from evaluate_xai.correctness import Correctness, VisualisationOption
+from evaluate_xai.output_completeness import OutputCompleteness
 from xai.shap_method import SHAPExplainer
 
 # plt.port = 36422
@@ -70,13 +71,17 @@ helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_exp
 plt.show()
 
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
-similarity = correctness_metric.evaluate(method="model_randomisation")
-sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
-# print("Correctness evaluation via model randomisation", sim_metrics)
+sim_metrics = correctness_metric.evaluate(method="model_randomisation")(
+    l2_normalise=True, intersection_k=5000
+)
+print("Correctness evaluation via model randomisation", sim_metrics)
 
 nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion", deletion_method="nn",
     iterations=10, n_random_rankings=5,
-    random_seed=42, visualisation_option=VisualisationOption.BOTH
+    random_seed=42, visualisation_option=None,
 )
 print("Correctness evaluation via incremental deletion", nn_aucs)
+
+output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+_ = output_completeness_metric.evaluate(method="deletion_check", threshold=0.1)
