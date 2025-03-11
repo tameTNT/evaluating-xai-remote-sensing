@@ -14,7 +14,7 @@ logger = helpers.log.get_logger("main")
 def get_dataset(
         split: t.Literal["train", "test", "val"],
         num_classes: t.Literal[19, 43] = 19,
-        transforms: t.Optional[t.Callable[[t.Dict[str, torch.Tensor]], t.Dict[str, torch.Tensor]]] = None,
+        transforms: t.Optional[t.Callable[[dict[str, torch.Tensor]], dict[str, torch.Tensor]]] = None,
 ) -> torchgeo.datasets.BigEarthNet:
     """
     Get the Refined Big Earth Net dataset.

@@ -140,7 +140,7 @@ class Correctness(Co12Metric):
             importance_ranking: Int[np.ndarray, "n_samples height width"],
             num_iterations: int,
             method: DELETION_METHODS,
-    ) -> t.Tuple[
+    ) -> tuple[
         Float[np.ndarray, "n_samples num_iterations channels height width"],
         Int[np.ndarray, "num_iterations"]
     ]:

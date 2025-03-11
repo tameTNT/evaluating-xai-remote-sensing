@@ -12,7 +12,7 @@ logger = helpers.log.get_logger("main")
 def get_dataset(
         split: t.Literal["train", "test", "val"],
         bands: t.Sequence[str] = ('B04', 'B03', 'B02'),  # defaults to RGB bands
-        transforms: t.Optional[t.Callable[[t.Dict[str, torch.Tensor]], t.Dict[str, torch.Tensor]]] = None,
+        transforms: t.Optional[t.Callable[[dict[str, torch.Tensor]], dict[str, torch.Tensor]]] = None,
 ) -> torchgeo.datasets.SEN12MS:
     """
     Get the SEN12MS dataset using torchgeo.

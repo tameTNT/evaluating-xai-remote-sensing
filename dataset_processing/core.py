@@ -25,7 +25,7 @@ class RSScalingTransform:
             input_min: t.Optional[float] = None,
             # For EuroSAT, authors claim range is 0-2750. Other torchgeo datasets use 3000.
             input_max: t.Optional[float] = None,
-            percentiles: t.Optional[t.Tuple[float, float]] = (.02, .98),
+            percentiles: t.Optional[tuple[float, float]] = (.02, .98),
             channel_wise: bool = False,
             clamp: bool = False,
     ):
@@ -35,7 +35,7 @@ class RSScalingTransform:
         self.channel_wise = channel_wise
         self.clamp = clamp
 
-    def __call__(self, image: torch.Tensor) -> torch.Tensor:
+    def __call__(self, image: Tensor) -> Tensor:
         c, h, w = image.shape
 
         # flatten final dimensions to allow for quantile/max/min per channel
@@ -131,7 +131,7 @@ class RSDatasetMixin:
     def get_original_train_dataloader(self) -> torch.utils.data.DataLoader[dict[str, Tensor]]:
         pass
 
-    def get_mean_std(self) -> t.Tuple[Tensor, Tensor]:
+    def get_mean_std(self) -> tuple[Tensor, Tensor]:
         if self.mean.numel() == 0 or self.var.numel() == 0 or self.std.numel() == 0:
             logger.info(f"Mean and std not yet stored in {self.__class__.__name__}.")
             try:
@@ -157,7 +157,7 @@ class RSDatasetMixin:
         self.var = torch.zeros(self.N_BANDS).to(self.device)
         with tqdm(total=len(dataloader)*2, desc=f"Mean/std of {self.__class__.__name__}",
                   unit="batch", ncols=110, leave=False) as pbar:
-            for i, batch in enumerate(dataloader):  # type: _, dict[str, torch.Tensor]
+            for i, batch in enumerate(dataloader):  # type: int, dict[str, Tensor]
                 images = batch["image"].to(self.device)
                 b, c, h, w = images.shape
                 # Rearrange batch to be the shape of [B, C, H*W]
@@ -172,7 +172,7 @@ class RSDatasetMixin:
             self.mean /= n_images
 
             # Variance calculation requires whole dataset's mean
-            for i, batch in enumerate(dataloader):  # type: _, dict[str, torch.Tensor]
+            for i, batch in enumerate(dataloader):  # type: int, dict[str, Tensor]
                 images = batch["image"].to(self.device)
                 b, c, h, w = images.shape
                 images = images.view(b, c, -1)

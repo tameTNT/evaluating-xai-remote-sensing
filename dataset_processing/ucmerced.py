@@ -16,7 +16,7 @@ class CustomUCMerced(torchgeo.datasets.UCMerced):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __getitem__(self, index: int) -> t.Dict[str, Float[torch.Tensor, "c h w"]]:
+    def __getitem__(self, index: int) -> dict[str, Float[torch.Tensor, "c h w"]]:
         logger.debug(f"Loading UC Merced dataset sample at index {index} using {self.__class__} class.")
         sample = super().__getitem__(index)
         sample["image"] = sample["image"] / 255
@@ -25,7 +25,7 @@ class CustomUCMerced(torchgeo.datasets.UCMerced):
 
 def get_dataset(
         split: t.Literal["train", "test", "val"],
-        transforms: t.Optional[t.Callable[[t.Dict[str, torch.Tensor]], t.Dict[str, torch.Tensor]]] = None,
+        transforms: t.Optional[t.Callable[[dict[str, torch.Tensor]], dict[str, torch.Tensor]]] = None,
         download=False
 ) -> CustomUCMerced:
     """

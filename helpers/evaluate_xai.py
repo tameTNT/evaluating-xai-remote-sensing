@@ -126,10 +126,10 @@ def incrementally_delete(
         # todo: make channels position consistent across functions
         x: Float[np.ndarray, "channels height width"],
         importance_rank: t.Union[
-            t.Tuple[int, t.Union[np.random.Generator, None], int], Int[np.ndarray, "height width"]],
+            tuple[int, t.Union[np.random.Generator, None], int], Int[np.ndarray, "height width"]],
         num_iterations: int,
         method: DELETION_METHODS,
-) -> t.Tuple[
+) -> tuple[
     Float[np.ndarray, "num_iterations trials channels height width"],
     Int[np.ndarray, "num_iterations"]
 ]:
@@ -189,8 +189,8 @@ def incrementally_delete(
 def make_preds_df(
         model: torch.nn.Module,
         x: Float[np.ndarray, "batch_size channels height width"],
-        index: t.Optional[t.List[float]] = None,
-        columns: t.Optional[t.List[str]] = None,
+        index: t.Optional[list[float]] = None,
+        columns: t.Optional[list[str]] = None,
         max_batch_size: int = 32,
 ) -> pd.DataFrame:
 
