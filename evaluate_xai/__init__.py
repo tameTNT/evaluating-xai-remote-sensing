@@ -176,7 +176,7 @@ class Co12Metric:
         for minibatch in tqdm(
                 helpers.utils.make_device_batches(x, self.max_batch_size, model_device),
                 total=np.ceil(x.shape[0] / self.max_batch_size).astype(int), ncols=110,
-                desc=f"Predicting for {self.__class__.__name__}",
+                desc=f"Predicting for {self.__class__.__name__}", leave=False,
         ):
             batch_preds = self.exp.model(minibatch).softmax(dim=-1).detach().cpu()
             preds.append(batch_preds)

@@ -10,7 +10,7 @@ import torch
 import dataset_processing
 import helpers
 import models
-from evaluate_xai.correctness import Correctness
+from evaluate_xai.correctness import Correctness, VisualisationOption
 from xai.shap_method import SHAPExplainer
 
 # plt.port = 36422
@@ -67,16 +67,16 @@ else:
 
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
-# plt.show()
+plt.show()
 
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
 similarity = correctness_metric.evaluate(method="model_randomisation")
 sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
 # print("Correctness evaluation via model randomisation", sim_metrics)
 
-aucs = correctness_metric.evaluate(
+nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion", deletion_method="nn",
-    iterations=8, n_random_ranks=3,
-    random_seed=42, visualise=True
+    iterations=10, n_random_rankings=5,
+    random_seed=42, visualisation_option=VisualisationOption.BOTH
 )
-print("Correctness evaluation via incremental deletion", aucs)
+print("Correctness evaluation via incremental deletion", nn_aucs)
