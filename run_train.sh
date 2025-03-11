@@ -1,7 +1,8 @@
 #!/bin/bash
+# Execute in cwd with e.g. source run_train.sh model_training/config/help.args (Windows)
+# or ./run_train.sh model_training/config/help.args (Unix)
 
 # Activate conda environment
-cd ~/l3_project/
 eval "$(conda shell.bash hook)"
 conda activate sat_project
 

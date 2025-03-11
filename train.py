@@ -1,4 +1,5 @@
 import argparse
+import platform
 import time
 from pathlib import Path
 
@@ -88,8 +89,8 @@ parser.add_argument(
 parser.add_argument(
     "--num_workers",
     type=int,
-    default=4,
-    help="Number of workers to use for DataLoaders. Defaults to 4.",
+    default=4 if platform.system() != "Windows" else 0,
+    help="Number of workers to use for DataLoaders. Defaults to 4 on non-Windows systems.",
 )
 
 # Optimiser and loss criterion arguments
@@ -408,6 +409,7 @@ if use_pretrained:
                     early_stop_threshold=frozen_lr_early_stop_threshold)
     except Exception as e:
         logger.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
+        raise e
 
 logger.info("Training full (unfrozen) model...")
 model.unfreeze_layers()
@@ -417,5 +419,6 @@ try:
                 early_stop_threshold=lr_early_stop_threshold)
 except Exception as e:
     logger.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
+    raise e
 
 logger.info("Script execution complete.")
