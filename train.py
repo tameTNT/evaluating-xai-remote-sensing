@@ -7,12 +7,12 @@ import numpy as np
 import safetensors.torch as st
 import torch
 import torch.nn as nn
-import wandb
 from tqdm.autonotebook import tqdm
 
 import dataset_processing
 import helpers
 import models
+import wandb
 
 # Create argument parser
 parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
@@ -183,6 +183,10 @@ full_max_epochs = args.full_max_epochs
 logger = helpers.log.get_logger("main")
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
 logger.debug("Successfully imported packages.")
+
+if platform.system() == "Windows":
+    num_workers = 0
+    logger.warning("num_workers != 0 is not supported on Windows. Setting num_workers=0.")
 
 torch_device = helpers.utils.get_torch_device()
 

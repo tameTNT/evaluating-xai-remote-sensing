@@ -10,6 +10,7 @@ from tqdm.autonotebook import tqdm
 import helpers
 
 logger = helpers.log.get_logger("main")
+torch_device = helpers.utils.get_torch_device()
 
 
 class RSScalingTransform:
@@ -63,33 +64,21 @@ class RSScalingTransform:
         return f"{self.__class__.__name__}(channel_wise={self.channel_wise}, clamp={self.clamp})"
 
 
-def tensor_dict_transform_wrapper(
-        transform: t.Callable[[torch.Tensor], torch.Tensor]
-) -> t.Callable[[dict[str, Tensor]], dict[str, Tensor]]:
+class TensorDictTransformWrapper:
     """
-    Applies the provided transform function (e.g. torchvision.transforms.Compose) to the "image" key of a dictionary.
-    The "label" and any other key-value pairs in the dictionary are left untouched.
-
-    :param transform: A function that takes a torch.Tensor and returns a transformed torch.Tensor.
-    :return: A function that takes a dictionary with an "image" key and
-        returns a dictionary with the "image" key transformed.
+    Applies the transform function/module provided to the "image" key (with
+    Tensor value) of the dictionary passed to the class when called
+    (see __call__ method).
     """
 
-    def wrapper(dataset_dict: t.Dict[str, torch.Tensor]) -> t.Dict[str, torch.Tensor]:
-        """
-        Apply the transform function provided to outer wrapper function to the "image" key of dataset_dict.
-        :param dataset_dict: A dictionary which includes an "image" key with a torch.Tensor value.
-        :return: The original dictionary with the "image" key transformed.
-        """
+    def __init__(self, transform: t.Union[t.Callable[[Tensor], Tensor], torch.nn.Module]) -> None:
+        self.transform = transform
+        if isinstance(transform, torch.nn.Module):
+            self.transform = transform.to(torch_device)
 
-        # logger.debug(f"Applying transform to 'image' key of `dataset_dict` "
-        #              f"via `{tensor_dict_transform_wrapper.__name__}`'s `wrapper`.")
-        transformed_image = transform(dataset_dict["image"])
-        return_dict = dataset_dict.copy()
-        return_dict["image"] = transformed_image
-        return return_dict
-
-    return wrapper
+    def __call__(self, dataset_dict: dict[str, Tensor]) -> dict[str, Tensor]:
+        dataset_dict["image"] = self.transform(dataset_dict["image"].to(torch_device))
+        return dataset_dict
 
 
 def cycle(iterable):
@@ -203,13 +192,13 @@ class RSDatasetMixin:
                             std=self.std.cpu().numpy())
         logger.info(f"Saved mean and std for {self.logging_name} to {self.mean_std_path}.")
 
-    def get_transforms(
+    def build_transforms(
             self,
             scaling_transform: RSScalingTransform = None,
             normalisation: vision_transforms.Normalize = None,
             augmentations: list[vision_transforms.Transform] = None,
             use_resize: bool = True,
-    ):
+    ) -> t.Callable[[dict[str, Tensor]], dict[str, Tensor]]:
 
         # scaling handled by normalise below
         transform_list = [
@@ -240,6 +229,8 @@ class RSDatasetMixin:
             logger.debug(f"Upsizing {self.logging_name} images via CenterCrop.")
         transform_list.append(scaling_transform)
 
-        self.composed_transforms = vision_transforms.Compose(transform_list)  # todo: move transforms to cuda?
+        self.composed_transforms = vision_transforms.Compose(transform_list)
+
         logger.info(f"Built transforms for {self.logging_name}.")
-        return tensor_dict_transform_wrapper(self.composed_transforms)
+        wrapped_transforms = TensorDictTransformWrapper(self.composed_transforms)
+        return wrapped_transforms

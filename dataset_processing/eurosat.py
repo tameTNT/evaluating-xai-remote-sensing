@@ -99,7 +99,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
                     ),
                 ]
 
-        self.transforms = self.get_transforms(scaling_transform, normalisation, augmentations, use_resize)
+        self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, use_resize)
 
         super().__init__(
             root=str(DATASET_ROOT / "eurosat"),
