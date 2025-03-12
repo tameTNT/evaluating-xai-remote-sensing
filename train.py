@@ -227,14 +227,19 @@ model = model_type(
     n_output_classes=training_dataset.N_CLASSES
 ).to(torch_device)
 
+multiprocessing_context = None
+
 training_dataloader = torch.utils.data.DataLoader(
-    training_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True
+    training_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True,
+    multiprocessing_context=multiprocessing_context
 )
 validation_dataloader = torch.utils.data.DataLoader(
-    validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, drop_last=False
+    validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, drop_last=False,
+    multiprocessing_context=multiprocessing_context
 )
 sampling_dataloader = torch.utils.data.DataLoader(
-    validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True
+    validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True,
+    multiprocessing_context=multiprocessing_context
 )
 
 validation_iterator = iter(dataset_processing.core.cycle(validation_dataloader))

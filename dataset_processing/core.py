@@ -89,13 +89,11 @@ class TensorDictTransformWrapper:
     (see __call__ method).
     """
 
-    def __init__(self, transform: t.Union[t.Callable[[Tensor], Tensor], torch.nn.Module]) -> None:
+    def __init__(self, transform: t.Callable[[Tensor], Tensor]) -> None:
         self.transform = transform
-        if isinstance(transform, torch.nn.Module):
-            self.transform = transform.to(torch_device)
 
     def __call__(self, dataset_dict: dict[str, Tensor]) -> dict[str, Tensor]:
-        dataset_dict["image"] = self.transform(dataset_dict["image"].to(torch_device))
+        dataset_dict["image"] = self.transform(dataset_dict["image"])
         return dataset_dict
 
 
