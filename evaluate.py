@@ -60,7 +60,7 @@ plt.show()
 # Generate explanation for selected images
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = SHAPExplainer(model_to_explain, attempt_load=None)
+shap_explainer = SHAPExplainer(model_to_explain, attempt_load=imgs_to_explain)
 if not shap_explainer.has_explanation_for(imgs_to_explain):
     logger.info(f"No existing explanation for imgs_to_explain. Generating a new one.")
     shap_explainer.explain(imgs_to_explain, max_evals=10000, batch_size=batch_size)
