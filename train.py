@@ -60,6 +60,12 @@ parser.add_argument(
     help="Name of the dataset to train on.",
 )
 parser.add_argument(
+    "--download",
+    action="store_true",
+    help="If given, download the dataset if it is not already present. "
+         "Otherwise, script will fail if the dataset is not already downloaded.",
+)
+parser.add_argument(
     "--normalisation_type",
     type=str,
     default="none",
@@ -161,6 +167,7 @@ model_name = args.model_name
 use_pretrained = args.use_pretrained
 
 dataset_name = args.dataset_name
+download = args.download
 normalisation_type = args.normalisation_type
 use_resize = not args.no_resize
 use_augmentations = not args.no_augmentations
@@ -204,12 +211,14 @@ training_dataset = dataset_processing.get_dataset_object(
     dataset_name, "train", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_augmentations=use_augmentations, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
+    download=download,
 )
 
 validation_dataset = dataset_processing.get_dataset_object(
     dataset_name, "val", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
+    download=download,
 )
 
 model = model_type(
