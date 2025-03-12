@@ -91,7 +91,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             split=self.split,
             bands=self.bands,
             transforms=self.transforms,
-            download=self.do_download
+            download=self.download
         )
 
         self.N_CLASSES = len(self.classes)
@@ -102,7 +102,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             split="train",
             bands=self.bands,
             transforms=None,
-            download=self.do_download,
+            download=self.download,
         ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=shuffle)
 
 

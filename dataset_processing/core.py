@@ -64,6 +64,23 @@ class RSScalingTransform:
         return f"{self.__class__.__name__}(channel_wise={self.channel_wise}, clamp={self.clamp})"
 
 
+class ChoiceRotationTransform:
+    """Rotate randomly by one of the given angles."""
+
+    def __init__(self, angles: list[t.Union[int, float]]):
+        self.angles = angles
+
+    def __call__(self, x):
+        choice_idx = torch.randint(0, len(self.angles), (1,)).item()
+        angle = self.angles[choice_idx]
+
+        img = x["image"]
+        img = vision_transforms.functional.rotate(img, angle)
+        x["image"] = img
+
+        return x
+
+
 class TensorDictTransformWrapper:
     """
     Applies the transform function/module provided to the "image" key (with
@@ -98,6 +115,7 @@ class RSDatasetMixin:
             num_workers: int,
             device: torch.device,
             download: bool,
+            **kwargs,
     ):
         """
         :param split: Which dataset split to use. One of "train", "val", or "test".
@@ -125,11 +143,14 @@ class RSDatasetMixin:
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.device = device
-        self.do_download = download
+        self.download = download
 
         self.mean = torch.zeros(0).to(self.device)
         self.var = torch.zeros(0).to(self.device)
         self.std = torch.zeros(0).to(self.device)
+
+        if len(kwargs) > 0:
+            logger.warning(f"Unused kwargs passed to {self.__class__.__name__}: {kwargs}")
 
     @property
     def mean_std_path(self) -> Path:
@@ -235,7 +256,8 @@ class RSDatasetMixin:
         # Resize to image size required by input layer of model
         if use_resize:  # rescale the image to the required size via interpolation
             scaling_transform = vision_transforms.Resize(
-                self.image_size, interpolation=vision_transforms.InterpolationMode.BILINEAR
+                self.image_size, interpolation=vision_transforms.InterpolationMode.BILINEAR,
+                antialias=True,
             )
             logger.debug(f"Upsizing {self.logging_name} images via Resize.")
         else:  # just put the image in the middle and pad around it

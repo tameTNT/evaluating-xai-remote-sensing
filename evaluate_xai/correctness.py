@@ -69,6 +69,7 @@ class Correctness(Co12Metric):
             # only generate explanation if no existing one
             logger.info(f"No existing explanation for self.exp.input in exp_for_randomised_model. "
                         f"Generating a new one.")
+            # Use the same kwargs as the original explainer
             exp_for_randomised_model.explain(self.exp.input, **self.exp.kwargs)
         else:
             logger.info(f"Existing explanation found for self.exp.input in exp_for_randomised_model.")
