@@ -92,26 +92,40 @@ class RSDatasetMixin:
             self,
             split: t.Literal["train", "val", "test"],
             image_size: int,
+            use_augmentations: bool,
+            use_resize: bool,
             batch_size: int,
             num_workers: int,
             device: torch.device,
+            download: bool,
     ):
-        self.root = ""
-
+        """
+        :param split: Which dataset split to use. One of "train", "val", or "test".
+        :param image_size: The size images should be scaled to before being passed to the model.
+        :param batch_size: The batch size to use for the dataloader should any dataset metrics need to be calculated.
+        :param num_workers: The num_workers to use for the dataloader should any dataset metrics need to be calculated.
+        :param device: The torch device to use for the dataloader should any dataset metrics need to be calculated.
+        :param use_augmentations: Whether to apply random augmentations to the data. N/A if split != "train".
+        :param use_resize: Whether to use torchvision.transforms.Resize to scale images.
+            If False, torchvision.transforms.CenterCrop is used instead, placing images in the centre with padding.
+        :param download: Whether to download the dataset if it is not already present in DATASET_ROOT.
+        """
         self.split = split
 
-        self.image_size = image_size
         self.N_BANDS = 0
         self.bands: list[str] = []
-
         self.classes: list[str] = []
         self.N_CLASSES = 0
 
+        self.image_size = image_size
+        self.use_augmentations = use_augmentations
+        self.use_resize = use_resize
         self.composed_transforms = None
 
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.device = device
+        self.do_download = download
 
         self.mean = torch.zeros(0).to(self.device)
         self.var = torch.zeros(0).to(self.device)
@@ -133,7 +147,7 @@ class RSDatasetMixin:
 
     def get_mean_std(self) -> tuple[Tensor, Tensor]:
         if self.mean.numel() == 0 or self.var.numel() == 0 or self.std.numel() == 0:
-            logger.info(f"Mean and std not yet stored in {self.__class__.__name__}.")
+            logger.info(f"Mean and std not yet stored for {self.__class__.__name__}.")
             try:
                 with np.load(self.mean_std_path) as data:  # type: dict[str, np.ndarray]
                     logger.debug(f"Loading mean, var, and std from {self.mean_std_path}.")

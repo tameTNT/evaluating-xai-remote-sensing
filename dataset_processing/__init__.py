@@ -1,5 +1,7 @@
 import typing as t
 
+import torch
+
 from helpers import log
 from . import core
 from . import eurosat
@@ -13,19 +15,32 @@ def get_dataset_object(
         name: t.Literal["EuroSATRGB", "EuroSATMS"],
         split: t.Literal["train", "val", "test"],
         image_size: int,
+        batch_size: int,
+        num_workers: int,
+        device: torch.device,
+        use_augmentations: bool = True,
+        use_resize: bool = True,
+        download: bool = False,
         **kwargs
-) -> t.Union[eurosat.EuroSATBase]:
+) -> t.Union[core.RSDatasetMixin]:
     """
+    See dataset_processing.core.RSDatasetMixin for undocumented parameters and
+    the specific dataset class for the kwargs unique to that dataset.
 
     :param name: The name of the dataset to load. One of the dataset names in DATASET_NAMES.
-    :param split: One of "train", "val" or "test" indicating the dataset split.
-    :param image_size: The size images of the dataset should be resized to for the model being used.
     :param kwargs: Passed to the dataset class.
     :return: A dataset object of the specified type.
     """
+
     standard_kwargs = {
         "split": split,
         "image_size": image_size,
+        "batch_size": batch_size,
+        "num_workers": num_workers,
+        "device": device,
+        "use_augmentations": use_augmentations,
+        "use_resize": use_resize,
+        "download": download,
     }
 
     if name == "EuroSATRGB":

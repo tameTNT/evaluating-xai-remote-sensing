@@ -14,34 +14,19 @@ logger = helpers.log.get_logger("main")
 class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
     def __init__(
             self,
-            split: t.Literal["train", "val", "test"],
-            image_size: int,
             variant: t.Literal["rgb", "ms"] = "rgb",
-            download: bool = False,
             normalisation_type: t.Literal["scaling", "mean_std", "none"] = "scaling",
-            use_augmentations: bool = True,
-            use_resize: bool = True,
-            batch_size: int = 32,
-            num_workers: int = 4,
-            device: torch.device = "cpu",
+            **kwargs,
     ):
         """
-        :param split: Which dataset split to use. One of "train", "val", or "test".
-        :param image_size: The size images should be scaled to before being passed to the model.
         :param variant: Which variant of EuroSAT to use. One of "rgb" or "ms".
-        :param download: Whether to download the dataset if it is not already present in DATASET_ROOT.
         :param normalisation_type: Which type of normalisation to apply to the dataset.
             One of "scaling" (uses min/max or percentile scaling depending on variant),
             "mean_std" (which computes the mean/std for each channel across the whole train dataset),
             or "none" (which applies no normalisation).
-        :param use_augmentations: Whether to apply random augmentations to the data. N/A if split != "train".
-        :param use_resize: Whether to use torchvision.transforms.Resize to scale images.
-            If False, torchvision.transforms.CenterCrop is used instead, placing images in the centre with padding.
-        :param batch_size: The batch size to use for the dataloader should mean_std be specified.
         """
-        dataset_processing.core.RSDatasetMixin.__init__(
-            self, split=split, image_size=image_size, batch_size=batch_size, num_workers=num_workers, device=device,
-        )
+
+        dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 
         self.variant = variant
 
@@ -88,7 +73,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
 
         # Add randomised transforms
         augmentations = None
-        if self.split == "train" and use_augmentations:
+        if self.split == "train" and self.use_augmentations:
             augmentations = [vision_transforms.RandomHorizontalFlip(p=0.5)]
             if self.variant != "rgb":
                 augmentations += [
@@ -99,26 +84,26 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
                     ),
                 ]
 
-        self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, use_resize)
+        self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, self.use_resize)
 
         super().__init__(
             root=str(DATASET_ROOT / "eurosat"),
-            split=split,
+            split=self.split,
             bands=self.bands,
             transforms=self.transforms,
-            download=download
+            download=self.do_download
         )
 
         self.N_CLASSES = len(self.classes)
 
-    def get_original_train_dataloader(self):
+    def get_original_train_dataloader(self, shuffle=False):
         return torch.utils.data.DataLoader(EuroSAT(
             root=str(DATASET_ROOT / "eurosat"),
             split="train",
             bands=self.bands,
             transforms=None,
-            download=False
-        ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+            download=self.do_download,
+        ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=shuffle)
 
 
 class EuroSATRGB(EuroSATBase):
