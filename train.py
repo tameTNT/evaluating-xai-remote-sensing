@@ -360,9 +360,12 @@ def train_model(
             val_mean_loss, val_mean_acc = helpers.ml.validation_step(
                 model, loss_criterion, validation_iterator, len(validation_dataloader)
             )
-
+            previous_lr = scheduler.get_last_lr()[0]
             scheduler.step(val_mean_loss)
             current_lr = scheduler.get_last_lr()[0]
+
+            if previous_lr != current_lr:
+                logger.info(f"Learning rate updated via scheduler to {previous_lr}->{current_lr}.")
 
             prog_bar1.update()
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
@@ -370,7 +373,7 @@ def train_model(
             if wandb_run:
                 logger.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
-                    model, sampling_iterator, 1
+                    model, sampling_iterator, 1  # todo: maybe collect a fixed multiple of the number of classes?
                 )
                 predicted_labels = sample_outputs.argmax(dim=1)
                 incorrect_mask = predicted_labels != samples_labels
