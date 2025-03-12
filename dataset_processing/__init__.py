@@ -4,7 +4,7 @@ import torch
 
 from helpers import log
 from . import core
-from . import eurosat
+from . import eurosat, ucmerced
 
 logger = log.get_logger("main")
 
@@ -12,7 +12,7 @@ DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
 
 
 def get_dataset_object(
-        name: t.Literal["EuroSATRGB", "EuroSATMS"],
+        name: t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced"],
         split: t.Literal["train", "val", "test"],
         image_size: int,
         batch_size: int,
@@ -22,7 +22,7 @@ def get_dataset_object(
         use_resize: bool = True,
         download: bool = False,
         **kwargs
-) -> t.Union[core.RSDatasetMixin]:
+) -> t.Union[eurosat.EuroSATBase, ucmerced.UCMerced]:
     """
     See dataset_processing.core.RSDatasetMixin for undocumented parameters and
     the specific dataset class for the kwargs unique to that dataset.
@@ -49,10 +49,13 @@ def get_dataset_object(
     elif name == "EuroSATMS":
         logger.debug("Loading EuroSATMS dataset...")
         ds = eurosat.EuroSATMS(**standard_kwargs, **kwargs)
+    elif name == "UCMerced":
+        logger.debug("Loading UCMerced dataset...")
+        ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
     else:
         logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
-                 f"Must be one of {DATASET_NAMES}.")
+                     f"Must be one of {DATASET_NAMES}.")
         raise ValueError(f"Dataset {name} does not exist.")
 
-    logger.info(f"Dataset {name} ({split}) loaded with {len(ds)} samples.")
+    logger.info(f"Dataset {ds.logging_name} loaded with {len(ds)} samples.")
     return ds

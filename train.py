@@ -62,7 +62,7 @@ parser.add_argument(
 parser.add_argument(
     "--normalisation_type",
     type=str,
-    required=True,
+    default="none",
     choices=["scaling", "mean_std", "none"],
     help="The type of normalisation to apply to all images in the dataset."
          "'scaling' uses min/max or percentile scaling. Note that 'mean_std' "

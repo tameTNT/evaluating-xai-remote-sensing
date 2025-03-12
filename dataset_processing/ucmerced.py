@@ -1,40 +1,54 @@
-import typing as t
-
 import torch
-import torchgeo.datasets
-from jaxtyping import Float
+from torchgeo.datasets import UCMerced as UCMercedBase
+from torchvision.transforms import v2 as vision_transforms
 
+import dataset_processing.core
 import helpers
 
 DATASET_ROOT = helpers.env_var.get_dataset_root()
-logger = helpers.log.get_logger("projectLog")
+logger = helpers.log.get_logger("main")
 
 
-# Overwrite the `__getitem__` method to cast the image to 0-1 floats
-# instead of integer floats (e.g. 125., 9.) for .plot() to work
-class CustomUCMerced(torchgeo.datasets.UCMerced):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
+    def __init__(self, **kwargs):
+        dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 
-    def __getitem__(self, index: int) -> dict[str, Float[torch.Tensor, "c h w"]]:
-        logger.debug(f"Loading UC Merced dataset sample at index {index} using {self.__class__} class.")
-        sample = super().__getitem__(index)
-        sample["image"] = sample["image"] / 255
-        return sample
+        self.N_BANDS = 3  # only RGB bands available
 
+        # Scale the image to 0-1 floats instead of integer floats (e.g. 125., 9.)
+        scaling_transform = dataset_processing.core.RSScalingTransform(
+            input_min=0., input_max=255., clamp=False
+        )
+        normalisation = vision_transforms.Normalize(mean=[0.5] * self.N_BANDS,
+                                                    std=[0.5] * self.N_BANDS, inplace=True)
 
-def get_dataset(
-        split: t.Literal["train", "test", "val"],
-        transforms: t.Optional[t.Callable[[dict[str, torch.Tensor]], dict[str, torch.Tensor]]] = None,
-        download=False
-) -> CustomUCMerced:
-    """
-    Get the UC Merced dataset using torchgeo (can download if necessary).
-    """
-    logger.info("Using `torchgeo.datasets` to load UC Merced dataset dataset.")
-    return CustomUCMerced(
-        root=str(DATASET_ROOT / "ucmerced"),
-        split=split,
-        transforms=transforms,
-        download=download
-    )
+        # Add randomised transforms
+        augmentations = None
+        if self.split == "train" and self.use_augmentations:
+            augmentations = [
+                vision_transforms.RandomApply([  # Transpose of img
+                    dataset_processing.core.ChoiceRotationTransform([90]),
+                    vision_transforms.RandomHorizontalFlip(p=1)
+                ], p=0.5),
+                dataset_processing.core.ChoiceRotationTransform([0, 90, 180, 270]),
+                vision_transforms.RandomRotation(7),
+            ]
+
+        self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, self.use_resize)
+
+        super().__init__(
+            root=str(DATASET_ROOT / "ucmerced"),
+            split=self.split,
+            transforms=self.transforms,
+            download=self.download,
+        )
+
+        self.N_CLASSES = len(self.classes)
+
+    def get_original_train_dataloader(self, shuffle=False):
+        return torch.utils.data.DataLoader(UCMercedBase(
+            root=str(DATASET_ROOT / "eurosat"),
+            split="train",
+            transforms=None,
+            download=self.download,
+        ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=shuffle)
