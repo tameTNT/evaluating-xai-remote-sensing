@@ -8,7 +8,7 @@ from . import eurosat, ucmerced
 
 logger = log.get_logger("main")
 
-DATASET_NAMES = ["EuroSATRGB", "EuroSATMS"]
+DATASET_NAMES = ["EuroSATRGB", "EuroSATMS", "UCMerced"]
 
 
 def get_dataset_object(
