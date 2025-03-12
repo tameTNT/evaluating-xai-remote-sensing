@@ -67,18 +67,19 @@ class RSScalingTransform:
 class ChoiceRotationTransform:
     """Rotate randomly by one of the given angles."""
 
-    def __init__(self, angles: list[t.Union[int, float]]):
+    def __init__(self, angles: list[float]):
         self.angles = angles
 
-    def __call__(self, x):
+    def __call__(self, image: Tensor) -> Tensor:
         choice_idx = torch.randint(0, len(self.angles), (1,)).item()
         angle = self.angles[choice_idx]
 
-        img = x["image"]
-        img = vision_transforms.functional.rotate(img, angle)
-        x["image"] = img
+        image = vision_transforms.functional.rotate(image, angle)
 
-        return x
+        return image
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(angles={self.angles})"
 
 
 class TensorDictTransformWrapper:
