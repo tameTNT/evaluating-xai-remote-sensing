@@ -13,7 +13,9 @@ class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
     def __init__(self, **kwargs):
         dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 
-        self.N_BANDS = 3  # only RGB bands available
+        # only uses RGB bands
+        self.bands = ("B04", "B03", "B02")
+        self.N_BANDS = len(self.bands)
 
         # Scale the image to 0-1 floats instead of integer floats (e.g. 125., 9.)
         scaling_transform = dataset_processing.core.RSScalingTransform(

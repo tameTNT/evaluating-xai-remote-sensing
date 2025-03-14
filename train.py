@@ -378,8 +378,7 @@ def train_model(
                 predicted_labels = sample_outputs.argmax(dim=1)
                 incorrect_mask = predicted_labels != samples_labels
                 incorrect_samples = samples[incorrect_mask]
-                # select RGB bands (for training on eurosat MS) and rescale todo: automate inverse transform
-                scaled_incorrect_samples = ((incorrect_samples[:, [2, 1, 0]] + 1) / 2).clamp(0, 1)
+                scaled_incorrect_samples = validation_dataset.inverse_transform(incorrect_samples)
                 labels_for_incorrect = samples_labels[incorrect_mask]
                 incorrect_preds = predicted_labels[incorrect_mask]
 
@@ -388,7 +387,7 @@ def train_model(
                 samples_table.add_column("prediction", incorrect_preds.numpy())
                 samples_table.add_column("label", labels_for_incorrect.numpy())
                 samples_table.add_column("true_sample", [wandb.Image(
-                    img.numpy().transpose(1, 2, 0), caption=validation_dataset.classes[int(label)]
+                    img, caption=validation_dataset.classes[int(label)]
                 ) for img, label in zip(scaled_incorrect_samples, labels_for_incorrect)])
 
                 wandb_run.log({

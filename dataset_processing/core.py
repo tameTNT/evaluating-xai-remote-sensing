@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 from torchvision.transforms import v2 as vision_transforms
 from tqdm.autonotebook import tqdm
+from jaxtyping import Float
 
 import helpers
 
@@ -104,6 +105,9 @@ def cycle(iterable):
 
 
 class RSDatasetMixin:
+    # Band 4 = Red, Band 3 = Green, Band 2 = Blue
+    rgb_bands = ("B04", "B03", "B02")
+
     def __init__(
             self,
             split: t.Literal["train", "val", "test"],
@@ -130,7 +134,7 @@ class RSDatasetMixin:
         self.split = split
 
         self.N_BANDS = 0
-        self.bands: list[str] = []
+        self.bands: list[str] = []  # *ordered* sequence of bands corresponding to sample channels
         self.classes: list[str] = []
         self.N_CLASSES = 0
 
@@ -163,7 +167,29 @@ class RSDatasetMixin:
         return f"{self.__class__.__name__}({self.split})"
 
     def get_original_train_dataloader(self) -> torch.utils.data.DataLoader[dict[str, Tensor]]:
-        pass
+        raise NotImplementedError(f"get_original_train_dataloader not implemented "
+                                  f"in base class {self.__class__.__name__}.")
+
+    def inverse_transform(
+            self,
+            sample: Float[torch.Tensor, "n_samples channels height width"]
+    ) -> Float[np.ndarray, "n_samples height width channels"]:
+        """
+        Takes a set of normalised samples from the dataset and returns an RGB image
+        in numpy format ready for display.
+        """
+
+        rgb_indices = []
+        for band in self.rgb_bands:
+            if band in self.bands:
+                rgb_indices.append(self.bands.index(band))
+            else:
+                raise ValueError("Dataset doesn't contain some of the RGB bands")
+
+        images = np.take(sample.numpy(), indices=rgb_indices, axis=1)
+        # normalised images are in the range [-1, 1] originally
+        images: np.ndarray = (images + 1) / 2
+        return images.clip(0, 1).transpose(0, 2, 3, 1)  # convert to channels last format
 
     def get_mean_std(self) -> tuple[Tensor, Tensor]:
         if self.mean.numel() == 0 or self.var.numel() == 0 or self.std.numel() == 0:
