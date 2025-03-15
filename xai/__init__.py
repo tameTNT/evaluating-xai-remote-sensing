@@ -121,3 +121,5 @@ class Explainer:
                 f"(shape={self.attempt_load.shape}) with diff={diff}. Using null values."
             )
         self.kwargs = json.load(self.json_path.open("r"))
+        logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
+                    f"with kwargs={self.kwargs}.")
