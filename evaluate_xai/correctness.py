@@ -1,7 +1,5 @@
 import copy
 import typing as t
-from enum import Enum
-from pathlib import Path
 
 import einops
 import matplotlib.pyplot as plt
@@ -11,7 +9,6 @@ from jaxtyping import Int, Float
 from tqdm.autonotebook import tqdm
 
 import helpers
-from xai import Explainer
 from . import Co12Metric, Similarity
 from . import deletion
 

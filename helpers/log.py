@@ -35,6 +35,7 @@ def get_logger(name: str) -> logging.Logger:
 
         logger.debug(f"New logger successfully initialised at {fh.baseFilename}")
     else:
+        # noinspection PyUnresolvedReferences
         logger.debug(f"Logger successfully returned from {logger.handlers[0].baseFilename}")
 
     return logger

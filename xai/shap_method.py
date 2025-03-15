@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import einops
 import numpy as np
 import shap
@@ -54,6 +52,7 @@ class SHAP(Explainer):
         blur_masker = shap.maskers.Image("blur(128,128)", np01_x[0].shape)
         explainer = shap.PartitionExplainer(predict_fn, blur_masker)
 
+        # noinspection PyUnresolvedReferences
         shap_values = explainer(
             np01_x,
             max_evals=max_evals,

@@ -61,6 +61,7 @@ class Continuity(Co12Metric):
             stacked_explanations = einops.rearrange(
                 np.stack([self.exp.ranked_explanation, exp_for_perturbed.ranked_explanation]),
                 "i n h w -> n (i h) w")
+            # noinspection PyUnboundLocalVariable
             helpers.plotting.visualise_importance(stacked_samples, stacked_explanations,
                                                   alpha=.2, with_colorbar=False)
             plt.title(f"Explanation on original/perturbed input (degree={degree})")
