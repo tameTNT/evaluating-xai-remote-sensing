@@ -18,7 +18,7 @@ from . import deletion
 logger = helpers.log.get_logger("main")
 
 
-def show_perturbations(
+def visualise_incremental_deletion(
         imgs_with_deletions: Float[np.ndarray, "n_samples num_iterations channels height width"],
 ):
     num_iterations = imgs_with_deletions.shape[1]
@@ -31,8 +31,6 @@ def show_perturbations(
         einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"),
     )
     plt.tight_layout()
-    plt.title(f"Incremental deletion over {num_iterations} iterations")
-    plt.show()
 
 
 class Correctness(Co12Metric):
@@ -76,9 +74,14 @@ class Correctness(Co12Metric):
             logger.info(f"Existing explanation found for self.exp.input in exp_for_randomised_model.")
 
         if self.visualise:
-            helpers.plotting.visualise_importance(self.exp.input, exp_for_randomised_model.ranked_explanation,
+            stacked_input = einops.rearrange(
+                torch.stack([self.exp.input, self.exp.input]), "i n c h w -> n c (i h) w")
+            stacked_explanations = einops.rearrange(
+                np.stack([self.exp.ranked_explanation, exp_for_randomised_model.ranked_explanation]),
+                "i n h w -> n (i h) w")
+            helpers.plotting.visualise_importance(stacked_input, stacked_explanations,
                                                   alpha=.2, with_colorbar=False)
-            plt.title(f"Explanation for randomised model")
+            plt.title(f"Explanation of original/randomised model")
             plt.show()
 
         return Similarity(self.exp, exp_for_randomised_model)
@@ -102,7 +105,9 @@ class Correctness(Co12Metric):
         flattened_imgs_a = imgs_with_deletions.reshape(base_n, *image_shape)
 
         if self.visualise:
-            show_perturbations(imgs_with_deletions)
+            visualise_incremental_deletion(imgs_with_deletions)
+            plt.title(f"Incremental informed deletion over {iterations} iterations")
+            plt.show()
 
         # Do the same thing for randomised deletions
         logger.debug("Repeating _incremental_deletion for randomised deletions.")
@@ -120,7 +125,10 @@ class Correctness(Co12Metric):
         flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
 
         if self.visualise:
-            show_perturbations(imgs_with_random_deletions[-1])
+            # show each different random ranking on 0th image
+            visualise_incremental_deletion(imgs_with_random_deletions[:, 0])
+            plt.title(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations")
+            plt.show()
 
         # Generate model confidence for all images (in one pass for efficiency)
         all_outputs = self.run_model(np.concatenate([flattened_imgs_a, flattened_imgs_b], axis=0))

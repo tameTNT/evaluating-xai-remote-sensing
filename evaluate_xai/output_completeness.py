@@ -88,7 +88,7 @@ class OutputCompleteness(Co12Metric):
 
         if self.visualise:
             helpers.plotting.show_image(imgs_with_deletions)
-            plt.title(f"Informed Deletion/Preservation (threshold={threshold})")
+            plt.title(f"Explanation informed deletion/preservation (threshold={threshold})")
             plt.show()
 
         logger.debug("Repeating for randomised deletions.")
@@ -105,8 +105,9 @@ class OutputCompleteness(Co12Metric):
             )
 
         if self.visualise:
-            helpers.plotting.show_image(imgs_with_random_deletions[-1])
-            plt.title(f"Random Deletion/Preservation (threshold={threshold})")
+            # show each different random ranking on 0th image
+            helpers.plotting.show_image(imgs_with_random_deletions[:, 0])
+            plt.title(f"{n_random_rankings} random deletion/preservation rounds (threshold={threshold})")
             plt.show()
 
         # flatten out n_random_rankings dimension into n_samples dimension

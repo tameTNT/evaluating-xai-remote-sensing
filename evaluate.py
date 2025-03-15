@@ -59,6 +59,7 @@ temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain)
+plt.title("Images to be explained")
 plt.show()
 
 # ==== Generate explanation for selected images ====
@@ -76,6 +77,7 @@ else:
 
 helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
+plt.title("Explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====

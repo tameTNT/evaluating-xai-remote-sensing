@@ -3,8 +3,7 @@ import typing as t
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from tqdm.autonotebook import tqdm
-from jaxtyping import Float
+import einops
 
 import helpers
 from . import Co12Metric, Similarity
@@ -39,7 +38,9 @@ class Continuity(Co12Metric):
                         .to(self.exp.device, dtype=self.exp.input.dtype))
         noisy_samples = (self.exp.input + degree * perturbation).clamp(-1, 1)
         if self.visualise:
-            helpers.plotting.show_image(noisy_samples)
+            stacked_samples = einops.rearrange(
+                torch.stack([self.exp.input, noisy_samples]), "i n c h w -> n c (i h) w")
+            helpers.plotting.show_image(stacked_samples)
             plt.title(f"Continuity Perturbation (degree={degree})")
             plt.show()
 
@@ -57,9 +58,12 @@ class Continuity(Co12Metric):
             logger.info(f"Existing explanation found for self.exp.input in exp_for_perturbed.")
 
         if self.visualise:
-            helpers.plotting.visualise_importance(noisy_samples, exp_for_perturbed.ranked_explanation,
+            stacked_explanations = einops.rearrange(
+                np.stack([self.exp.ranked_explanation, exp_for_perturbed.ranked_explanation]),
+                "i n h w -> n (i h) w")
+            helpers.plotting.visualise_importance(stacked_samples, stacked_explanations,
                                                   alpha=.2, with_colorbar=False)
-            plt.title(f"Explanation for perturbed input (degree={degree})")
+            plt.title(f"Explanation on original/perturbed input (degree={degree})")
             plt.show()
 
         # Check if any model predictions changed - not fair to compare explanations for these
