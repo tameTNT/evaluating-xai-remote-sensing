@@ -13,7 +13,7 @@ from xai import Explainer
 logger = log.get_logger("main")
 
 
-class SHAPExplainer(Explainer):
+class SHAP(Explainer):
     """
     An Explainer object using SHAP Partition explanations for a model
     """

@@ -12,7 +12,7 @@ import helpers
 import models
 from evaluate_xai.correctness import Correctness, VisualisationOption
 from evaluate_xai.output_completeness import OutputCompleteness
-from xai.shap_method import SHAPExplainer
+from xai.shap_method import SHAP
 
 # plt.port = 36422
 mpl.rcParams['savefig.pad_inches'] = 0
@@ -63,8 +63,8 @@ plt.show()
 # ==== Generate explanation for selected images ====
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = SHAPExplainer(
-    model_to_explain, save_path=Path(dataset_name)/model_name, attempt_load=imgs_to_explain
+shap_explainer = SHAP(
+    model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
 )
 
 if not shap_explainer.has_explanation_for(imgs_to_explain):

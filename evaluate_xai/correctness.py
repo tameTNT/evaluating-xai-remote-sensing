@@ -43,8 +43,6 @@ def show_perturbations(
 
 class Correctness(Co12Metric):
     # todo: add docstrings - discuss execution time and add definition from review paper
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def evaluate(
             self,

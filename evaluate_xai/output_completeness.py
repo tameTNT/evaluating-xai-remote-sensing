@@ -14,8 +14,6 @@ logger = helpers.log.get_logger("main")
 
 class OutputCompleteness(Co12Metric):
     # todo: add docstrings based on paper
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def evaluate(
             self,
