@@ -17,6 +17,7 @@ from xai.shap_method import SHAPExplainer
 # plt.port = 36422
 mpl.rcParams['savefig.pad_inches'] = 0
 
+# ==== Set up script arguments ====
 random_seed = 42
 dataset_name = "EuroSATRGB"
 normalisation_type = "scaling"
@@ -31,6 +32,7 @@ logger = helpers.log.get_logger("main")
 torch_device = helpers.utils.get_torch_device()
 torch.manual_seed(random_seed)
 
+# ==== Load dataset and corresponding pretrained model ====
 model_type = models.get_model_type(model_name)
 dataset = dataset_processing.get_dataset_object(
     dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test
@@ -51,13 +53,14 @@ st.load_model(model_to_explain, model_weights_path)
 model_to_explain.eval().to(torch_device)
 logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
+# ==== Select images from dataset to explain ====
 temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain)
 plt.show()
 
-# Generate explanation for selected images
+# ==== Generate explanation for selected images ====
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
 shap_explainer = SHAPExplainer(
@@ -74,13 +77,18 @@ helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_exp
                                       alpha=.2, with_colorbar=False)
 plt.show()
 
-# Evaluate explanation using Co12 Metrics
+# ==== Evaluate explanation using Co12 Metrics ====
+
+# == Correctness ==
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
+
+# Model Randomisation
 sim_metrics = correctness_metric.evaluate(method="model_randomisation")(
     l2_normalise=True, intersection_k=5000
 )
 print("Correctness evaluation via model randomisation", sim_metrics)
 
+# Incremental Deletion
 nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion",
     deletion_method="nn",
@@ -89,7 +97,10 @@ nn_aucs = correctness_metric.evaluate(
 )
 print("Correctness evaluation via incremental deletion", nn_aucs)
 
+# == Output Completeness ==
 output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+
+# Deletion Check
 drop_in_confidence = output_completeness_metric.evaluate(
     method="deletion_check", deletion_method="shuffle", threshold=0.1,
     n_random_rankings=5, random_seed=42,
@@ -97,7 +108,7 @@ drop_in_confidence = output_completeness_metric.evaluate(
 print("Output completeness evaluation via deletion check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
-output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+# Preservation Check
 drop_in_confidence = output_completeness_metric.evaluate(
     method="preservation_check", deletion_method="shuffle", threshold=0.1,
     n_random_rankings=5, random_seed=42,
