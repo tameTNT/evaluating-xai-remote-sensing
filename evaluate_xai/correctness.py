@@ -28,8 +28,13 @@ def show_perturbations(
         imgs_with_deletions: Float[np.ndarray, "n_samples num_iterations channels height width"],
 ):
     num_iterations = imgs_with_deletions.shape[1]
+
+    selected_images: np.ndarray = imgs_with_deletions.copy()
+    if num_iterations > 10:
+        selected_images = selected_images.take(np.floor(np.linspace(0, num_iterations - 1, 10)).astype(int), axis=1)
+
     helpers.plotting.show_image(
-        einops.rearrange(imgs_with_deletions, "n i c h w -> (n h) (i w) c"),
+        einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"),
     )
     plt.tight_layout()
     plt.title(f"Incremental deletion over {num_iterations} iterations")
