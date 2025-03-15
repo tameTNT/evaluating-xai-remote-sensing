@@ -35,10 +35,10 @@ class OutputCompleteness(Co12Metric):
             threshold: float = 0.1,  # delete only top 10% of features
             n_random_rankings: int = 5,
             random_seed: int = 42,
-            visualise: bool = False,
+            **kwargs,
     ) -> Float[np.ndarray, "n_samples"]:
         informed_del_conf, random_del_conf = self.delete_via_ranking(
-            self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed, visualise
+            self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed,
         )
 
         # Drop in acc vs random = (rand_del_acc - org_acc) - (del_acc - org_acc)
@@ -54,14 +54,14 @@ class OutputCompleteness(Co12Metric):
             threshold: float = 0.1,  # keep only top 10% of features
             n_random_rankings: int = 5,
             random_seed: int = 42,
-            visualise: bool = False,
+            **kwargs,
     ):
         # Since 0 is the 'most important' pixel, in ranked_explanation,
         # we can invert it by simply by ranking it again (so 0 becomes least important)
         inverted_importance_ranking = helpers.utils.rank_pixel_importance(self.exp.ranked_explanation)
 
         informed_pres_conf, random_pres_conf = self.delete_via_ranking(
-            inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed, visualise
+            inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed,
         )
 
         # drop in acc vs random = 1 + (rand_pres_acc - org_acc) - (pres_acc - org_acc)
@@ -78,7 +78,6 @@ class OutputCompleteness(Co12Metric):
             threshold: float,
             n_random_rankings: int,
             random_seed: int,
-            visualise: bool = False,
     ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
         n_samples = self.exp.input.shape[0]
 
@@ -87,7 +86,7 @@ class OutputCompleteness(Co12Metric):
             self.exp.input, importance_ranking, threshold*num_pixels, method=deletion_method,
         )
 
-        if visualise:
+        if self.visualise:
             helpers.plotting.show_image(imgs_with_deletions)
             plt.title(f"Informed Deletion/Preservation (threshold={threshold})")
             plt.show()
@@ -105,7 +104,7 @@ class OutputCompleteness(Co12Metric):
                 self.exp.input, random_rankings, threshold*num_pixels, method=deletion_method,
             )
 
-        if visualise:
+        if self.visualise:
             helpers.plotting.show_image(imgs_with_random_deletions[-1])
             plt.title(f"Random Deletion/Preservation (threshold={threshold})")
             plt.show()

@@ -18,12 +18,6 @@ from . import deletion
 logger = helpers.log.get_logger("main")
 
 
-class VisualisationOption(Enum):
-    BOTH = 0
-    PERTURBATIONS = 1
-    CONFIDENCE = 2
-
-
 def show_perturbations(
         imgs_with_deletions: Float[np.ndarray, "n_samples num_iterations channels height width"],
 ):
@@ -59,7 +53,10 @@ class Correctness(Co12Metric):
         else:
             raise ValueError(f"Unknown evaluation method: {method}")
 
-    def _model_randomisation(self) -> Explainer:
+    def _model_randomisation(
+            self,
+            **kwargs,
+    ) -> Similarity:
         device = helpers.utils.get_model_device(self.exp.model)
         randomised_model = copy.deepcopy(self.exp.model).to(device)
         self.reset_child_params(randomised_model)
@@ -79,6 +76,12 @@ class Correctness(Co12Metric):
         else:
             logger.info(f"Existing explanation found for self.exp.input in exp_for_randomised_model.")
 
+        if self.visualise:
+            helpers.plotting.visualise_importance(self.exp.input, exp_for_randomised_model.ranked_explanation,
+                                                  alpha=.2, with_colorbar=False)
+            plt.title(f"Explanation for randomised model")
+            plt.show()
+
         return exp_for_randomised_model
 
     def _incremental_deletion(
@@ -87,7 +90,7 @@ class Correctness(Co12Metric):
             iterations: int = 30,
             n_random_rankings: int = 5,
             random_seed: int = 42,
-            visualisation_option: t.Optional[VisualisationOption] = None,
+            **kwargs,
     ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
 
         n_samples = self.exp.input.shape[0]
@@ -99,8 +102,7 @@ class Correctness(Co12Metric):
         )
         flattened_imgs_a = imgs_with_deletions.reshape(base_n, *image_shape)
 
-        if visualisation_option is VisualisationOption.PERTURBATIONS or \
-                visualisation_option is VisualisationOption.BOTH:
+        if self.visualise:
             show_perturbations(imgs_with_deletions)
 
         # Do the same thing for randomised deletions
@@ -118,8 +120,7 @@ class Correctness(Co12Metric):
             )[0]
         flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
 
-        if visualisation_option is VisualisationOption.PERTURBATIONS or \
-                visualisation_option is VisualisationOption.BOTH:
+        if self.visualise:
             show_perturbations(imgs_with_random_deletions[-1])
 
         # Generate model confidence for all images (in one pass for efficiency)
@@ -146,8 +147,7 @@ class Correctness(Co12Metric):
         random_area_under_curve_per_img = np.trapz(random_class_confidence, axis=1)
 
         # Visualise the area under curve results by plotting confidence against iterations
-        if visualisation_option is VisualisationOption.CONFIDENCE or \
-                visualisation_option is VisualisationOption.BOTH:
+        if self.visualise:
             fig, axes = plt.subplots(1, n_samples, sharey=True, figsize=(3 * n_samples, 3))
             for i, ax in enumerate(axes):  # type: int, plt.Axes
                 ax.plot(range(len(k_values)), exp_informed_class_confidence[i], "-", label="exp_informed")

@@ -151,11 +151,13 @@ class Co12Metric:
     def __init__(self, exp: Explainer, max_batch_size: int = 32):
         self.exp = exp
         self.max_batch_size = max_batch_size
+        self.visualise = False
 
-    def evaluate(self, method: str, **kwargs):
+    def evaluate(self, method: str, visualise: bool = False, **kwargs):
         logger.info(f"Evaluating {self.__class__.__name__} (via {method} with kwargs={kwargs}) "
                     f"of {self.exp.__class__.__name__} "
                     f"for {self.exp.model.__class__.__name__}.")
+        self.visualise = visualise
 
     def run_model(
             self,
