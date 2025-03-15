@@ -16,21 +16,23 @@ logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}
 class Explainer:
     """
     Base class for all explainers.
-    The default save path is BASE_OUTPUT_PATH / {model.__class__.__name__}{.npz, .json}
+    The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
+    If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / "
     """
     def __init__(
             self,
             model: torch.nn.Module,
-            save_path: Path = Path(""),
+            extra_path: Path = Path(""),
             attempt_load: torch.Tensor = None,
     ):
         self.model = model
         self.device = helpers.utils.get_model_device(model)
 
-        self.save_path = (BASE_OUTPUT_PATH / save_path).resolve()
+        self.save_path = (BASE_OUTPUT_PATH / extra_path / self.__class__.__name__).resolve()
         self.save_path.mkdir(parents=True, exist_ok=True)
         logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
+        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / SHAP / ResNet50.npz
         self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
 

@@ -16,16 +16,7 @@ logger = log.get_logger("main")
 class SHAPExplainer(Explainer):
     """
     An Explainer object using SHAP Partition explanations for a model
-    with default save path of BASE_OUTPUT_PATH/shap
     """
-
-    def __init__(
-            self,
-            model: torch.nn.Module,
-            save_path: Path = Path("shap"),
-            **kwargs
-    ):
-        super().__init__(model, save_path, **kwargs)
 
     def explain(
             self,
