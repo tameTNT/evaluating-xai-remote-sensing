@@ -10,7 +10,8 @@ import torch
 import dataset_processing
 import helpers
 import models
-from evaluate_xai.correctness import Correctness, VisualisationOption
+from evaluate_xai.continuity import Continuity
+from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 from xai.shap_method import SHAP
 
@@ -85,17 +86,17 @@ deletion_method = "shuffle"  # or "nn" works best here
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
 
 # Model Randomisation
-sim_metrics = correctness_metric.evaluate(method="model_randomisation")(
+corr_sim_metrics = correctness_metric.evaluate(method="model_randomisation", visualise=True)(
     l2_normalise=True, intersection_k=5000
 )
-print("Correctness evaluation via model randomisation", sim_metrics)
+print("Correctness evaluation via model randomisation", corr_sim_metrics)
 
 # Incremental Deletion
 nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion",
     deletion_method=deletion_method,
     iterations=10, n_random_rankings=5,
-    random_seed=42, visualisation_option=VisualisationOption.BOTH,
+    random_seed=42, visualise=True,
 )
 print("Correctness evaluation via incremental deletion", nn_aucs)
 
@@ -118,3 +119,16 @@ drop_in_confidence = output_completeness_metric.evaluate(
 )
 print("Output completeness evaluation via preservation check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
+
+# == Continuity ==
+continuity_metric = Continuity(shap_explainer, max_batch_size=batch_size)
+
+# Model Randomisation
+similarity = continuity_metric.evaluate(
+    method="perturbation", visualise=True,
+    degree=0.15, random_seed=42,
+)
+print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at "
+      f"indices: {similarity.hidden_idxs}")
+cont_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
+print("Continuity evaluation via image perturbation", cont_sim_metrics)
