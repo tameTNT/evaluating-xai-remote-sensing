@@ -88,8 +88,16 @@ print("Correctness evaluation via incremental deletion", nn_aucs)
 
 output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
 drop_in_confidence = output_completeness_metric.evaluate(
-    method="deletion_check", deletion_method="nn", threshold=0.1,
+    method="deletion_check", deletion_method="shuffle", threshold=0.1,
     n_random_rankings=5, random_seed=42,
 )
 print("Output completeness evaluation via deletion check", end=" ")
+print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
+
+output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+drop_in_confidence = output_completeness_metric.evaluate(
+    method="preservation_check", deletion_method="shuffle", threshold=0.1,
+    n_random_rankings=5, random_seed=42,
+)
+print("Output completeness evaluation via preservation check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))

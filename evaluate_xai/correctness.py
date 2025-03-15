@@ -52,7 +52,7 @@ class Correctness(Co12Metric):
         elif method == "incremental_deletion":
             return self._incremental_deletion(**kwargs)
         else:
-            raise ValueError(f"Unknown method: {method}")
+            raise ValueError(f"Unknown evaluation method: {method}")
 
     def _model_randomisation(self) -> Explainer:
         device = helpers.utils.get_model_device(self.exp.model)

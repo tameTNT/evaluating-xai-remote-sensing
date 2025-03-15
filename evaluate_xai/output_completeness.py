@@ -20,35 +20,77 @@ class OutputCompleteness(Co12Metric):
 
     def evaluate(
             self,
-            method: t.Literal["deletion_check"],
+            method: t.Literal["deletion_check", "preservation_check"],
             **kwargs,
     ) -> Float[np.ndarray, "n_samples"]:
         super().evaluate(method, **kwargs)
 
         if method == "deletion_check":
             return self._deletion_check(**kwargs)
+        elif method == "preservation_check":
+            return self._preservation_check(**kwargs)
         else:
-            raise ValueError(f"Unknown method: {method}")
+            raise ValueError(f"Unknown evaluation method: {method}")
 
     def _deletion_check(
             self,
             deletion_method: deletion.METHODS = "shuffle",
-            threshold: float = 0.1,  # "all important features"
+            threshold: float = 0.1,  # delete only top 10% of features
             n_random_rankings: int = 5,
             random_seed: int = 42,
     ) -> Float[np.ndarray, "n_samples"]:
+        informed_del_conf, random_del_conf = self.delete_via_ranking(
+            self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed,
+        )
 
+        # Drop in acc vs random = (rand_del_acc - org_acc) - (del_acc - org_acc)
+        #                       = rand_del_acc - del_acc
+        # We want del_acc to be small (the deletion was effective at removing important info),
+        # while rand_del_acc should be high (the random deletion didn't successfully remove important info)
+        # so best value is 1. Worst is -1 (the random deletion was much more effective than the informed one)
+        return random_del_conf - informed_del_conf
+
+    def _preservation_check(
+            self,
+            deletion_method: deletion.METHODS = "shuffle",
+            threshold: float = 0.1,  # keep only top 10% of features
+            n_random_rankings: int = 5,
+            random_seed: int = 42,
+    ):
+        # Since 0 is the 'most important' pixel, in ranked_explanation,
+        # we can invert it by simply by ranking it again (so 0 becomes least important)
+        inverted_importance_ranking = helpers.utils.rank_pixel_importance(self.exp.ranked_explanation)
+
+        informed_pres_conf, random_pres_conf = self.delete_via_ranking(
+            inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed,
+        )
+
+        # drop in acc vs random = 1 + (rand_pres_acc - org_acc) - (pres_acc - org_acc)
+        #                       = 1 + rand_pres_acc - pres_acc
+        # We want pres_acc to remain high (we only removed non-important stuff),
+        # while rand_pres_acc should be low (we accidentally removed important stuff)
+        # so best score is 0
+        return 1 + random_pres_conf - informed_pres_conf
+
+    def delete_via_ranking(
+            self,
+            importance_ranking: Float[np.ndarray, "n_samples height width"],
+            deletion_method: deletion.METHODS,
+            threshold: float,
+            n_random_rankings: int,
+            random_seed: int,
+    ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
         n_samples = self.exp.input.shape[0]
 
         num_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]
         imgs_with_deletions = deletion.delete_top_k_important(
-            self.exp.input, self.exp.ranked_explanation, threshold*num_pixels, method=deletion_method,
+            self.exp.input, importance_ranking, threshold*num_pixels, method=deletion_method,
         )
 
-        helpers.plotting.show_image(imgs_with_deletions)
-        plt.show()
+        # helpers.plotting.show_image(imgs_with_deletions)
+        # plt.show()
 
-        logger.debug("Repeating _deletion_check for randomised deletions.")
+        logger.debug("Repeating for randomised deletions.")
         seeds = np.random.default_rng(random_seed).choice(10*n_random_rankings, n_random_rankings, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_rankings, *self.exp.input.shape))
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
@@ -61,8 +103,8 @@ class OutputCompleteness(Co12Metric):
                 self.exp.input, random_rankings, threshold*num_pixels, method=deletion_method,
             )
 
-        helpers.plotting.show_image(imgs_with_random_deletions[0])
-        plt.show()
+        # helpers.plotting.show_image(imgs_with_random_deletions[0])
+        # plt.show()
 
         # flatten out n_random_rankings dimension into n_samples dimension
         flattened_random_deletions = np.concatenate(imgs_with_random_deletions, axis=0)
@@ -81,10 +123,7 @@ class OutputCompleteness(Co12Metric):
         # take average across n_random_rankings
         random_outputs = all_outputs[2*n_samples:].reshape(n_random_rankings, n_samples, -1).mean(axis=0)
 
-        confidence_after_informed_deletion = informed_outputs[np.arange(n_samples), original_prediction]
-        confidence_after_random_deletion = random_outputs[np.arange(n_samples), original_prediction]
+        conf_informed_deletion = informed_outputs[np.arange(n_samples), original_prediction]
+        conf_random_deletion = random_outputs[np.arange(n_samples), original_prediction]
 
-        # drop in acc vs random = (rand_del_acc - org_acc) - (del_acc - org_acc) = rand_del_acc - del_acc
-        # we want del_acc to be small (the deletion was effective at removing important info),
-        # so best value is 1. Worst is -1 (the random deletion was much more effective than the informed one)
-        return confidence_after_random_deletion - confidence_after_informed_deletion
+        return conf_informed_deletion, conf_random_deletion
