@@ -27,10 +27,12 @@ class VisualisationOption(Enum):
 def show_perturbations(
         imgs_with_deletions: Float[np.ndarray, "n_samples num_iterations channels height width"],
 ):
+    num_iterations = imgs_with_deletions.shape[1]
     helpers.plotting.show_image(
         einops.rearrange(imgs_with_deletions, "n i c h w -> (n h) (i w) c"),
     )
     plt.tight_layout()
+    plt.title(f"Incremental deletion over {num_iterations} iterations")
     plt.show()
 
 
@@ -87,10 +89,11 @@ class Correctness(Co12Metric):
 
         n_samples = self.exp.input.shape[0]
         image_shape = self.exp.input.shape[1:]
+        base_n = n_samples * iterations
+
         imgs_with_deletions, k_values = self.incrementally_delete(
             self.exp.ranked_explanation, iterations, deletion_method
         )
-        base_n = n_samples * iterations
         flattened_imgs_a = imgs_with_deletions.reshape(base_n, *image_shape)
 
         if visualisation_option is VisualisationOption.PERTURBATIONS or \
@@ -110,12 +113,11 @@ class Correctness(Co12Metric):
             imgs_with_random_deletions[i] = self.incrementally_delete(
                 random_rankings, iterations, deletion_method
             )[0]
-
         flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
 
         if visualisation_option is VisualisationOption.PERTURBATIONS or \
                 visualisation_option is VisualisationOption.BOTH:
-            show_perturbations(imgs_with_random_deletions[0])
+            show_perturbations(imgs_with_random_deletions[-1])
 
         # Generate model confidence for all images (in one pass for efficiency)
         all_outputs = self.run_model(np.concatenate([flattened_imgs_a, flattened_imgs_b], axis=0))
