@@ -50,7 +50,7 @@ class SHAPExplainer(Explainer):
         :return:
         """
 
-        super().explain(x)
+        super().explain(x, max_evals=max_evals, batch_size=batch_size)
 
         np01_x = einops.rearrange((x + 1) / 2, "b c h w -> b h w c").numpy(force=True)
 
