@@ -164,7 +164,7 @@ class Co12Metric:
 
     def run_model(
             self,
-            x: Float[np.ndarray, "n_samples channels height width"],
+            x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples channels height width"],
     ) -> Float[np.ndarray, "n_samples n_classes"]:
         """
         Run the model on the given input data x and return the softmax-ed output for all classes.
@@ -173,7 +173,10 @@ class Co12Metric:
         self.exp.model.eval()
         model_device = helpers.utils.get_model_device(self.exp.model)
         model_dtype = helpers.utils.get_model_dtype(self.exp.model)
-        x = torch.from_numpy(x).to(model_dtype)
+
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        x = x.to(model_dtype)
 
         logger.info(f"Generating model predictions on new images (e.g. perturbed) "
                     f"for {self.__class__.__name__}")
