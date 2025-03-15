@@ -28,7 +28,8 @@ class Explainer:
         self.model = model
         self.device = helpers.utils.get_model_device(model)
 
-        self.save_path = (BASE_OUTPUT_PATH / extra_path / self.__class__.__name__).resolve()
+        self.extra_path = extra_path
+        self.save_path = (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
         self.save_path.mkdir(parents=True, exist_ok=True)
         logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
