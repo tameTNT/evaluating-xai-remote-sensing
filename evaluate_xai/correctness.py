@@ -62,7 +62,7 @@ class Correctness(Co12Metric):
 
         original_explainer = self.exp.__class__
         exp_for_randomised_model = original_explainer(
-            randomised_model, Path(f"randomised_{self.exp.__class__.__name__}"), attempt_load=self.exp.attempt_load,
+            randomised_model, self.exp.save_path / "randomised", attempt_load=self.exp.attempt_load,
         )
 
         if not exp_for_randomised_model.has_explanation_for(self.exp.input):

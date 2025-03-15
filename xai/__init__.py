@@ -74,7 +74,7 @@ class Explainer:
             **kwargs
     ):
         logger.info(f"Generating explanations in {self.__class__.__name__} "
-                    f"for x.shape={x.shape}.")
+                    f"for x.shape={x.shape} with kwargs={kwargs}.")
         self.input = x.to(self.device)
         self.kwargs = kwargs
 
