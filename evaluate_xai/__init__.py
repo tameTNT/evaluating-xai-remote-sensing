@@ -15,19 +15,22 @@ logger = helpers.log.get_logger("main")
 
 class Similarity:
     # todo: add docstrings
-    def __init__(self, exp1: Explainer, exp2: Explainer):
+    def __init__(self, exp1: Explainer, exp2: Explainer, mask: np.ndarray[bool] = None):
         x1 = exp1.explanation
         x2 = exp2.explanation
-        x1_rank = exp1.ranked_explanation
-        x2_rank = exp2.ranked_explanation
 
         assert x1.shape == x2.shape, "explanations of exp1 and exp2 should have the same shape"
         self.shape = x1.shape
 
         self.x1: Float[np.ndarray, "n_samples height width"] = x1
         self.x2: Float[np.ndarray, "n_samples height width"] = x2
-        self.x1_rank: Int[np.ndarray, "n_samples height width"] = x1_rank
-        self.x2_rank: Int[np.ndarray, "n_samples height width"] = x2_rank
+        self.x1_rank: Int[np.ndarray, "n_samples height width"] = exp1.ranked_explanation
+        self.x2_rank: Int[np.ndarray, "n_samples height width"] = exp2.ranked_explanation
+
+        if mask is None:
+            mask = np.full(x1.shape[0], True)
+        self.return_idxs = np.where(mask)[0]
+        self.hidden_idxs = np.where(~mask)[0]
 
     def __repr__(self):
         return f"{self.__class__.__name__}(shape={self.shape})"
@@ -43,10 +46,10 @@ class Similarity:
         logger.info(f"Generating similarity metrics for {self}.")
 
         return {
-            "l2_distance": self.l2_distance(normalise=l2_normalise),
-            "spearman_rank": self.spearman_rank(),
-            "top_k_intersection": self.top_k_intersection(k=intersection_k),
-            "structural_similarity": self.structural_similarity(),
+            "l2_distance": self.l2_distance(normalise=l2_normalise)[self.return_idxs],
+            "spearman_rank": self.spearman_rank()[self.return_idxs],
+            "top_k_intersection": self.top_k_intersection(k=intersection_k)[self.return_idxs],
+            "structural_similarity": self.structural_similarity()[self.return_idxs],
         }
 
     def l2_distance(self, normalise: bool = True) -> Float[np.ndarray, "n_samples"]:

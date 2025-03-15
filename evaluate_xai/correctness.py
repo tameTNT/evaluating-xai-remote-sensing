@@ -46,8 +46,7 @@ class Correctness(Co12Metric):
         super().evaluate(method, **kwargs)
 
         if method == "model_randomisation":
-            random_exp = self._model_randomisation()
-            return Similarity(self.exp, random_exp)
+            return self._model_randomisation()
         elif method == "incremental_deletion":
             return self._incremental_deletion(**kwargs)
         else:
@@ -82,7 +81,7 @@ class Correctness(Co12Metric):
             plt.title(f"Explanation for randomised model")
             plt.show()
 
-        return exp_for_randomised_model
+        return Similarity(self.exp, exp_for_randomised_model)
 
     def _incremental_deletion(
             self,
