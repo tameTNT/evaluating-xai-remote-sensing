@@ -104,7 +104,7 @@ class Correctness(Co12Metric):
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
                             desc="Randomly perturbing"):  # type: int, int
             a_random_ranking = deletion.generate_random_ranking(
-                self.exp.input.shape[-2:], 16, seed
+                image_shape[-2:], 16, seed
             )
             random_rankings = a_random_ranking[np.newaxis, ...].repeat(n_samples, axis=0)
             imgs_with_random_deletions[i] = self.incrementally_delete(

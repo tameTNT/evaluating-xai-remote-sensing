@@ -37,7 +37,7 @@ def delete_top_k_important(
     """
 
     masked_imgs = x.numpy(force=True)
-    n_channels = x.shape[1]
+    n_channels = masked_imgs.shape[1]
 
     top_k_mask = importance_ranking < k
     top_k_mask = np.expand_dims(top_k_mask, 1).repeat(n_channels, 1)  # mask across all input channels

@@ -75,7 +75,7 @@ class Explainer:
     ):
         logger.info(f"Generating explanations in {self.__class__.__name__} "
                     f"for x.shape={x.shape}.")
-        self.input = x
+        self.input = x.to(self.device)
         self.kwargs = kwargs
 
     def save_state(self):
