@@ -78,6 +78,8 @@ helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_exp
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
+deletion_method = "shuffle"  # or "nn" works best here
+# Applying deletion method to sat img with large 'class regions' is hard
 
 # == Correctness ==
 correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
@@ -91,7 +93,7 @@ print("Correctness evaluation via model randomisation", sim_metrics)
 # Incremental Deletion
 nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion",
-    deletion_method="nn",
+    deletion_method=deletion_method,
     iterations=10, n_random_rankings=5,
     random_seed=42, visualisation_option=VisualisationOption.BOTH,
 )
@@ -99,19 +101,20 @@ print("Correctness evaluation via incremental deletion", nn_aucs)
 
 # == Output Completeness ==
 output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+threshold = 0.2
 
 # Deletion Check
 drop_in_confidence = output_completeness_metric.evaluate(
-    method="deletion_check", deletion_method="shuffle", threshold=0.1,
-    n_random_rankings=5, random_seed=42,
+    method="deletion_check", deletion_method=deletion_method, threshold=threshold,
+    n_random_rankings=5, random_seed=42, visualise=True,
 )
 print("Output completeness evaluation via deletion check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # Preservation Check
 drop_in_confidence = output_completeness_metric.evaluate(
-    method="preservation_check", deletion_method="shuffle", threshold=0.1,
-    n_random_rankings=5, random_seed=42,
+    method="preservation_check", deletion_method=deletion_method, threshold=threshold,
+    n_random_rankings=5, random_seed=42, visualise=True,
 )
 print("Output completeness evaluation via preservation check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
