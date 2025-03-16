@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import helpers.env_var
@@ -13,9 +14,12 @@ def get_logger(name: str) -> logging.Logger:
     if not logger.handlers:  # avoid adding handlers multiple times
         logger.setLevel(logging.DEBUG)
 
-        # create file handler which logs even debug messages
-        fh = logging.FileHandler(LOG_DIR / f"{name}.log", mode="a")
+        # create file handler which logs debug messages (and creates a new file for each run of the program)
+        log_path = LOG_DIR / f"{name}.log"
+        fh = RotatingFileHandler(log_path, mode="a", backupCount=10)
         fh.setLevel(logging.DEBUG)
+        if log_path.exists():
+            fh.doRollover()  # archive (add .1/.2/etc.) the old log file if it exists
 
         # create console handler with a higher log level
         ch = logging.StreamHandler()
@@ -23,8 +27,8 @@ def get_logger(name: str) -> logging.Logger:
 
         # create formatter and add it to the handlers
         formatter = logging.Formatter(
-            "%(asctime)s | %(name)s (%(process)d) | %(levelname)s | "
-            "%(filename)s | %(funcName)s | %(message)s"
+            "%(asctime)s | %(name)-s(id=%(process)d) | %(levelname)7s | "
+            "%(filename)s:%(lineno)d | %(funcName)s | %(message)s"
         )
         fh.setFormatter(formatter)
         ch.setFormatter(formatter)

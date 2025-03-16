@@ -2,7 +2,7 @@
 # Execute in cwd with e.g. source run_train.sh model_training/config/help.args (Windows)
 # or ./run_train.sh model_training/config/help.args (Unix)
 
-if [[ $(hostname | grep "gpu" | wc -c) -ne 0 ]]; then
+if [[ $(hostname | grep -E "(gpu|Luca)" | wc -c) -ne 0 ]]; then
   # Activate conda environment
   eval "$(conda shell.bash hook)"
   conda activate sat_project
@@ -19,7 +19,7 @@ if [[ $(hostname | grep "gpu" | wc -c) -ne 0 ]]; then
   echo "Using following args (last value takes precedence if multiple) from $1 to run train.py:"
   echo $txt_args "${@:2}"
   echo
-  python model_training/train.py $txt_args "${@:2}"
+  python -m model_training.train $txt_args "${@:2}"
 else
   echo "Not on a GPU! Exiting..."
   exit 1
