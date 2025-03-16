@@ -10,6 +10,7 @@ import torch
 import dataset_processing
 import helpers
 import models
+from evaluate_xai.compactness import Compactness
 from evaluate_xai.continuity import Continuity
 from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.correctness import Correctness
@@ -145,3 +146,10 @@ similarity = contrastivity_metric.evaluate(
 )
 contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Contrastivity evaluation via adversarial attack", contrastivity_sim_metrics)
+
+# == Compactness ==
+compactness_metric = Compactness(shap_explainer, max_batch_size=batch_size)
+compactness_scores = compactness_metric.evaluate(
+    method="threshold", threshold=0.5, visualise=True,
+)
+print("Compactness evaluation via threshold", compactness_scores)
