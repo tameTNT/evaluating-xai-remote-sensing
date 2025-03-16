@@ -42,7 +42,7 @@ class Explainer:
         self.save_path.mkdir(parents=True, exist_ok=True)
         logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
-        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / SHAP / ResNet50.npz
+        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / PartitionSHAP / ResNet50.npz
         self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
 

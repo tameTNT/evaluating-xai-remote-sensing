@@ -15,7 +15,7 @@ from evaluate_xai.continuity import Continuity
 from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
-from xai.shap_method import SHAP
+from xai.shap_method import PartitionSHAP
 
 # plt.port = 36422
 mpl.rcParams['savefig.pad_inches'] = 0
@@ -67,7 +67,7 @@ plt.show()
 # ==== Generate explanation for selected images ====
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = SHAP(
+shap_explainer = PartitionSHAP(
     model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
 )
 

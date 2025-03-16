@@ -11,9 +11,9 @@ from xai import Explainer
 logger = log.get_logger("main")
 
 
-class SHAP(Explainer):
+class PartitionSHAP(Explainer):
     """
-    An Explainer object using SHAP Partition explanations for a model
+    An Explainer object using PartitionSHAP explanations for a model
     """
 
     def explain(
@@ -23,10 +23,10 @@ class SHAP(Explainer):
             batch_size: int = 96,  # todo: make this an arg
     ):
         """
-        Explains the model's predictions for the given images using the SHAP
-        Partition Explainer. Requires a decent amount of memory
+        Explains the model's predictions for the given images using the PartitionSHAP
+        Explainer (shap.PartitionExplainer). Requires a decent amount of memory
         (approx 6GB for n_samples=5, batch_size=64).
-        NB: Even though SHAP generates explanations for all model outputs, only
+        NB: Even though PartitionSHAP generates explanations for all model outputs, only
         the model's most confident prediction is saved.
 
         :param x: Normalised images in [-1, 1] with shape
