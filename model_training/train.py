@@ -2,6 +2,7 @@ import argparse
 import platform
 import time
 from pathlib import Path
+import typing as t
 
 import numpy as np
 import safetensors.torch as st
@@ -42,7 +43,7 @@ parser.add_argument(
     "--model_name",
     type=str,
     required=True,
-    choices=models.MODEL_NAMES,
+    choices=t.get_args(models.MODEL_NAMES),
     help="Name of the model to train.",
 )
 parser.add_argument(
@@ -56,7 +57,7 @@ parser.add_argument(
     "--dataset_name",
     type=str,
     required=True,
-    choices=dataset_processing.DATASET_NAMES,
+    choices=t.get_args(dataset_processing.DATASET_NAMES),
     help="Name of the dataset to train on.",
 )
 parser.add_argument(

@@ -1,4 +1,4 @@
-import typing
+import typing as t
 
 import numpy as np
 import torch
@@ -12,7 +12,7 @@ def make_preds(
         x: torch.Tensor,
         y: torch.Tensor,
         criterion: torch.nn.Module,
-) -> typing.Tuple[torch.Tensor, torch.Tensor]:
+) -> t.Tuple[torch.Tensor, torch.Tensor]:
 
     y_pred: torch.Tensor = model(x)
 
@@ -28,7 +28,7 @@ def train_step(
         targets: torch.Tensor,
         train_criterion: torch.nn.Module,
         model_optimiser: torch.optim.Optimizer,
-) -> typing.Tuple[float, float]:
+) -> t.Tuple[float, float]:
 
     model_to_train.train()
     model_device = utils.get_model_device(model_to_train)
@@ -45,9 +45,9 @@ def train_step(
 def validation_step(
         model_to_validate: torch.nn.Module,
         eval_criterion: torch.nn.Module,
-        val_data_gen: typing.Generator,
+        val_data_gen: t.Generator,
         num_val_batches: int,
-) -> typing.Tuple[float, float]:
+) -> t.Tuple[float, float]:
 
     model_to_validate.eval()
     model_device = utils.get_model_device(model_to_validate)
@@ -72,9 +72,9 @@ def validation_step(
 
 def sample_outputs(
         model_to_test: torch.nn.Module,
-        sample_iterator: typing.Generator[dict[str, torch.Tensor], None, None],
+        sample_iterator: t.Generator[dict[str, torch.Tensor], None, None],
         num_batches: int,
-) -> typing.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
     model_to_test.eval()
     model_device = utils.get_model_device(model_to_test)

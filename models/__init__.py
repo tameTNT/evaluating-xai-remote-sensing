@@ -6,11 +6,11 @@ from . import resnet
 
 logger = log.get_logger("main")
 
-MODEL_NAMES = ["ResNet50", "ResNet101"]
+MODEL_NAMES = t.Literal["ResNet50"]
 
 
 def get_model_type(
-        name: t.Literal["ResNet50", "ResNet101"],
+        name: MODEL_NAMES,
 ) -> t.Type[core.FreezableModel]:
     """
     Get the model type corresponding to the given name.
@@ -23,7 +23,7 @@ def get_model_type(
         m = resnet.ResNet50
     else:
         logger.error(f"Invalid model name ({name}) provided to get_model_type. "
-                     f"Must be one of {MODEL_NAMES}.")
+                     f"Must be one of {t.get_args(MODEL_NAMES)}.")
         raise ValueError(f"Model {name} does not exist.")
 
     return m

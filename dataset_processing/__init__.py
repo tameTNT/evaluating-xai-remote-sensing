@@ -8,7 +8,7 @@ from . import eurosat, ucmerced
 
 logger = log.get_logger("main")
 
-DATASET_NAMES = ["EuroSATRGB", "EuroSATMS", "UCMerced"]
+DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced"]
 
 
 # noinspection PyIncorrectDocstring
@@ -54,7 +54,7 @@ def get_dataset_object(
         ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
     else:
         logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
-                     f"Must be one of {DATASET_NAMES}.")
+                     f"Must be one of {t.get_args(DATASET_NAMES)}.")
         raise ValueError(f"Dataset {name} does not exist.")
 
     logger.info(f"Dataset {ds.logging_name} loaded with {len(ds)} samples.")
