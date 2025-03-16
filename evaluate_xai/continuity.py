@@ -44,7 +44,7 @@ class Continuity(Co12Metric):
             plt.title(f"Continuity Perturbation (degree={degree})")
             plt.show()
 
-        exp_for_perturbed = self.generate_sub_explainer("perturbed", noisy_samples)
+        exp_for_perturbed = self.get_sub_explainer("perturbed", noisy_samples)
 
         if self.visualise:
             self.compare_sub_explainer(
@@ -58,6 +58,8 @@ class Continuity(Co12Metric):
         original_preds: np.ndarray[int] = model_output[:n_samples].argmax(1)
         perturbed_preds: np.ndarray[int] = model_output[n_samples:].argmax(1)
 
+        # Only compare similarity of explanations where the model predictions
+        # remained the same since the explanations should reflect the underlying model
+        # noinspection PyTypeChecker
         same_preds: np.ndarray[bool] = perturbed_preds == original_preds
-
         return Similarity(self.exp, exp_for_perturbed, mask=same_preds)

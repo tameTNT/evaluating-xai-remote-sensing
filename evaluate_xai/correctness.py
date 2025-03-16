@@ -56,7 +56,7 @@ class Correctness(Co12Metric):
         self.reset_child_params(randomised_model)
         randomised_model.eval()
 
-        exp_for_randomised_model = self.generate_sub_explainer(
+        exp_for_randomised_model = self.get_sub_explainer(
             "randomised", self.exp.attempt_load, model=randomised_model
         )
 

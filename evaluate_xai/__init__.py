@@ -6,6 +6,8 @@ from jaxtyping import Float, Int
 from scipy.stats import spearmanr
 from skimage.metrics import structural_similarity as ssim
 from tqdm.autonotebook import tqdm
+import einops
+import matplotlib.pyplot as plt
 
 import helpers
 from xai import Explainer
@@ -191,25 +193,28 @@ class Co12Metric:
 
         return torch.cat(preds, dim=0).numpy(force=True)
 
-    def generate_sub_explainer(
+    def get_sub_explainer(
             self,
             name: str,
-            samples: torch.Tensor,
+            x: torch.Tensor,
             model: torch.nn.Module = None
     ) -> Explainer:
         if model is None:
             model = self.exp.model
 
         new_exp = self.exp.__class__(
-            model, self.exp.extra_path / name, attempt_load=samples,
+            model, self.exp.extra_path / name, attempt_load=x,
         )
-        if not new_exp.has_explanation_for(samples):
-            logger.info(f"No existing explanation found for samples in {name} "
-                        f"(a sub-explainer for {self.__class__.__name__}). Generating a new one.")
+        if not new_exp.has_explanation_for(x):
+            logger.info(f"No existing explanation found for provided samples "
+                        f"(shape={x.shape}) in '{name}' "
+                        f"(a sub-explainer for {self.__class__.__name__}). "
+                        f"Generating a new one.")
             # Use the same kwargs as the original explainer
-            new_exp.explain(samples, **self.exp.kwargs)
+            new_exp.explain(x, **self.exp.kwargs)
         else:
-            logger.info(f"Existing explanation found for samples in {name} "
+            logger.info(f"Existing explanation found for provided samples "
+                        f"(shape={x.shape}) in '{name}' "
                         f"(a sub-explainer for {self.__class__.__name__}).")
         return new_exp
 
