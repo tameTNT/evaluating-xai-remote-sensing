@@ -11,6 +11,7 @@ import dataset_processing
 import helpers
 import models
 from evaluate_xai.continuity import Continuity
+from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 from xai.shap_method import SHAP
@@ -134,3 +135,13 @@ print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at 
       f"indices: {similarity.hidden_idxs}")
 cont_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Continuity evaluation via image perturbation", cont_sim_metrics)
+
+# == Contrastivity ==
+contrastivity_metric = Contrastivity(shap_explainer, max_batch_size=batch_size)
+
+# Adversarial Attack
+similarity = contrastivity_metric.evaluate(
+    method="adversarial_attack", visualise=True,
+)
+contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
+print("Contrastivity evaluation via adversarial attack", contrastivity_sim_metrics)
