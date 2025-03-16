@@ -56,19 +56,9 @@ class Correctness(Co12Metric):
         self.reset_child_params(randomised_model)
         randomised_model.eval()
 
-        original_explainer = self.exp.__class__
-        exp_for_randomised_model = original_explainer(
-            randomised_model, self.exp.extra_path / "randomised", attempt_load=self.exp.attempt_load,
+        exp_for_randomised_model = self.generate_sub_explainer(
+            "randomised", self.exp.attempt_load, model=randomised_model
         )
-
-        if not exp_for_randomised_model.has_explanation_for(self.exp.input):
-            # only generate explanation if no existing one
-            logger.info(f"No existing explanation for self.exp.input in exp_for_randomised_model. "
-                        f"Generating a new one.")
-            # Use the same kwargs as the original explainer
-            exp_for_randomised_model.explain(self.exp.input, **self.exp.kwargs)
-        else:
-            logger.info(f"Existing explanation found for self.exp.input in exp_for_randomised_model.")
 
         if self.visualise:
             stacked_input = einops.rearrange(

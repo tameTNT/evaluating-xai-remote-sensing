@@ -190,3 +190,25 @@ class Co12Metric:
             preds.append(batch_preds)
 
         return torch.cat(preds, dim=0).numpy(force=True)
+
+    def generate_sub_explainer(
+            self,
+            name: str,
+            samples: torch.Tensor,
+            model: torch.nn.Module = None
+    ) -> Explainer:
+        if model is None:
+            model = self.exp.model
+
+        new_exp = self.exp.__class__(
+            model, self.exp.extra_path / name, attempt_load=samples,
+        )
+        if not new_exp.has_explanation_for(samples):
+            logger.info(f"No existing explanation found for samples in {name} "
+                        f"(a sub-explainer for {self.__class__.__name__}). Generating a new one.")
+            # Use the same kwargs as the original explainer
+            new_exp.explain(samples, **self.exp.kwargs)
+        else:
+            logger.info(f"Existing explanation found for samples in {name} "
+                        f"(a sub-explainer for {self.__class__.__name__}).")
+        return new_exp

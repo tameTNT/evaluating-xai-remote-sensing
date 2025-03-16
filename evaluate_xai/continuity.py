@@ -44,18 +44,7 @@ class Continuity(Co12Metric):
             plt.title(f"Continuity Perturbation (degree={degree})")
             plt.show()
 
-        original_explainer = self.exp.__class__
-        exp_for_perturbed = original_explainer(
-            self.exp.model, self.exp.extra_path / "perturbed", attempt_load=noisy_samples,
-        )
-        if not exp_for_perturbed.has_explanation_for(noisy_samples):
-            # only generate explanation if no existing one
-            logger.info(f"No existing explanation for self.exp.input in exp_for_perturbed. "
-                        f"Generating a new one.")
-            # Use the same kwargs as the original explainer
-            exp_for_perturbed.explain(noisy_samples, **self.exp.kwargs)
-        else:
-            logger.info(f"Existing explanation found for self.exp.input in exp_for_perturbed.")
+        exp_for_perturbed = self.generate_sub_explainer("perturbed", noisy_samples)
 
         if self.visualise:
             stacked_explanations = einops.rearrange(
