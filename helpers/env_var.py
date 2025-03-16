@@ -21,7 +21,7 @@ def get_xai_output_root() -> Path:
     Return the output directory to use for XAI results since there appears to
     be a difference in pixel values depending on the platform.
 
-    Loading the windows images on Linux/MacOS gives a difference of 0.0111 on
+    Loading the windows images on Linux/macOS gives a difference of 0.0111 on
     eurosat for instance for exactly the same input eurosat image loaded
     from disk.
     """

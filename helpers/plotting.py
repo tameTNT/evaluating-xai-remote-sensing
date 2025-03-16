@@ -20,7 +20,7 @@ def show_sample_of_incorrect(
     random_wrong_idxs = np.random.choice(idx_where_wrong, size=25, replace=False)
     fig = plt.figure(figsize=(10, 10), tight_layout=True)
     for i, idx in enumerate(random_wrong_idxs):
-        ax = plt.subplot(5, 5, i + 1)
+        _ = plt.subplot(5, 5, i + 1)
         plt.title(f"'{dataset_classes[int(test_predictions[idx])]}'"
                   f"\n({dataset_classes[int(test_labels[idx])]})")
         plt.imshow(einops.rearrange(dataset[idx]["image"], "c h w -> h w c"))
@@ -41,12 +41,12 @@ def plot_image_with_annotation(
     plt.imshow(img)
 
     predicted_label = np.argmax(predictions_array)
-    color = "green" if predicted_label == true_label else "red"
+    annotation_colour = "green" if predicted_label == true_label else "red"
 
     plt.xlabel("{} {:2.0f}% ({})".format(predicted_label,
                                          100 * np.max(predictions_array),
                                          true_label),
-               color=color)
+               color=annotation_colour)
 
 
 def plot_pred_bars(predictions_array: torch.Tensor, true_label):
@@ -55,12 +55,12 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
     plt.xticks([])
     plt.xticks(list(x_range), minor=True)
     plt.yticks([])
-    thisplot = plt.bar(x_range, predictions_array, color="grey")
+    this_plot = plt.bar(x_range, predictions_array, color="grey")
     plt.ylim([0, 1])
     predicted_label = np.argmax(predictions_array)
 
-    thisplot[predicted_label].set_color("orange")
-    thisplot[true_label].set_color("green")
+    this_plot[predicted_label].set_color("orange")
+    this_plot[true_label].set_color("green")
 
 
 def show_image(

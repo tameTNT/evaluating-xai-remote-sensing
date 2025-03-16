@@ -82,7 +82,7 @@ class Similarity:
             else:
                 x2 = np.zeros(x2.shape)
 
-        # flatten image dimensions (HxW) then sum squared differences, averaging over image dimensions
+        # Flatten image dimensions (HxW) then sum squared differences, averaging over image dimensions
         # This is the mean L2 (Euclidian) distance per pixel. Returned for each image in batch.
         p = 2  # =2 for L2 distance
         return np.power(np.power(np.abs(x1 - x2).reshape(n, -1), p).sum(-1), 1 / p) / (h * w)

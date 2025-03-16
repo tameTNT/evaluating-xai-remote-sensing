@@ -11,6 +11,7 @@ logger = log.get_logger("main")
 DATASET_NAMES = ["EuroSATRGB", "EuroSATMS", "UCMerced"]
 
 
+# noinspection PyIncorrectDocstring
 def get_dataset_object(
         name: t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced"],
         split: t.Literal["train", "val", "test"],
@@ -24,11 +25,10 @@ def get_dataset_object(
         **kwargs
 ) -> t.Union[eurosat.EuroSATBase, ucmerced.UCMerced]:
     """
-    See dataset_processing.core.RSDatasetMixin for undocumented parameters and
-    the specific dataset class for the kwargs unique to that dataset.
-
+    todo: write this docstring
     :param name: The name of the dataset to load. One of the dataset names in DATASET_NAMES.
-    :param kwargs: Passed to the dataset class.
+    :param kwargs: Passed to the dataset class. See dataset_processing.core.RSDatasetMixin
+      for undocumented parameters and the specific dataset class for the kwargs unique to that dataset.
     :return: A dataset object of the specified type.
     """
 

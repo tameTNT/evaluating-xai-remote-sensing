@@ -20,16 +20,17 @@ def get_dataset(
     Get the Refined Big Earth Net dataset.
     See https://github.com/microsoft/torchgeo/pull/2371 for v2 dataloader implementation.
 
-    Needs to be downloaded separately first (you can use bash script in `/dataset_processing/scripts/download_sen12ms.sh`).
+    Needs to be downloaded separately first
+    (you can use bash script in `/dataset_processing/scripts/download_sen12ms.sh`).
     """
-    reBEN_directory = DATASET_ROOT / "reBEN"
-    dataset_directory = reBEN_directory / "ds"
+    reben_directory = DATASET_ROOT / "reBEN"
+    dataset_directory = reben_directory / "ds"
     if not dataset_directory.exists():
         # extract the dataset
-        zst_path = reBEN_directory / "BigEarthNet-S2.tar.zst"
+        zst_path = reben_directory / "BigEarthNet-S2.tar.zst"
         if not zst_path.exists():
             raise RuntimeError(
-                f"Dataset not found in {reBEN_directory} and `download=False`, "
+                f"Dataset not found in {reben_directory} and `download=False`, "
                 "either specify a different DATASET_ROOT directory or download the dataset."
                 "You can use `wget https://zenodo.org/records/10891137/files/BigEarthNet-S2.tar.zst` for example."
             )

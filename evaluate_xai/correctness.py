@@ -105,7 +105,7 @@ class Correctness(Co12Metric):
                 random_rankings, iterations, deletion_method
             )[0]
         flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
-
+        # todo: save/load perturbations?
         if self.visualise:
             # show each different random ranking on 0th image
             visualise_incremental_deletion(imgs_with_random_deletions[:, 0])

@@ -390,6 +390,7 @@ def train_model(
                 samples_table.add_column("true_sample", [wandb.Image(
                     img, caption=validation_dataset.classes[int(label)]
                 ) for img, label in zip(scaled_incorrect_samples, labels_for_incorrect)])
+                # todo: caption not displaying for UCMerced images - is .classes populated?
 
                 wandb_run.log({
                     "loss/validation": val_mean_loss,

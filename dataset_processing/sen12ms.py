@@ -17,7 +17,8 @@ def get_dataset(
     """
     Get the SEN12MS dataset using torchgeo.
 
-    Needs to be downloaded separately first (you can use bash script in `/dataset_processing/scripts/download_sen12ms.sh`).
+    Needs to be downloaded separately first
+    (you can use bash script in `/dataset_processing/scripts/download_sen12ms.sh`).
     """
 
     logger.debug("Using `torchgeo.datasets` to load EuroSAT dataset.")

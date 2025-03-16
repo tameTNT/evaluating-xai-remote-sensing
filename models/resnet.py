@@ -5,8 +5,11 @@ import torch.nn as nn
 import torchvision
 from torch import Tensor
 from torchvision.models import WeightsEnum, ResNet50_Weights, ResNet101_Weights
+# noinspection PyProtectedMember
 from torchvision.models._meta import _IMAGENET_CATEGORIES
+# noinspection PyProtectedMember
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
+# noinspection PyProtectedMember
 from torchvision.utils import _log_api_usage_once
 
 import helpers.log
@@ -28,12 +31,13 @@ class ResNet50(FreezableModel):
 
         super().__init__(pretrained, n_input_bands, n_output_classes, *args, **kwargs)
 
-        if pretrained:
+        if self.pretrained:
             self.model = resnet50_new(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-            logger.debug(f"Model {self.__class__.__name__} initialised with pretrained weights")
         else:
             self.model = resnet50_new(weights=None)
-            logger.debug(f"Model {self.__class__.__name__} initialised without pretrained weights")
+
+        logger.debug(f"Model {self.__class__.__name__} initialised "
+                     f"{'with' if self.pretrained else 'without'} pretrained weights")
 
         # modify model after loading pretrained weights
         old_input_conv = self.model.conv1
@@ -41,6 +45,7 @@ class ResNet50(FreezableModel):
         if n_input_bands != old_input_conv.in_channels:
             logger.debug(f"Changing input conv layer from {old_input_conv.in_channels} "
                          f"to {n_input_bands} input channels.")
+            # noinspection PyTypeChecker
             self.model.conv1 = nn.Conv2d(
                 n_input_bands, old_input_conv.out_channels,
                 kernel_size=old_input_conv.kernel_size, stride=old_input_conv.stride,
@@ -84,6 +89,7 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
+# noinspection SpellCheckingInspection
 class BasicBlock(nn.Module):
     expansion: int = 1
 
@@ -137,6 +143,7 @@ class BasicBlock(nn.Module):
         return out
 
 
+# noinspection SpellCheckingInspection
 class Bottleneck(nn.Module):
     # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
     # while original implementation places the stride at the first 1x1 convolution(self.conv1)
@@ -199,6 +206,7 @@ class Bottleneck(nn.Module):
         return out
 
 
+# noinspection SpellCheckingInspection,PyListCreation
 class ResNet(nn.Module):
     def __init__(
             self,
@@ -345,6 +353,7 @@ _COMMON_META = {
 }
 
 
+# noinspection GrazieInspection,SpellCheckingInspection
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
 def resnet50_new(*, weights: Optional[ResNet50_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-50 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.
@@ -376,6 +385,7 @@ def resnet50_new(*, weights: Optional[ResNet50_Weights] = None, progress: bool =
     return _resnet(Bottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
 
 
+# noinspection GrazieInspection,SpellCheckingInspection
 @handle_legacy_interface(weights=("pretrained", ResNet101_Weights.IMAGENET1K_V1))
 def resnet101_new(*, weights: Optional[ResNet101_Weights] = None, progress: bool = True, **kwargs: Any) -> ResNet:
     """ResNet-101 from `Deep Residual Learning for Image Recognition <https://arxiv.org/abs/1512.03385>`__.

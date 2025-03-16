@@ -13,6 +13,7 @@ class FreezableModel(nn.Module):
 
     def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.pretrained = pretrained
         assert n_input_bands > 0, "Number of input bands must be greater than 0."
         assert n_output_classes > 0, "Number of output classes must be greater than 0."
 

@@ -29,12 +29,12 @@ class SHAP(Explainer):
         NB: Even though SHAP generates explanations for all model outputs, only
         the model's most confident prediction is saved.
 
-        :param x: normalised images in [-1, 1] with shape
+        :param x: Normalised images in [-1, 1] with shape
           (batch_size, channels, height, width)
-        :param max_evals: maximum number of partition explainer evaluations to
+        :param max_evals: Maximum number of partition explainer evaluations to
             perform. Effectively controls the 'resolution' of the explanation
             with a factor of 10 approximately doubling the resolution.
-        :param batch_size: batch size for evaluation.
+        :param batch_size: Batch size for evaluation.
           NB: batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
         :return:
         """

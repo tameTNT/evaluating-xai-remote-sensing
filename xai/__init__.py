@@ -105,6 +105,7 @@ class Explainer:
             explanation=self.explanation,
         )
 
+        # noinspection PyTypeChecker
         json.dump(self.kwargs, self.json_path.open("w+"))
 
         logger.debug(f"Saved {self.__class__.__name__}'s explanation "
