@@ -384,13 +384,14 @@ def train_model(
                 incorrect_preds = predicted_labels[incorrect_mask]
 
                 samples_table = wandb.Table(columns=[])
-                samples_table.add_column("epoch", (torch.ones_like(incorrect_preds) * epoch).numpy())
-                samples_table.add_column("prediction", incorrect_preds.numpy())
-                samples_table.add_column("label", labels_for_incorrect.numpy())
-                samples_table.add_column("true_sample", [wandb.Image(
-                    img, caption=validation_dataset.classes[int(label)]
-                ) for img, label in zip(scaled_incorrect_samples, labels_for_incorrect)])
-                # todo: caption not displaying for UCMerced images - is .classes populated?
+                samples_table.add_column("epoch",
+                                         (torch.ones_like(incorrect_preds) * epoch).numpy())
+                samples_table.add_column("prediction",
+                                         [validation_dataset.classes[label_idx] for label_idx in incorrect_preds])
+                samples_table.add_column("label",
+                                         [validation_dataset.classes[label_idx] for label_idx in labels_for_incorrect])
+                samples_table.add_column("true_sample",
+                                         [wandb.Image(img) for img in scaled_incorrect_samples])
 
                 wandb_run.log({
                     "loss/validation": val_mean_loss,
