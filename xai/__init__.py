@@ -13,6 +13,15 @@ BASE_OUTPUT_PATH = helpers.env_var.get_xai_output_root()
 logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}.")
 
 
+def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, float]:
+    """
+    Returns True if the explanation is equal to the given eps.
+    """
+    diff = (a - b).abs().sum().item()
+    return diff < eps, diff
+    # return torch.allclose(a, b, atol=eps)
+
+
 class Explainer:
     """
     Base class for all explainers.
@@ -67,7 +76,9 @@ class Explainer:
         """
 
         if self.explanation is not None:
-            return torch.equal(self.input, x.to(self.device))
+            equal, diff = tolerant_equal(self.input, x.to(self.device))
+            logger.debug(f"self.input and x {'are' if equal else 'are not'} equal with diff={diff}.")
+            return equal
         else:
             return False
 
@@ -110,8 +121,8 @@ class Explainer:
             self.input = torch.from_numpy(data["explanation_input"]).to(self.device)
             temp = data["explanation"]
 
-        diff = (self.input - self.attempt_load).abs().sum()
-        if diff < 1e-5:
+        equal, diff = tolerant_equal(self.input, self.attempt_load)
+        if equal:
             logger.debug(f"Loaded input (shape={self.input.shape}) matches the provided check input "
                          f"(shape={self.attempt_load.shape}) with diff={diff}.")
             self.explanation = temp
@@ -120,6 +131,7 @@ class Explainer:
                 f"Loaded input (shape={self.input.shape}) does not match the provided check input "
                 f"(shape={self.attempt_load.shape}) with diff={diff}. Using null values."
             )
+
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs={self.kwargs}.")
