@@ -19,7 +19,7 @@ if [[ $(hostname | grep "gpu" | wc -c) -ne 0 ]]; then
   echo "Using following args (last value takes precedence if multiple) from $1 to run train.py:"
   echo $txt_args "${@:2}"
   echo
-  python train.py $txt_args "${@:2}"
+  python model_training/train.py $txt_args "${@:2}"
 else
   echo "Not on a GPU! Exiting..."
   exit 1
