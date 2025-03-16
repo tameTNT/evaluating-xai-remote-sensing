@@ -76,3 +76,9 @@ class FreezableModel(nn.Module):
                     break
 
         return f"> {num_frozen} layers frozen: {', '.join([layer.__class__.__name__ for layer in frozen_layers])} <"
+
+    def get_explanation_target_layer(self) -> nn.Module:
+        """
+        Returns the target layer that an Explainer object (e.g. GradCAM) should use.
+        """
+        raise NotImplementedError("get_explanation_target_layer() not implemented in base class.")

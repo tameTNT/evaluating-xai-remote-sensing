@@ -10,12 +10,12 @@ import torch
 import dataset_processing
 import helpers
 import models
+import xai
 from evaluate_xai.compactness import Compactness
 from evaluate_xai.continuity import Continuity
 from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
-from xai.shap_method import PartitionSHAP
 
 # plt.port = 36422
 mpl.rcParams['savefig.pad_inches'] = 0
@@ -29,6 +29,8 @@ batch_size = 32
 
 model_name = "ResNet50"
 num_workers = 4
+
+explainer_name = "GradCAM"  # or "PartitionSHAP"
 
 logger = helpers.log.get_logger("main")
 
@@ -67,17 +69,24 @@ plt.show()
 # ==== Generate explanation for selected images ====
 # todo: support saving/loading large batches of explanations
 #  rather than needing new obj each time for each batch
-shap_explainer = PartitionSHAP(
-    model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
+explainer = xai.get_explainer_object(
+    explainer_name, model=model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
 )
 
-if not shap_explainer.has_explanation_for(imgs_to_explain):
+explain_args = {}
+if explainer_name == "PartitionSHAP":
+    explain_args["batch_size"] = batch_size
+    explain_args["max_evals"] = 10000
+elif explainer_name == "GradCAM":
+    explain_args["target_layers"] = [model_to_explain.get_explanation_target_layer()]
+
+if not explainer.has_explanation_for(imgs_to_explain):
     logger.info(f"No existing explanation for imgs_to_explain. Generating a new one.")
-    shap_explainer.explain(imgs_to_explain, max_evals=10000, batch_size=batch_size)
+    explainer.explain(imgs_to_explain, **explain_args)
 else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
-helpers.plotting.visualise_importance(imgs_to_explain, shap_explainer.ranked_explanation,
+helpers.plotting.visualise_importance(imgs_to_explain, explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=False)
 plt.title("Explanations being evaluated")
 plt.show()
@@ -87,7 +96,7 @@ deletion_method = "shuffle"  # or "nn" works best here
 # Applying deletion method to sat img with large 'class regions' is hard
 
 # == Correctness ==
-correctness_metric = Correctness(shap_explainer, max_batch_size=batch_size)
+correctness_metric = Correctness(explainer, max_batch_size=batch_size)
 
 # Model Randomisation
 corr_sim_metrics = correctness_metric.evaluate(method="model_randomisation", visualise=True)(
@@ -105,7 +114,7 @@ nn_aucs = correctness_metric.evaluate(
 print("Correctness evaluation via incremental deletion", nn_aucs)
 
 # == Output Completeness ==
-output_completeness_metric = OutputCompleteness(shap_explainer, max_batch_size=batch_size)
+output_completeness_metric = OutputCompleteness(explainer, max_batch_size=batch_size)
 threshold = 0.2
 
 # Deletion Check
@@ -125,7 +134,7 @@ print("Output completeness evaluation via preservation check", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # == Continuity ==
-continuity_metric = Continuity(shap_explainer, max_batch_size=batch_size)
+continuity_metric = Continuity(explainer, max_batch_size=batch_size)
 
 # Model Randomisation
 similarity = continuity_metric.evaluate(
@@ -138,7 +147,7 @@ cont_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Continuity evaluation via image perturbation", cont_sim_metrics)
 
 # == Contrastivity ==
-contrastivity_metric = Contrastivity(shap_explainer, max_batch_size=batch_size)
+contrastivity_metric = Contrastivity(explainer, max_batch_size=batch_size)
 
 # Adversarial Attack
 similarity = contrastivity_metric.evaluate(
@@ -148,7 +157,7 @@ contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
 print("Contrastivity evaluation via adversarial attack", contrastivity_sim_metrics)
 
 # == Compactness ==
-compactness_metric = Compactness(shap_explainer, max_batch_size=batch_size)
+compactness_metric = Compactness(explainer, max_batch_size=batch_size)
 compactness_scores = compactness_metric.evaluate(
     method="threshold", threshold=0.5, visualise=True,
 )

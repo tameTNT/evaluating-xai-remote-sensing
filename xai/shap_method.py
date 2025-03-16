@@ -19,7 +19,7 @@ class PartitionSHAP(Explainer):
     def explain(
             self,
             x: Float[torch.Tensor, "n_samples channels height width"],
-            max_evals: int = 1000,
+            max_evals: int = 10000,
             batch_size: int = 96,  # todo: make this an arg
     ):
         """
@@ -60,6 +60,7 @@ class PartitionSHAP(Explainer):
             # order from most confident prediction (left) to lowest
             outputs=shap.Explanation.argsort.flip[:1],
         )
+
         # only save the most confident prediction (sorted to be first above)
         # summing over the colour channels (final axis of output)
         self.explanation = shap_values.values[..., 0].sum(-1)

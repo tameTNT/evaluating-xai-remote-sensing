@@ -1,4 +1,5 @@
 import json
+import typing as t
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,8 @@ logger = helpers.log.get_logger("main")
 
 BASE_OUTPUT_PATH = helpers.env_var.get_xai_output_root()
 logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}.")
+
+EXPLAINER_NAMES = t.Literal["PartitionSHAP", "GradCAM"]
 
 
 def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, float]:
@@ -136,3 +139,35 @@ class Explainer:
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs={self.kwargs}.")
+
+
+def get_explainer_object(
+        name: EXPLAINER_NAMES,
+        model: torch.nn.Module,
+        extra_path: Path = Path(""),
+        attempt_load: torch.Tensor = None,
+) -> Explainer:
+    """
+    Returns an explainer object of the specified type.
+    :param name: The name of the explainer to load. One of the explainer names in EXPLAINER_NAMES.
+    :param model: The model to explain.
+    :param extra_path: Extra path to save the explanation to.
+    :param attempt_load: Attempt to load an existing explanation for this input.
+    :return: An explainer object of the specified type.
+    """
+
+    if name == "PartitionSHAP":
+        logger.debug("Building PartitionSHAP explainer...")
+        from xai.shap_method import PartitionSHAP
+        explainer = PartitionSHAP(model, extra_path=extra_path, attempt_load=attempt_load)
+    elif name == "GradCAM":
+        logger.debug("Building GradCAM explainer...")
+        from xai.gradcam import GradCAM
+        explainer = GradCAM(model, extra_path=extra_path, attempt_load=attempt_load)
+    else:
+        logger.error(f"Invalid explainer name ({name}) provided to get_explainer_object. "
+                     f"Must be one of {t.get_args(EXPLAINER_NAMES)}.")
+        raise ValueError(f"Explainer {name} does not exist.")
+
+    logger.info(f"Explainer {explainer.__class__.__name__} loaded.")
+    return explainer
