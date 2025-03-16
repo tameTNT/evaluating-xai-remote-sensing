@@ -47,14 +47,10 @@ class Continuity(Co12Metric):
         exp_for_perturbed = self.generate_sub_explainer("perturbed", noisy_samples)
 
         if self.visualise:
-            stacked_explanations = einops.rearrange(
-                np.stack([self.exp.ranked_explanation, exp_for_perturbed.ranked_explanation]),
-                "i n h w -> n (i h) w")
-            # noinspection PyUnboundLocalVariable
-            helpers.plotting.visualise_importance(stacked_samples, stacked_explanations,
-                                                  alpha=.2, with_colorbar=False)
-            plt.title(f"Explanation on original/perturbed input (degree={degree})")
-            plt.show()
+            self.compare_sub_explainer(
+                exp_for_perturbed,
+                title=f"Explanation on original/perturbed input (degree={degree})"
+            )
 
         # Check if any model predictions changed - not fair to compare explanations for these
         n_samples = self.exp.input.shape[0]

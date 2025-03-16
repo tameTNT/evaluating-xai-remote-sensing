@@ -61,15 +61,10 @@ class Correctness(Co12Metric):
         )
 
         if self.visualise:
-            stacked_input = einops.rearrange(
-                torch.stack([self.exp.input, self.exp.input]), "i n c h w -> n c (i h) w")
-            stacked_explanations = einops.rearrange(
-                np.stack([self.exp.ranked_explanation, exp_for_randomised_model.ranked_explanation]),
-                "i n h w -> n (i h) w")
-            helpers.plotting.visualise_importance(stacked_input, stacked_explanations,
-                                                  alpha=.2, with_colorbar=False)
-            plt.title(f"Explanation of original/randomised model")
-            plt.show()
+            self.compare_sub_explainer(
+                exp_for_randomised_model,
+                title="Explanation of original/randomised model"
+            )
 
         return Similarity(self.exp, exp_for_randomised_model)
 

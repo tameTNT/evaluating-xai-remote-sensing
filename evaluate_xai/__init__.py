@@ -212,3 +212,20 @@ class Co12Metric:
             logger.info(f"Existing explanation found for samples in {name} "
                         f"(a sub-explainer for {self.__class__.__name__}).")
         return new_exp
+
+    def compare_sub_explainer(
+            self,
+            sub_exp: Explainer,
+            alpha: float = .2,
+            title: str = "Explanation on original/perturbed input",
+    ):
+        stacked_samples = einops.rearrange(
+            torch.stack([self.exp.input, self.exp.input]), "i n c h w -> n c (i h) w")
+        stacked_explanations = einops.rearrange(
+            np.stack([self.exp.ranked_explanation, sub_exp.ranked_explanation]),
+            "i n h w -> n (i h) w")
+        # noinspection PyUnboundLocalVariable
+        helpers.plotting.visualise_importance(stacked_samples, stacked_explanations,
+                                              alpha=alpha, with_colorbar=False)
+        plt.title(title)
+        plt.show()
