@@ -61,7 +61,7 @@ class Contrastivity(Co12Metric):
         # if no existing adversarial images, generate them
         if need_to_generate:
             logger.info("No existing adversarial images. Generating new ones via foolbox.")
-            foolbox_model = foolbox.PyTorchModel(self.exp.model, bounds=img_bounds)
+            foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=img_bounds)
             # noinspection PyCallingNonCallable
             _, clipped_adv_imgs, success = attack(**attack_kwargs)(
                 foolbox_model, self.exp.input, criteria, epsilons=0.01,
