@@ -12,6 +12,7 @@ dependencies:
 - jupyter=1.0.0
 - plotly=5.24.1
 - pytorch=2.5.1
+# comment out pytorch-cuda below for macOS installs
 - pytorch-cuda=12.4
 - safetensors=0.4.5
 - scikit-learn=1.5.2
@@ -54,4 +55,5 @@ dependencies:
   - urllib3==1.26.20
   - wandb==0.19.8
   - webcolors==24.11.1
+# we need torchgeo v0.7.0 development version (has reBEN)
   - git+https://github.com/microsoft/torchgeo.git@91d8272

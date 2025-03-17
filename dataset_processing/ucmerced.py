@@ -49,7 +49,7 @@ class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
 
     def get_original_train_dataloader(self, shuffle=False):
         return torch.utils.data.DataLoader(UCMercedBase(
-            root=str(DATASET_ROOT / "eurosat"),
+            root=str(DATASET_ROOT / "ucmerced"),
             split="train",
             transforms=None,
             download=self.download,
