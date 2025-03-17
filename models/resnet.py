@@ -63,8 +63,8 @@ class ResNet50(FreezableModel):
     def forward(self, x):
         return self.model(x)
 
-    def get_explanation_target_layer(self) -> nn.Module:
-        return self.model.layer4[-1]
+    def get_explanation_target_layers(self) -> list[nn.Module]:
+        return [self.model.layer4[-1]]
 
 
 # ================== Copied from torchvision/models/resnet.py ==================

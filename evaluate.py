@@ -40,7 +40,7 @@ torch.manual_seed(random_seed)
 # ==== Load dataset and corresponding pretrained model ====
 model_type = models.get_model_type(model_name)
 dataset = dataset_processing.get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test
+    dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test in production
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
     download=False,
@@ -78,7 +78,7 @@ if explainer_name == "PartitionSHAP":
     explain_args["batch_size"] = batch_size
     explain_args["max_evals"] = 10000
 elif explainer_name == "GradCAM":
-    explain_args["target_layers"] = [model_to_explain.get_explanation_target_layer()]
+    explain_args["target_layer_func"] = "get_explanation_target_layers"
 
 if not explainer.has_explanation_for(imgs_to_explain):
     logger.info(f"No existing explanation for imgs_to_explain. Generating a new one.")

@@ -7,6 +7,7 @@ import torch
 from jaxtyping import Int, Float
 
 import helpers
+from models.core import FreezableModel
 
 logger = helpers.log.get_logger("main")
 
@@ -33,7 +34,7 @@ class Explainer:
     """
     def __init__(
             self,
-            model: torch.nn.Module,
+            model: FreezableModel,
             extra_path: Path = Path(""),
             attempt_load: torch.Tensor = None,
     ):
@@ -43,11 +44,10 @@ class Explainer:
         self.extra_path = extra_path
         self.save_path = (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
         self.save_path.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
-
         # e.g. BASE_OUTPUT_PATH / EuroSATRGB / PartitionSHAP / ResNet50.npz
         self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
         self.json_path = self.save_path / f"{self.model.__class__.__name__}.json"
+        logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
         self.input = torch.tensor(0).to(self.device)
         self.kwargs = dict()
@@ -136,6 +136,7 @@ class Explainer:
                 f"(shape={self.attempt_load.shape}) with diff={diff}. Using null values."
             )
 
+        # todo: enforce kwargs are the same as given (for explanation generated in same way)
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs={self.kwargs}.")
@@ -143,7 +144,7 @@ class Explainer:
 
 def get_explainer_object(
         name: EXPLAINER_NAMES,
-        model: torch.nn.Module,
+        model: FreezableModel,
         extra_path: Path = Path(""),
         attempt_load: torch.Tensor = None,
 ) -> Explainer:

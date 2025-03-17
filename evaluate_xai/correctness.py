@@ -57,7 +57,7 @@ class Correctness(Co12Metric):
         randomised_model.eval()
 
         exp_for_randomised_model = self.get_sub_explainer(
-            "randomised", self.exp.attempt_load, model=randomised_model
+            "randomised", self.exp.input, model=randomised_model
         )
 
         if self.visualise:

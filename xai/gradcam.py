@@ -17,13 +17,16 @@ class GradCAM(Explainer):
     def explain(
             self,
             x: Float[torch.Tensor, "n_samples channels height width"],
-            target_layers: list[torch.nn.Module] = None,
+            target_layer_func: str = "get_explanation_target_layers",
     ):
-        assert target_layers is not None, "target_layers must be provided"
+        assert hasattr(self.model, target_layer_func), \
+            f"{self.__class__.__name__} does not have a method called {target_layer_func}"
 
-        super().explain(x)  # don't pass target_layers since not json serializable
+        super().explain(x, target_layer_func=target_layer_func)
 
-        gradcam_explainer = GradCAMBase(self.model, target_layers=target_layers)
+        gradcam_explainer = GradCAMBase(
+            self.model, target_layers=getattr(self.model, target_layer_func)(),
+        )
         cam_output = gradcam_explainer(
             input_tensor=x,
             aug_smooth=False, eigen_smooth=False,

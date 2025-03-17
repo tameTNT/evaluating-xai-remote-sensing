@@ -203,7 +203,7 @@ class Co12Metric:
             model = self.exp.model
 
         new_exp = self.exp.__class__(
-            model, self.exp.extra_path / name, attempt_load=x,
+            model, extra_path=self.exp.extra_path/name, attempt_load=x,
         )
         if not new_exp.has_explanation_for(x):
             logger.info(f"No existing explanation found for provided samples "
