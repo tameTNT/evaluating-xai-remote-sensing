@@ -6,6 +6,7 @@ channels:
 dependencies:
 - python=3.10.16
 - pip=24.2
+# pin pre-version 2 numpy to use e.g. np.trapz
 - numpy=1.26.4
 - einops=0.8.0
 - jaxtyping=0.2.34
