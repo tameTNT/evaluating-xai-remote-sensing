@@ -30,7 +30,7 @@ batch_size = 32
 model_name = "ResNet50"
 num_workers = 4
 
-explainer_name = "GradCAM"  # or "PartitionSHAP"
+explainer_name = "KPCACAM"  # or "PartitionSHAP"
 
 logger = helpers.log.get_logger("main")
 
@@ -77,7 +77,7 @@ explain_args = {}
 if explainer_name == "PartitionSHAP":
     explain_args["batch_size"] = batch_size
     explain_args["max_evals"] = 10000
-elif explainer_name == "GradCAM":
+elif explainer_name == "GradCAM" or explainer_name == "KPCACAM":
     explain_args["target_layer_func"] = "get_explanation_target_layers"
 
 if not explainer.has_explanation_for(imgs_to_explain):

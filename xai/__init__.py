@@ -14,7 +14,7 @@ logger = helpers.log.get_logger("main")
 BASE_OUTPUT_PATH = helpers.env_var.get_xai_output_root()
 logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}.")
 
-EXPLAINER_NAMES = t.Literal["PartitionSHAP", "GradCAM"]
+EXPLAINER_NAMES = t.Literal["PartitionSHAP", "GradCAM", "KPCACAM"]
 
 
 def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, float]:
@@ -27,17 +27,24 @@ def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, fl
 
 
 class Explainer:
-    """
-    Base class for all explainers.
-    The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
-    If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / "
-    """
     def __init__(
             self,
             model: FreezableModel,
             extra_path: Path = Path(""),
             attempt_load: torch.Tensor = None,
     ):
+        """
+        Initialise an Explainer object. Can generate explanations using .explain()
+        which can then be accessed via .explanation and .ranked_explanation.
+
+        :param model: The FreezableModel (subclass of torch.nn.Module) to explain.
+        :param extra_path: An additional string to insert into the save path.
+          Usually used to save explanations for different datasets.
+          The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
+          If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / ...
+        :param attempt_load: Whether to attempt to load an existing explanation.
+          If provided, should be a torch.Tensor which the object will try to load the explanations for.
+        """
         self.model = model
         self.device = helpers.utils.get_model_device(model)
 
@@ -165,6 +172,10 @@ def get_explainer_object(
         logger.debug("Building GradCAM explainer...")
         from xai.gradcam import GradCAM
         explainer = GradCAM(model, extra_path=extra_path, attempt_load=attempt_load)
+    elif name == "KPCACAM":
+        logger.debug("Building KPCACAM explainer...")
+        from xai.gradcam import KPCACAM
+        explainer = KPCACAM(model, extra_path=extra_path, attempt_load=attempt_load)
     else:
         logger.error(f"Invalid explainer name ({name}) provided to get_explainer_object. "
                      f"Must be one of {t.get_args(EXPLAINER_NAMES)}.")
