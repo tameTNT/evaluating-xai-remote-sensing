@@ -148,6 +148,7 @@ class Correctness(Co12Metric):
             fig.tight_layout()
             plt.show()
 
+        # todo: return just one metric here? difference?
         return {"informed": exp_informed_area_under_curve_per_img,
                 "random": random_area_under_curve_per_img}
 

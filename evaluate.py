@@ -102,7 +102,7 @@ correctness_metric = Correctness(explainer, max_batch_size=batch_size)
 corr_sim_metrics = correctness_metric.evaluate(method="model_randomisation", visualise=True)(
     l2_normalise=True, intersection_k=5000
 )
-print("Correctness evaluation via model randomisation", corr_sim_metrics)
+print("Correctness evaluation via model randomisation (↓)", corr_sim_metrics)
 
 # Incremental Deletion
 nn_aucs = correctness_metric.evaluate(
@@ -111,7 +111,7 @@ nn_aucs = correctness_metric.evaluate(
     iterations=10, n_random_rankings=5,
     random_seed=42, visualise=True,
 )
-print("Correctness evaluation via incremental deletion", nn_aucs)
+print("Correctness evaluation via incremental deletion (↓)", nn_aucs)
 
 # == Output Completeness ==
 output_completeness_metric = OutputCompleteness(explainer, max_batch_size=batch_size)
@@ -122,7 +122,7 @@ drop_in_confidence = output_completeness_metric.evaluate(
     method="deletion_check", deletion_method=deletion_method, threshold=threshold,
     n_random_rankings=5, random_seed=42, visualise=True,
 )
-print("Output completeness evaluation via deletion check", end=" ")
+print("Output completeness evaluation via deletion check (↑)", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # Preservation Check
@@ -130,7 +130,7 @@ drop_in_confidence = output_completeness_metric.evaluate(
     method="preservation_check", deletion_method=deletion_method, threshold=threshold,
     n_random_rankings=5, random_seed=42, visualise=True,
 )
-print("Output completeness evaluation via preservation check", end=" ")
+print("Output completeness evaluation via preservation check (↓)", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # == Continuity ==
@@ -144,7 +144,7 @@ similarity = continuity_metric.evaluate(
 print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at "
       f"indices: {similarity.hidden_idxs}")
 cont_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
-print("Continuity evaluation via image perturbation", cont_sim_metrics)
+print("Continuity evaluation via image perturbation (↑)", cont_sim_metrics)
 
 # == Contrastivity ==
 contrastivity_metric = Contrastivity(explainer, max_batch_size=batch_size)
@@ -154,11 +154,11 @@ similarity = contrastivity_metric.evaluate(
     method="adversarial_attack", visualise=True,
 )
 contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
-print("Contrastivity evaluation via adversarial attack", contrastivity_sim_metrics)
+print("Contrastivity evaluation via adversarial attack (↓)", contrastivity_sim_metrics)
 
 # == Compactness ==
 compactness_metric = Compactness(explainer, max_batch_size=batch_size)
 compactness_scores = compactness_metric.evaluate(
     method="threshold", threshold=0.5, visualise=True,
 )
-print("Compactness evaluation via threshold", compactness_scores)
+print("Compactness evaluation via threshold (↑)", compactness_scores)

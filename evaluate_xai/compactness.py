@@ -32,8 +32,8 @@ class Compactness(Co12Metric):
     ) -> Float[np.ndarray, "n_samples"]:
         """
         Calculate the compactness of each explanation relative to a given threshold ([0, 1]).
-        The compactness is defined as the proportion of pixels
-        (normalised per image) above the threshold. Note that the absolute value of
+        The compactness is defined as the proportion of pixels (normalised per image)
+        equal to or below the threshold. Note that the absolute value of
         the pixels is used since negative values also contribute to visual clutter
         when plotted.
         """
@@ -47,8 +47,8 @@ class Compactness(Co12Metric):
             plt.title("Normalised explanations")
             plt.show()
 
-        # todo: Is this even valid for RS images where there are large regions which are relevant
-        # so large portions of the image *should* be above the threshold?
-        proportion_over_threshold = np.sum(norm_exp > threshold, axis=(1, 2)) / norm_exp[0].size
+        # todo: Is this even valid for RS images where there are large regions which are relevant?
+        #   so large portions of the image *should* be above the threshold?
+        proportion_under_threshold = np.sum(norm_exp <= threshold, axis=(1, 2)) / norm_exp[0].size
 
-        return proportion_over_threshold
+        return proportion_under_threshold
