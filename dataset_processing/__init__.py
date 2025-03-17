@@ -4,16 +4,16 @@ import torch
 
 from helpers import log
 from . import core
-from . import eurosat, ucmerced
+from . import eurosat, ucmerced, reBEN
 
 logger = log.get_logger("main")
 
-DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced"]
+DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "reBEN"]
 
 
 # noinspection PyIncorrectDocstring
 def get_dataset_object(
-        name: t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced"],
+        name: DATASET_NAMES,
         split: t.Literal["train", "val", "test"],
         image_size: int,
         batch_size: int,
@@ -52,6 +52,9 @@ def get_dataset_object(
     elif name == "UCMerced":
         logger.debug("Loading UCMerced dataset...")
         ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
+    elif name == "reBEN":
+        logger.debug("Loading reBEN dataset...")
+        ds = reBEN.BigEarthNetV2(**standard_kwargs, **kwargs)
     else:
         logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
                      f"Must be one of {t.get_args(DATASET_NAMES)}.")
