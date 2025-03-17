@@ -295,3 +295,13 @@ class RSDatasetMixin:
         logger.info(f"Built transforms for {self.logging_name}.")
         wrapped_transforms = TensorDictTransformWrapper(self.composed_transforms)
         return wrapped_transforms
+
+
+BASIC_ROTATION_AUGMENTATIONS = [
+    vision_transforms.RandomApply([  # Transpose of img
+        ChoiceRotationTransform([90]),
+        vision_transforms.RandomHorizontalFlip(p=1)
+    ], p=0.5),
+    ChoiceRotationTransform([0, 90, 180, 270]),
+    vision_transforms.RandomRotation(7),
+]

@@ -27,14 +27,7 @@ class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
         # Add randomised transforms
         augmentations = None
         if self.split == "train" and self.use_augmentations:
-            augmentations = [
-                vision_transforms.RandomApply([  # Transpose of img
-                    dataset_processing.core.ChoiceRotationTransform([90]),
-                    vision_transforms.RandomHorizontalFlip(p=1)
-                ], p=0.5),
-                dataset_processing.core.ChoiceRotationTransform([0, 90, 180, 270]),
-                vision_transforms.RandomRotation(7),
-            ]
+            augmentations = dataset_processing.core.BASIC_ROTATION_AUGMENTATIONS
 
         self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, self.use_resize)
 

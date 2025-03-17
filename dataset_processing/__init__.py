@@ -43,17 +43,14 @@ def get_dataset_object(
         "download": download,
     }
 
+    logger.debug(f"Attempting to load {name} dataset...")
     if name == "EuroSATRGB":
-        logger.debug("Loading EuroSATRGB dataset...")
         ds = eurosat.EuroSATRGB(**standard_kwargs, **kwargs)
     elif name == "EuroSATMS":
-        logger.debug("Loading EuroSATMS dataset...")
         ds = eurosat.EuroSATMS(**standard_kwargs, **kwargs)
     elif name == "UCMerced":
-        logger.debug("Loading UCMerced dataset...")
         ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
     elif name == "reBEN":
-        logger.debug("Loading reBEN dataset...")
         ds = reBEN.BigEarthNetV2(**standard_kwargs, **kwargs)
     else:
         logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "

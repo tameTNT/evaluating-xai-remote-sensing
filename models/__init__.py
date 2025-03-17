@@ -6,7 +6,7 @@ from . import resnet
 
 logger = log.get_logger("main")
 
-MODEL_NAMES = t.Literal["ResNet50"]
+MODEL_NAMES = t.Literal["ResNet50"]  # fixme: add ConvNeXt v2, Swin Transformer, ResNet101
 
 
 def get_model_type(
