@@ -15,6 +15,8 @@ import helpers
 import models
 import wandb
 
+SUPPORTED_OPTIMISERS = t.Literal["SGD", "Adam", "AdamW"]
+
 # Create argument parser
 parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
 
@@ -112,7 +114,7 @@ parser.add_argument(
     "--optimiser_name",
     type=str,
     default="SGD",
-    choices=["SGD", "Adam"],  # todo: support more optimisers
+    choices=t.get_args(SUPPORTED_OPTIMISERS),
     help="Name of the optimiser to use. Defaults to SGD.",
 )
 parser.add_argument(
@@ -183,7 +185,7 @@ use_augmentations: bool = not args.no_augmentations
 batch_size: int = args.batch_size
 num_workers: int = args.num_workers
 
-optimiser_name: str = args.optimiser_name
+optimiser_name: SUPPORTED_OPTIMISERS = args.optimiser_name
 loss_criterion: nn.Module = getattr(nn, args.loss_criterion_name)()
 
 frozen_lr: float = args.frozen_lr
@@ -256,13 +258,17 @@ sampling_iterator = iter(dataset_processing.core.cycle(sampling_dataloader))
 
 
 def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
-    kwargs = {}
+    opt_kwargs = {}
     if optimiser_name == "SGD":
-        kwargs = {
-            "weight_decay": 1e-6, "momentum": 0.9, "nesterov": True
+        opt_kwargs = {
+            "weight_decay": 1e-6, "momentum": 0.9, "nesterov": True,
+        }
+    elif optimiser_name == "AdamW":
+        opt_kwargs = {
+            "weight_decay": 1e-2, "betas": (0.9, 0.999), "eps": 1e-8,
         }
     opt: torch.optim.Optimizer = getattr(torch.optim, optimiser_name)(
-        filter(lambda p: p.requires_grad, model.parameters()), lr=lr, **kwargs
+        filter(lambda p: p.requires_grad, model.parameters()), lr=lr, **opt_kwargs
     )
 
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -439,7 +445,7 @@ if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
 
 if use_pretrained:
     logger.info("Training partially frozen pretrained model...")
-    model.freeze_layers(1)  # freeze all but the last layer
+    model.freeze_layers(1)  # freeze all but the last linear layer
     if model.modified_input_layer:  # unfreeze the input layer if we need to train it too
         model.unfreeze_input_layers(model.input_layers_to_train)
 
@@ -451,7 +457,7 @@ if use_pretrained:
         raise e
 
 logger.info("Training full (unfrozen) model...")
-model.unfreeze_layers()
+model.unfreeze_all_layers()
 
 try:
     train_model(lr=full_lr, is_frozen_model=False, max_epochs=full_max_epochs,
