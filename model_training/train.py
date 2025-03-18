@@ -167,32 +167,32 @@ parser.add_argument(
 args = parser.parse_args()
 print("Got args:", args, "\n")
 
-random_seed = args.random_seed
-checkpoints_root_name = args.checkpoints_root_name
-do_not_track = args.do_not_track
+random_seed: int = args.random_seed
+checkpoints_root_name: Path = args.checkpoints_root_name
+do_not_track: bool = args.do_not_track
 
-model_name = args.model_name
-use_pretrained = args.use_pretrained
+model_name: models.MODEL_NAMES = args.model_name
+use_pretrained: bool = args.use_pretrained
 start_from: Path = args.start_from.expanduser().resolve()
 
-dataset_name = args.dataset_name
-download = args.download
-normalisation_type = args.normalisation_type
-use_resize = not args.no_resize
-use_augmentations = not args.no_augmentations
-batch_size = args.batch_size
-num_workers = args.num_workers
+dataset_name: dataset_processing.DATASET_NAMES = args.dataset_name
+download: bool = args.download
+normalisation_type: str = args.normalisation_type
+use_resize: bool = not args.no_resize
+use_augmentations: bool = not args.no_augmentations
+batch_size: int = args.batch_size
+num_workers: int = args.num_workers
 
-optimiser_name = args.optimiser_name
+optimiser_name: str = args.optimiser_name
 loss_criterion: nn.Module = getattr(nn, args.loss_criterion_name)()
 
-frozen_lr = args.frozen_lr
-frozen_lr_early_stop_threshold = args.frozen_lr_early_stop_threshold
-frozen_max_epochs = args.frozen_max_epochs
+frozen_lr: float = args.frozen_lr
+frozen_lr_early_stop_threshold: float = args.frozen_lr_early_stop_threshold
+frozen_max_epochs: int = args.frozen_max_epochs
 
-full_lr = args.full_lr
-lr_early_stop_threshold = args.lr_early_stop_threshold
-full_max_epochs = args.full_max_epochs
+full_lr: float = args.full_lr
+lr_early_stop_threshold: float = args.lr_early_stop_threshold
+full_max_epochs: int = args.full_max_epochs
 
 
 # Actual script starts here
@@ -238,7 +238,6 @@ model = model_type(
 ).to(torch_device)
 
 multiprocessing_context = None
-
 training_dataloader = torch.utils.data.DataLoader(
     training_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True,
     multiprocessing_context=multiprocessing_context
