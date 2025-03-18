@@ -51,6 +51,13 @@ parser.add_argument(
     action="store_true",
     help="If given, load the model's pretrained weights.",
 )
+parser.add_argument(
+    "--start_from",
+    type=Path,
+    default="",
+    help="If given, load a previously saved checkpoint and begin training. "
+         "Best used to continue training from a previous run.",
+)
 
 # Dataset arguments
 parser.add_argument(
@@ -166,6 +173,7 @@ do_not_track = args.do_not_track
 
 model_name = args.model_name
 use_pretrained = args.use_pretrained
+start_from: Path = args.start_from.expanduser().resolve()
 
 dataset_name = args.dataset_name
 download = args.download
@@ -421,6 +429,14 @@ def train_model(
         wandb_run.finish(0)
         logger.info(f"Finished wandb run, id={wandb_run.id}.")
 
+
+if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
+    logger.info(f"Loading weights from {start_from}...")
+    try:
+        st.load_model(model, start_from, device=str(torch_device), strict=True)
+    except RuntimeError as error:
+        loggable_error = str(error).replace("\n", " ")
+        logger.warning(f"Could not load weights from {start_from} via safetensors.load_model: {loggable_error}")
 
 if use_pretrained:
     logger.info("Training partially frozen pretrained model...")
