@@ -1,2 +1,0 @@
---model_name ResNet50 --use_pretrained --dataset_name EuroSATRGB --normalisation_type scaling --batch_size 32 --optimiser_name SGD --frozen_lr 1e-2 --frozen_max_epochs 20 --frozen_lr_early_stop_threshold 1e-4 --full_lr 1e-3 --full_max_epochs 50 --lr_early_stop_threshold 1e-4
-# Based on regime in https://doi.org/10.1109/JSTARS.2019.2918242
