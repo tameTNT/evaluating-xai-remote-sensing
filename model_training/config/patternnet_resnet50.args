@@ -1,0 +1,2 @@
+--model_name ResNet50 --use_pretrained --dataset_name PatternNet --batch_size 64 --optimiser_name SGD --frozen_lr 1e-2 --frozen_max_epochs 15 --frozen_lr_early_stop_threshold 1e-3 --full_lr 1e-3 --full_max_epochs 30 --lr_early_stop_threshold 1e-4
+# No comments.
