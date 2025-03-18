@@ -6,7 +6,6 @@ import dataset_processing.core
 import helpers
 
 DATASET_ROOT = helpers.env_var.get_dataset_root()
-logger = helpers.log.get_logger("main")
 
 
 class BigEarthNetV2(BigEarthNetV2Base, dataset_processing.core.RSDatasetMixin):

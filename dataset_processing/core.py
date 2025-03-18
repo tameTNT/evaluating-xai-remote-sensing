@@ -131,6 +131,8 @@ class RSDatasetMixin:
             If False, torchvision.transforms.CenterCrop is used instead, placing images in the centre with padding.
         :param download: Whether to download the dataset if it is not already present in DATASET_ROOT.
         """
+
+        assert split in ("train", "val", "test"), f"Invalid split '{split}'. Must be one of 'train', 'val', or 'test'."
         self.split = split
 
         self.N_BANDS = 0

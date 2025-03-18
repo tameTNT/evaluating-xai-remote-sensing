@@ -4,11 +4,11 @@ import torch
 
 from helpers import log
 from . import core
-from . import eurosat, ucmerced, reBEN
+from . import eurosat, ucmerced, reBEN, patternnet
 
 logger = log.get_logger("main")
 
-DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "reBEN"]
+DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "reBEN", "PatternNet"]
 
 
 # noinspection PyIncorrectDocstring
@@ -52,6 +52,8 @@ def get_dataset_object(
         ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
     elif name == "reBEN":
         ds = reBEN.BigEarthNetV2(**standard_kwargs, **kwargs)
+    elif name == "PatternNet":
+        ds = patternnet.PatternNet(**standard_kwargs, **kwargs)
     else:
         logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
                      f"Must be one of {t.get_args(DATASET_NAMES)}.")
