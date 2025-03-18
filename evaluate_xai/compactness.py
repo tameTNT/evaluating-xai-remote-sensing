@@ -43,7 +43,7 @@ class Compactness(Co12Metric):
 
         if self.visualise:
             # add fake colour channel for show_image's expected format: (n, c, h, w)
-            helpers.plotting.show_image(np.expand_dims(norm_exp, 1), is_normalised=False, cmap="viridis")
+            helpers.plotting.show_image(np.expand_dims(norm_exp, 1), is_01_normalised=True, cmap="viridis")
             plt.title("Normalised explanations")
             plt.show()
 

@@ -24,9 +24,7 @@ def visualise_incremental_deletion(
     if num_iterations > 10:
         selected_images = selected_images.take(np.floor(np.linspace(0, num_iterations - 1, 10)).astype(int), axis=1)
 
-    helpers.plotting.show_image(
-        einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"),
-    )
+    helpers.plotting.show_image(einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"))
     plt.tight_layout()
 
 

@@ -65,7 +65,7 @@ def plot_pred_bars(predictions_array: torch.Tensor, true_label):
 
 def show_image(
         x: t.Union[torch.Tensor, np.ndarray],
-        is_normalised: bool = True,
+        is_01_normalised: bool = False,
         grayscale: bool = False,
         **kwargs
 ):
@@ -101,7 +101,7 @@ def show_image(
     else:
         raise ValueError(f"Invalid shape for x: {x.shape}")
 
-    if is_normalised:
+    if not is_01_normalised:
         x = (x + 1) / 2  # un-normalise from [-1, 1] to [0, 1]
 
     if grayscale:
@@ -148,7 +148,7 @@ def show_ms_images(
             elif normalisation_type == "channel":
                 norm_args = dict(vmin=x[:, c].min(), vmax=x[:, c].max())
 
-            show_image(x[i, [c]], is_normalised=False, cmap="viridis", **norm_args)
+            show_image(x[i, [c]], is_01_normalised=True, cmap="viridis", **norm_args)
 
     for ax, col_name in zip(axes[0], [f"{c}" for c in range(n_channels)]):
         ax.set_title(col_name)
