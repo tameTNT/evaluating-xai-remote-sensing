@@ -133,7 +133,7 @@ training_group.add_argument(
     "--loss_criterion_name",
     type=str,
     default="CrossEntropyLoss",
-    choices=["CrossEntropyLoss"],  # todo: support more loss criteria
+    choices=["CrossEntropyLoss"],  # todo: support more loss criteria?
     help="Loss criterion to use. Defaults to CrossEntropyLoss.",
 )
 
@@ -231,7 +231,8 @@ checkpoints_path.mkdir(exist_ok=True)
 logger.debug(f'Checkpoints directory set to {checkpoints_path}.')
 
 model_type = models.get_model_type(model_name)
-
+# todo: profile memory usage of the model when loading and running on datasets? Big memory usage spike at start?
+#  see logs (.3 and .7 for both EuroSATRGB and PatternNet datasets, ResNet50 and ConvNeXtSmall)
 training_dataset = dataset_processing.get_dataset_object(
     dataset_name, "train", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_augmentations=use_augmentations, use_resize=use_resize,
@@ -287,16 +288,16 @@ def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
-        patience=5, threshold=0.1  # todo: add these as args
+        patience=5, threshold=0.1  # todo: add these as script args
     )
     return opt, sch
 
 
 def train_model(
-        lr_to_use: float,
+        train_lr: float,
         is_frozen_model: bool = False,
-        max_epochs: int = 50,
-        scheduler_reduction_steps: int = 4,
+        train_max_epochs: int = 50,
+        scheduler_reduction_steps: int = 4,  # todo: add as script arg
         early_stop_threshold: float = 0.0001
 ):
     weights_save_path = checkpoints_path / training_dataset.__class__.__name__ / model.__class__.__name__
@@ -307,8 +308,8 @@ def train_model(
     weights_save_path.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Output path set to {weights_save_path.resolve()}.")
 
-    optimiser, scheduler = get_opt_and_scheduler(lr_to_use, scheduler_reduction_steps)
-    logger.debug(f"Initialised optimiser (lr={lr_to_use}) and scheduler.")
+    optimiser, scheduler = get_opt_and_scheduler(train_lr, scheduler_reduction_steps)
+    logger.debug(f"Initialised optimiser (lr={train_lr}) and scheduler.")
 
     if not do_not_track:
         name_str = f"{dataset_name}_{model_name}{'_frozen' if is_frozen_model else ''}"
@@ -349,8 +350,8 @@ def train_model(
     else:
         wandb_run = None
 
-    with tqdm(total=max_epochs, unit="epoch", ncols=110) as prog_bar1:
-        for epoch in range(max_epochs):
+    with tqdm(total=train_max_epochs, unit="epoch", ncols=110) as prog_bar1:
+        for epoch in range(train_max_epochs):
             training_loss_arr = np.zeros(0)
             training_acc_arr = np.zeros(0)
 
@@ -464,7 +465,7 @@ if use_pretrained and frozen_lr and frozen_max_epochs and frozen_lr_early_stop_t
         model.unfreeze_input_layers(model.input_layers_to_train)
 
     try:
-        train_model(lr_to_use=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
+        train_model(train_lr=frozen_lr, is_frozen_model=True, train_max_epochs=frozen_max_epochs,
                     early_stop_threshold=frozen_lr_early_stop_threshold)
     except Exception as e:
         logger.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
@@ -480,7 +481,7 @@ logger.info("Training full (unfrozen) model...")
 model.unfreeze_all_layers()
 
 try:
-    train_model(lr_to_use=lr, is_frozen_model=False, max_epochs=max_epochs,
+    train_model(train_lr=lr, is_frozen_model=False, train_max_epochs=max_epochs,
                 early_stop_threshold=lr_early_stop_threshold)
 except Exception as e:
     logger.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
