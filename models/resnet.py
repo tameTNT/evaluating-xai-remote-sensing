@@ -40,7 +40,7 @@ class ResNet50(FreezableModel):
                      f"{'with' if self.pretrained else 'without'} pretrained weights")
 
         # modify model after loading pretrained weights
-        old_input_conv = self.model.conv1
+        old_input_conv: nn.Conv2d = self.model.conv1
         # if necessary, change the input convolution
         if n_input_bands != old_input_conv.in_channels:
             logger.debug(f"Changing input conv layer from {old_input_conv.in_channels} "

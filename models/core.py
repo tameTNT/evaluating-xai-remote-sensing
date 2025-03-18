@@ -1,3 +1,5 @@
+import typing as t
+
 import torch.nn as nn
 
 from helpers import log
@@ -17,6 +19,16 @@ class FreezableModel(nn.Module):
         assert n_input_bands > 0, "Number of input bands must be greater than 0."
         assert n_output_classes > 0, "Number of output classes must be greater than 0."
 
+    def yield_layers(self) -> t.Generator[nn.Module, None, None]:
+        """
+        Yields all layers of self.model sequentially. By default, this is the same as self.model.children().
+
+        Can be overridden if a model has a different structure (with lots of nested sequences for example).
+        So .children() would clump a bunch of layers together, which may not be desirable when iterating.
+        """
+        for child in self.model.children():
+            yield child
+
     def freeze_layers(self, keep: int):
         """
         Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
@@ -25,7 +37,7 @@ class FreezableModel(nn.Module):
         """
 
         n_frozen = 0
-        for dist_from_output, layer in enumerate(reversed(list(self.model.children()))):
+        for dist_from_output, layer in enumerate(reversed(list(self.yield_layers()))):
             # print(dist_from_output, layer)
             if dist_from_output >= keep:
                 for param in layer.parameters():
@@ -35,7 +47,7 @@ class FreezableModel(nn.Module):
 
         logger.info(f"Froze {n_frozen} layers of {self.__class__.__name__}")
 
-    def unfreeze_layers(self):
+    def unfreeze_all_layers(self):
         """
         Unfreeze all layers in the model.
         """
@@ -49,7 +61,7 @@ class FreezableModel(nn.Module):
         Unfreeze the first k input layers of the model.
         """
 
-        for layer_k, layer in enumerate(self.model.children()):
+        for layer_k, layer in enumerate(self.yield_layers()):
             if layer_k >= k:
                 break
             for param in layer.parameters():
@@ -68,7 +80,7 @@ class FreezableModel(nn.Module):
         """
         num_frozen = 0
         frozen_layers = []
-        for layer in self.model.children():
+        for layer in self.yield_layers():
             for param in layer.parameters():
                 if not param.requires_grad:
                     num_frozen += 1
@@ -79,6 +91,6 @@ class FreezableModel(nn.Module):
 
     def get_explanation_target_layers(self) -> list[nn.Module]:
         """
-        Returns the target layer that an Explainer object (e.g. GradCAM) should use.
+        Returns the target layer(s) that an Explainer object (e.g. GradCAM) should use.
         """
         raise NotImplementedError("get_explanation_target_layer() not implemented in base class.")
