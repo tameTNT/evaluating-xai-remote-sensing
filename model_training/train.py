@@ -18,64 +18,80 @@ import wandb
 SUPPORTED_OPTIMISERS = t.Literal["SGD", "Adam", "AdamW"]
 
 # Create argument parser
-parser = argparse.ArgumentParser(description="Train a model on a land use dataset.")
+parser = argparse.ArgumentParser(description="Train a deep learning model on a remote sensing dataset.")
 
-# General arguments
-parser.add_argument(
+script_meta_group = parser.add_argument_group("Meta",
+                                              "Arguments for script behaviour and reproducibility.")
+script_meta_group.add_argument(
     "--random_seed",
     type=int,
     default=42,
     help="Specify a random PyTorch seed for reproducibility. "
          "Note that this does not affect numpy randomness. Defaults to 42.",
 )
-parser.add_argument(
+script_meta_group.add_argument(
     "--checkpoints_root_name",
     type=Path,
     default="checkpoints",
     help="Specify the directory for checkpoints with the project. Defaults to checkpoints",
 )
-parser.add_argument(
+script_meta_group.add_argument(
     "--do_not_track",
     action="store_true",
     help="If present, do not track the run using WandB.",
 )
+script_meta_group.add_argument(
+    "--wandb_run_name",
+    type=str,
+    default="",
+    help="Name of the WandB run."
+         "If not given, the default of {dataset_name}_{model_name}{'_frozen' if is_frozen_model else ''} is used.",
+)
+script_meta_group.add_argument(
+    "--num_workers",
+    type=int,
+    default=4 if platform.system() != "Windows" else 0,
+    help="Number of workers to use for DataLoaders. Defaults to 4 on non-Windows systems.",
+)
 
-# Model arguments
-parser.add_argument(
+model_group = parser.add_argument_group("Model",
+                                        "Arguments specifying the model and any weights to use.")
+model_group.add_argument(
     "--model_name",
     type=str,
     required=True,
     choices=t.get_args(models.MODEL_NAMES),
     help="Name of the model to train.",
 )
-parser.add_argument(
+model_group.add_argument(
     "--use_pretrained",
     action="store_true",
     help="If given, load the model's pretrained weights.",
 )
-parser.add_argument(
+model_group.add_argument(
     "--start_from",
     type=Path,
     default="",
-    help="If given, load a previously saved checkpoint and begin training. "
+    help="If a path to a file is given, load a previously saved weights and start training. "
          "Best used to continue training from a previous run.",
 )
 
-# Dataset arguments
-parser.add_argument(
+dataset_group = parser.add_argument_group("Dataset",
+                                          "Arguments describing the dataset to use and any pre-training processing.")
+dataset_group.add_argument(
     "--dataset_name",
     type=str,
     required=True,
     choices=t.get_args(dataset_processing.DATASET_NAMES),
     help="Name of the dataset to train on.",
 )
-parser.add_argument(
+dataset_group.add_argument(
     "--download",
     action="store_true",
     help="If given, download the dataset if it is not already present. "
          "Otherwise, script will fail if the dataset is not already downloaded.",
 )
-parser.add_argument(
+dataset_group.add_argument(
     "--normalisation_type",
     type=str,
     default="none",
@@ -83,41 +99,37 @@ parser.add_argument(
     help="The type of normalisation to apply to all images in the dataset."
          "'scaling' uses min/max or percentile scaling. Note that 'mean_std' "
          "will initially calculate these values across the whole dataset the "
-         "first time it is used. 'none' applies no normalisation.",
+         "first time it is used. 'none' applies no normalisation. "
+         "Note that not all datasets support all types.",
 )
-parser.add_argument(
+dataset_group.add_argument(
     "--no_resize",
     action="store_true",
     help="If given, use the original images centred with padding. "
          "Otherwise, resize and interpolate the images to the model's expected input size.",
 )
-parser.add_argument(
+dataset_group.add_argument(
     "--no_augmentations",
     action="store_true",
     help="If given, apply no random augmentations to training set images. ",
 )
-parser.add_argument(
+dataset_group.add_argument(
     "--batch_size",
     type=int,
     required=True,
     help="Batch size to use for DataLoaders.",
 )
-parser.add_argument(
-    "--num_workers",
-    type=int,
-    default=4 if platform.system() != "Windows" else 0,
-    help="Number of workers to use for DataLoaders. Defaults to 4 on non-Windows systems.",
-)
 
-# Optimiser and loss criterion arguments
-parser.add_argument(
+training_group = parser.add_argument_group("Training",
+                                           "Arguments to specify general training options.")
+training_group.add_argument(
     "--optimiser_name",
     type=str,
     default="SGD",
     choices=t.get_args(SUPPORTED_OPTIMISERS),
     help="Name of the optimiser to use. Defaults to SGD.",
 )
-parser.add_argument(
+training_group.add_argument(
     "--loss_criterion_name",
     type=str,
     default="CrossEntropyLoss",
@@ -125,44 +137,44 @@ parser.add_argument(
     help="Loss criterion to use. Defaults to CrossEntropyLoss.",
 )
 
-# Frozen model training arguments
-parser.add_argument(
+frozen_args_group = parser.add_argument_group("Frozen model training arguments",
+                                              "These arguments are only required if --use_pretrained is given "
+                                              "and the model is initially (partially) frozen/being fine-tuned.")
+frozen_args_group.add_argument(
     "--frozen_lr",
     type=float,
-    default=1e-2,
-    help="(If using a pretrained model) Learning rate to use for training the partially frozen model.",
+    help="Learning rate to use for training the partially frozen model.",
 )
-parser.add_argument(
+frozen_args_group.add_argument(
     "--frozen_max_epochs",
     type=int,
-    default=20,
-    help="(If using a pretrained model) Maximum number of epochs to train the partially frozen model.",
+    help="Maximum number of epochs to train the partially frozen model.",
 )
-parser.add_argument(
+frozen_args_group.add_argument(
     "--frozen_lr_early_stop_threshold",
     type=float,
-    default=1e-4,
-    help="(If using a pretrained model) Learning rate threshold for early stopping when training frozen model.",
+    help="Learning rate threshold for early stopping when training the partially frozen model.",
 )
 
-# Full model training arguments
-parser.add_argument(
-    "--full_lr",
+full_args_group = parser.add_argument_group("Full model training arguments",
+                                            "These arguments are always required to train any model.")
+full_args_group.add_argument(
+    "--lr",
     type=float,
     required=True,
     help="Learning rate to use for training the full model.",
 )
-parser.add_argument(
-    "--full_max_epochs",
+full_args_group.add_argument(
+    "--max_epochs",
     type=int,
     required=True,
     help="Maximum number of epochs to train the full model.",
 )
-parser.add_argument(
+full_args_group.add_argument(
     "--lr_early_stop_threshold",
     type=float,
     required=True,
-    help="Learning rate threshold for early stopping when training full model.",
+    help="Learning rate threshold for early stopping when training the full model.",
 )
 
 # Parse arguments
@@ -172,6 +184,8 @@ print("Got args:", args, "\n")
 random_seed: int = args.random_seed
 checkpoints_root_name: Path = args.checkpoints_root_name
 do_not_track: bool = args.do_not_track
+wandb_run_name: str = args.wandb_run_name
+num_workers: int = args.num_workers
 
 model_name: models.MODEL_NAMES = args.model_name
 use_pretrained: bool = args.use_pretrained
@@ -183,7 +197,6 @@ normalisation_type: str = args.normalisation_type
 use_resize: bool = not args.no_resize
 use_augmentations: bool = not args.no_augmentations
 batch_size: int = args.batch_size
-num_workers: int = args.num_workers
 
 optimiser_name: SUPPORTED_OPTIMISERS = args.optimiser_name
 loss_criterion: nn.Module = getattr(nn, args.loss_criterion_name)()
@@ -192,9 +205,9 @@ frozen_lr: float = args.frozen_lr
 frozen_lr_early_stop_threshold: float = args.frozen_lr_early_stop_threshold
 frozen_max_epochs: int = args.frozen_max_epochs
 
-full_lr: float = args.full_lr
+lr: float = args.lr
 lr_early_stop_threshold: float = args.lr_early_stop_threshold
-full_max_epochs: int = args.full_max_epochs
+max_epochs: int = args.max_epochs
 
 
 # Actual script starts here
@@ -257,7 +270,7 @@ validation_iterator = iter(dataset_processing.core.cycle(validation_dataloader))
 sampling_iterator = iter(dataset_processing.core.cycle(sampling_dataloader))
 
 
-def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
+def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
     opt_kwargs = {}
     if optimiser_name == "SGD":
         opt_kwargs = {
@@ -268,7 +281,7 @@ def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
             "weight_decay": 1e-2, "betas": (0.9, 0.999), "eps": 1e-8,
         }
     opt: torch.optim.Optimizer = getattr(torch.optim, optimiser_name)(
-        filter(lambda p: p.requires_grad, model.parameters()), lr=lr, **opt_kwargs
+        filter(lambda p: p.requires_grad, model.parameters()), lr=opt_lr, **opt_kwargs
     )
 
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -280,7 +293,7 @@ def get_opt_and_scheduler(lr: float, reduction_steps: int = 4):
 
 
 def train_model(
-        lr: float,
+        lr_to_use: float,
         is_frozen_model: bool = False,
         max_epochs: int = 50,
         scheduler_reduction_steps: int = 4,
@@ -294,14 +307,15 @@ def train_model(
     weights_save_path.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Output path set to {weights_save_path.resolve()}.")
 
-    optimiser, scheduler = get_opt_and_scheduler(lr, scheduler_reduction_steps)
-    logger.debug(f"Initialised optimiser (lr={lr}) and scheduler.")
+    optimiser, scheduler = get_opt_and_scheduler(lr_to_use, scheduler_reduction_steps)
+    logger.debug(f"Initialised optimiser (lr={lr_to_use}) and scheduler.")
 
     if not do_not_track:
+        name_str = f"{dataset_name}_{model_name}{'_frozen' if is_frozen_model else ''}"
         wandb_run = wandb.init(
             save_code=True,
             project="evaluating_xAI_for_RS",
-            name=f"{dataset_name}_{model_name}{'_frozen' if is_frozen_model else ''}",
+            name=wandb_run_name if wandb_run_name != "" else name_str,
             tags=[dataset_name, model_name, "frozen" if is_frozen_model else "full"],
             config={
                 "dataset": dataset_name,
@@ -443,24 +457,30 @@ if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
         loggable_error = str(error).replace("\n", " ")
         logger.warning(f"Could not load weights from {start_from} via safetensors.load_model: {loggable_error}")
 
-if use_pretrained:
+if use_pretrained and frozen_lr and frozen_max_epochs and frozen_lr_early_stop_threshold:
     logger.info("Training partially frozen pretrained model...")
     model.freeze_layers(1)  # freeze all but the last linear layer
     if model.modified_input_layer:  # unfreeze the input layer if we need to train it too
         model.unfreeze_input_layers(model.input_layers_to_train)
 
     try:
-        train_model(lr=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
+        train_model(lr_to_use=frozen_lr, is_frozen_model=True, max_epochs=frozen_max_epochs,
                     early_stop_threshold=frozen_lr_early_stop_threshold)
     except Exception as e:
         logger.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
         raise e
+elif use_pretrained:
+    logger.warning("--use_pretrained was given but no frozen training parameters were provided. "
+                   "The model will not be fine-tuned while partially frozen and only fully.")
+elif frozen_lr or frozen_max_epochs or frozen_lr_early_stop_threshold:
+    logger.warning("--frozen_lr, --frozen_max_epochs and/or --frozen_lr_early_stop_threshold were given but "
+                   "--use_pretrained was not. Ignoring these arguments.")
 
 logger.info("Training full (unfrozen) model...")
 model.unfreeze_all_layers()
 
 try:
-    train_model(lr=full_lr, is_frozen_model=False, max_epochs=full_max_epochs,
+    train_model(lr_to_use=lr, is_frozen_model=False, max_epochs=max_epochs,
                 early_stop_threshold=lr_early_stop_threshold)
 except Exception as e:
     logger.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
