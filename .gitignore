@@ -13,3 +13,5 @@
 */*__pycache__/
 *pycharm-support-libs/
 .ipynb_checkpoints/
+
+/slurm_ncc/train_model_temp.batch

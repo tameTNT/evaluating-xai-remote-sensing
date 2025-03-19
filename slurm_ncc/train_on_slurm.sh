@@ -8,17 +8,17 @@ printf '%s\n' "#!/bin/bash" \
        "#SBATCH -p ug-gpu-small" \
        '#SBATCH --qos="short"' \
        "#SBATCH --mem=28G" \
-       "#SBATCH -t 00-05:00:00" \
+       "#SBATCH -t 00-08:00:00" \
        "#SBATCH --gres=gpu:1g.10gb:1" \
        "#SBATCH --mail-user=jgcw74@durham.ac.uk" \
        "#SBATCH --mail-type=BEGIN" \
        "#SBATCH --job-name=$1" \
-       "#SBATCH -o '~/l3_project/.logs/$1.log'" \
+       "#SBATCH -o /home2/jgcw74/l3_project/.logs/$1.log" \
        "##Activate conda and environment" \
        "eval $(conda shell.bash hook)" \
        "conda activate sat_project" \
        "cd ~/l3_project" \
        "export DATASET_ROOT=~/datasets" \
-       "bash run_train.sh $2 --wandb_run_name $1 ${@:3}" > ~/l3_project/slurm_ncc/train_model_temp.batch
+       "$(printf '%s ' "bash run_train.sh $2 --wandb_run_name $1 ${@:3}")" > ~/l3_project/slurm_ncc/train_model_temp.batch
 
 sbatch ~/l3_project/slurm_ncc/train_model_temp.batch
