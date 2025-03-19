@@ -33,9 +33,11 @@ def train_step(
     model_to_train.train()
     model_device = utils.get_model_device(model_to_train)
 
+    # use set_to_none=True to save some memory
+    # see caveats at https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
+    model_optimiser.zero_grad(set_to_none=True)
     loss, accuracy = make_preds(model_to_train, input_img.to(model_device), targets.to(model_device), train_criterion)
 
-    model_optimiser.zero_grad()
     loss.backward()
     model_optimiser.step()
 

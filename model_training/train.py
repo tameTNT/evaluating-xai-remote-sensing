@@ -8,6 +8,7 @@ import numpy as np
 import safetensors.torch as st
 import torch
 import torch.nn as nn
+# from torch.utils.viz._cycles import warn_tensor_cycles
 from tqdm.autonotebook import tqdm
 
 import dataset_processing
@@ -58,7 +59,7 @@ script_meta_group.add_argument(
     action="store_true",
     help="Whether to record CUDA memory usage using torch.cuda.memory._record_memory_history()."
          "If the program crashes due to an OutOfMemoryError, "
-         "the memory snapshot is dumped to cuda_memory_dump.pickle."
+         "the memory snapshot is dumped to COM_dump.pickle."
 )
 
 model_group = parser.add_argument_group("Model",
@@ -232,7 +233,7 @@ torch_device = helpers.utils.get_torch_device()
 
 if record_cuda_memory:
     logger.info("record_cuda_memory is enabled. CUDA memory usage will be recorded and dumped "
-                "to cuda_memory_dump.pickle in the event of an OutOfMemoryError.")
+                "to COM_dump.pickle in the event of an OutOfMemoryError.")
     torch.cuda.memory._record_memory_history()
 
 np_rng = np.random.default_rng(random_seed)
@@ -269,15 +270,15 @@ model = model_type(
 multiprocessing_context = None
 training_dataloader = torch.utils.data.DataLoader(
     training_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True,
-    multiprocessing_context=multiprocessing_context
+    multiprocessing_context=multiprocessing_context, pin_memory=True,
 )
 validation_dataloader = torch.utils.data.DataLoader(
     validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, drop_last=False,
-    multiprocessing_context=multiprocessing_context
+    multiprocessing_context=multiprocessing_context, pin_memory=True,
 )
 sampling_dataloader = torch.utils.data.DataLoader(
     validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, drop_last=True,
-    multiprocessing_context=multiprocessing_context
+    multiprocessing_context=multiprocessing_context, pin_memory=True,
 )
 
 validation_iterator = iter(dataset_processing.core.cycle(validation_dataloader))
@@ -364,6 +365,7 @@ def train_model(
     else:
         wandb_run = None
 
+    # warn_tensor_cycles()
     with tqdm(total=train_max_epochs, unit="epoch", ncols=110) as prog_bar1:
         for epoch in range(train_max_epochs):
             training_loss_arr = np.zeros(0)
@@ -383,6 +385,14 @@ def train_model(
                     training_acc_arr = np.append(training_acc_arr, acc)
 
                     prog_bar2.update()
+
+                    if i == 2 and record_cuda_memory:
+                        logger.debug("Dumping CUDA memory usage to first_3_iterations.pickle.")
+                        torch.cuda.memory._dump_snapshot("memory_dumps/first_3_iterations.pickle")
+                        torch.cuda.memory._record_memory_history(enabled=None)
+                    if i == len(training_dataloader) - 2 and record_cuda_memory:
+                        logger.debug("Re-enabling CUDA memory recording 1 iteration before validation.")
+                        torch.cuda.memory._record_memory_history()
 
                     if i > 0 and i % (len(training_dataloader) // 5) == 0:
                         training_mean_loss = training_loss_arr.mean()
@@ -454,6 +464,10 @@ def train_model(
                     f"(loss plateaued at {val_mean_loss} after lr reductions).")
                 break
 
+            if record_cuda_memory:
+                logger.debug("Dumping CUDA memory usage to epoch_end.pickle.")
+                torch.cuda.memory._dump_snapshot("memory_dumps/epoch_end.pickle")
+
     model_save_path = weights_save_path / f"{wandb_run.id}_final_{val_mean_acc:.3f}.st"
     st.save_model(model, model_save_path)
     logger.info(f"Saved final model to {model_save_path}.")
@@ -468,11 +482,11 @@ def cuda_memory_dump(exception: Exception, is_frozen: bool):
     logger.exception(
         f"An OutOfMemoryError occurred during model{'(frozen)' if is_frozen else ''} training. "
         f"record_cuda_memory={record_cuda_memory} so "
-        f"{'a dump was written to cuda_memory_dump.pickle' if record_cuda_memory else 'no dump was written.'}",
+        f"{'a dump was written to COM_dump.pickle' if record_cuda_memory else 'no dump was written.'}",
         exc_info=exception, stack_info=True
     )
     if record_cuda_memory:
-        torch.cuda.memory._dump_snapshot("cuda_memory_dump.pickle")
+        torch.cuda.memory._dump_snapshot("memory_dumps/COM_dump.pickle")
 
     raise exception
 
