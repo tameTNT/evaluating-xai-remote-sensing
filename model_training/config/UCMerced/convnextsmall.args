@@ -1,0 +1,1 @@
+--model_name ConvNeXtSmall --use_pretrained --dataset_name UCMerced --batch_size 48 --optimiser_name AdamW --frozen_lr 1e-2 --frozen_max_epochs 20 --frozen_lr_early_stop_threshold 1e-4 --lr 1e-3 --max_epochs 50 --lr_early_stop_threshold 1e-4
