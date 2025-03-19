@@ -53,6 +53,13 @@ script_meta_group.add_argument(
     default=4 if platform.system() != "Windows" else 0,
     help="Number of workers to use for DataLoaders. Defaults to 4 on non-Windows systems.",
 )
+script_meta_group.add_argument(
+    "--record_cuda_memory",
+    action="store_true",
+    help="Whether to record CUDA memory usage using torch.cuda.memory._record_memory_history()."
+         "If the program crashes due to an OutOfMemoryError, "
+         "the memory snapshot is dumped to cuda_memory_dump.pickle."
+)
 
 model_group = parser.add_argument_group("Model",
                                         "Arguments specifying the model and any weights to use.")
@@ -186,6 +193,7 @@ checkpoints_root_name: Path = args.checkpoints_root_name
 do_not_track: bool = args.do_not_track
 wandb_run_name: str = args.wandb_run_name
 num_workers: int = args.num_workers
+record_cuda_memory: bool = args.record_cuda_memory
 
 model_name: models.MODEL_NAMES = args.model_name
 use_pretrained: bool = args.use_pretrained
@@ -211,16 +219,21 @@ max_epochs: int = args.max_epochs
 
 
 # Actual script starts here
-logger = helpers.log.get_logger("main")
+logger = helpers.log.get_logger("main")  # todo: support different logger name across modules
 # noinspection PyUnresolvedReferences
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
-logger.debug("Successfully imported packages.")
+logger.debug(f"Running script with args: {args}")
 
 if platform.system() == "Windows":
     num_workers = 0
     logger.warning("num_workers != 0 is not supported on Windows. Setting num_workers=0.")
 
 torch_device = helpers.utils.get_torch_device()
+
+if record_cuda_memory:
+    logger.info("record_cuda_memory is enabled. CUDA memory usage will be recorded and dumped "
+                "to cuda_memory_dump.pickle in the event of an OutOfMemoryError.")
+    torch.cuda.memory._record_memory_history()
 
 np_rng = np.random.default_rng(random_seed)
 _ = torch.manual_seed(random_seed)
@@ -319,6 +332,7 @@ def train_model(
             name=wandb_run_name if wandb_run_name != "" else name_str,
             tags=[dataset_name, model_name, "frozen" if is_frozen_model else "full"],
             config={
+                "full_cli_args": repr(args),
                 "dataset": dataset_name,
                 "transform_options": {
                     "normalisation_type": normalisation_type,
@@ -450,6 +464,19 @@ def train_model(
         logger.info(f"Finished wandb run, id={wandb_run.id}.")
 
 
+def cuda_memory_dump(exception: Exception, is_frozen: bool):
+    logger.exception(
+        f"An OutOfMemoryError occurred during model{'(frozen)' if is_frozen else ''} training. "
+        f"record_cuda_memory={record_cuda_memory} so "
+        f"{'a dump was written to cuda_memory_dump.pickle' if record_cuda_memory else 'no dump was written.'}",
+        exc_info=exception, stack_info=True
+    )
+    if record_cuda_memory:
+        torch.cuda.memory._dump_snapshot("cuda_memory_dump.pickle")
+
+    raise exception
+
+
 if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
     logger.info(f"Loading weights from {start_from}...")
     try:
@@ -467,9 +494,12 @@ if use_pretrained and frozen_lr and frozen_max_epochs and frozen_lr_early_stop_t
     try:
         train_model(train_lr=frozen_lr, is_frozen_model=True, train_max_epochs=frozen_max_epochs,
                     early_stop_threshold=frozen_lr_early_stop_threshold)
+    except torch.OutOfMemoryError as e:
+        cuda_memory_dump(e, True)
     except Exception as e:
         logger.exception("An exception occurred during model(frozen) training.", exc_info=e, stack_info=True)
         raise e
+
 elif use_pretrained:
     logger.warning("--use_pretrained was given but no frozen training parameters were provided. "
                    "The model will not be fine-tuned while partially frozen and only fully.")
@@ -483,6 +513,8 @@ model.unfreeze_all_layers()
 try:
     train_model(train_lr=lr, is_frozen_model=False, train_max_epochs=max_epochs,
                 early_stop_threshold=lr_early_stop_threshold)
+except torch.OutOfMemoryError as e:
+    cuda_memory_dump(e, False)
 except Exception as e:
     logger.exception("An exception occurred during model training.", exc_info=e, stack_info=True)
     raise e
