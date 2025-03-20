@@ -34,7 +34,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             self.bands = self.rgb_bands  # ("B04", "B03", "B02")
         elif self.variant == "ms":
             # bands = self.all_band_names
-            self.bands = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B08A", "B12")
+            self.bands = ("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B12")
 
             # bands 1, 9, 10 only for atmospheric correction? (https://doi.org/10.1109/IGARSS47720.2021.9553337)
             # bands 1, 9, 10, 11 not used:
