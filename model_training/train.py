@@ -1,4 +1,5 @@
 import argparse
+import json
 import platform
 import time
 from pathlib import Path
@@ -187,7 +188,7 @@ full_args_group.add_argument(
 )
 
 # Parse arguments
-args = parser.parse_args()
+args: argparse.Namespace = parser.parse_args()
 print("Got args:", args, "\n")
 
 random_seed: int = args.random_seed
@@ -228,6 +229,7 @@ logger.debug(f"Running script with args: {args}")
 
 
 # Adapted from https://stackoverflow.com/a/31464349/7253717
+# Handle SIGINT and SIGTERM signals to allow for graceful shutdown of script
 class GracefulKiller:
     please_kill = False
 
@@ -381,7 +383,14 @@ def train_model(
         )
         logger.info(f"Initialised wandb run, id={wandb_run.id}.")
     else:
-        wandb_run = None
+        class DummyRun:
+            def __init__(self, id_: str):
+                self.id = id_
+
+            def __bool__(self):
+                return False  # this is a fake run
+
+        wandb_run = DummyRun(f"untracked_{int(time.time())}")
 
     # warn_tensor_cycles()
     val_mean_acc = 0.0
@@ -440,15 +449,25 @@ def train_model(
             val_mean_loss, val_mean_acc = helpers.ml.validation_step(
                 model, loss_criterion, validation_iterator, len(validation_dataloader)
             )
+
             previous_lr = scheduler.get_last_lr()[0]
             scheduler.step(val_mean_loss)
             current_lr = scheduler.get_last_lr()[0]
-
             if previous_lr != current_lr:
                 logger.info(f"Learning rate updated via scheduler to {previous_lr}->{current_lr}.")
 
             prog_bar1.update()
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
+
+            # Save model to file as we go along (overwritten every epoch - just as a backup to resume training)
+            model_save_path = weights_save_path / f"{wandb_run.id}_current.st"
+            st.save_model(model, model_save_path)
+            # noinspection PyTypeChecker
+            json.dump(
+                {"epoch": epoch, "lr": current_lr, "args": vars(args)},
+                model_save_path.with_suffix(".json").open("w")
+            )
+            logger.debug(f"Saved current model and state at epoch {epoch} to {model_save_path}.")
 
             if wandb_run:
                 logger.info("Sampling incorrect predictions for logging to WandB...")
@@ -479,10 +498,10 @@ def train_model(
                     "samples/incorrect": samples_table,
                 })
 
-                if epoch != 0 and epoch % 10 == 0:
-                    model_save_path = weights_save_path / f"{wandb_run.id}_epoch{epoch:03}.st"
-                    st.save_model(model, model_save_path)
-                    logger.info(f"Saved model at epoch {epoch} to {model_save_path}.")
+            if epoch != 0 and epoch % 10 == 0:
+                model_save_path = weights_save_path / f"{wandb_run.id}_epoch{epoch:03}.st"
+                st.save_model(model, model_save_path)
+                logger.info(f"Saved model at epoch {epoch} to {model_save_path}.")
 
             if current_lr < early_stop_threshold:
                 logger.info(
