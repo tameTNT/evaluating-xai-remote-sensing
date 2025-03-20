@@ -188,9 +188,23 @@ class RSDatasetMixin:
             else:
                 raise ValueError("Dataset doesn't contain some of the RGB bands")
 
-        images = np.take(sample.numpy(), indices=rgb_indices, axis=1)
+        images: np.ndarray = np.take(sample.numpy(), indices=rgb_indices, axis=1)
+
         # normalised images are in the range [-1, 1] originally
-        images: np.ndarray = (images + 1) / 2
+        if self.mean.nonzero().numel() > 0:  # either via explicit mean/std
+            # was originally normalised via imges = (images - mean) / std
+            mean = self.mean.cpu()[rgb_indices]
+            std = self.std.cpu()[rgb_indices]
+            # turn to range [0, max]
+            b, c, h, w = images.shape
+            assert c == 3, f"Expected 3 channels only when inverting for display, got {c} instead."
+            images: torch.Tensor = torch.from_numpy(images) * std + mean
+            images: torch.Tensor = images.reshape(b, 3, -1)  # flatten for normalisation per channel
+            images /= images.quantile(0.98, dim=-1, keepdim=True)  # scale to ~[0, 1]
+            images = images.reshape(b, 3, h, w).clip(0, 1).cpu().numpy()
+        else:  # or via naive assumption of initial [0, 1] images
+            images: np.ndarray = (images + 1) / 2  # de-normalise to [0, 1]
+
         return images.clip(0, 1).transpose(0, 2, 3, 1)  # convert to channels last format
 
     def get_mean_std(self) -> tuple[Tensor, Tensor]:
