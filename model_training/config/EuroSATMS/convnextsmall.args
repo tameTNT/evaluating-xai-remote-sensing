@@ -1,0 +1,1 @@
+--model_name ConvNeXtSmall --dataset_name EuroSATMS --normalisation_type mean_std --batch_size 48 --optimiser_name AdamW --lr 1e-4 --max_epochs 50 --lr_early_stop_threshold 1e-5
