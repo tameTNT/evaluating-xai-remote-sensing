@@ -7,7 +7,7 @@ from jaxtyping import Float, Int
 
 from helpers import log  # direct import to avoid circular import
 
-logger = log.get_logger("main")
+logger = log.main_logger
 
 
 def get_torch_device() -> torch.device:

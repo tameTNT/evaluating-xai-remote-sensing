@@ -222,7 +222,7 @@ max_epochs: int = args.max_epochs
 
 
 # Actual script starts here
-logger = helpers.log.get_logger("main")  # todo: support different logger name across modules
+logger = helpers.log.main_logger
 # noinspection PyUnresolvedReferences
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
 logger.debug(f"Running script with args: {args}")

@@ -15,7 +15,7 @@ from torchvision.utils import _log_api_usage_once
 import helpers.log
 from models.core import FreezableModel
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class ResNet50(FreezableModel):

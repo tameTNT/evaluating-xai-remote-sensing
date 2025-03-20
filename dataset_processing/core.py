@@ -10,7 +10,7 @@ from jaxtyping import Float
 
 import helpers
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 torch_device = helpers.utils.get_torch_device()
 
 

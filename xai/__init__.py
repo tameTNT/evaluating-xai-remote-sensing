@@ -9,7 +9,7 @@ from jaxtyping import Int, Float
 import helpers
 from models.core import FreezableModel
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 BASE_OUTPUT_PATH = helpers.env_var.get_xai_output_root()
 logger.debug(f"Explanation default loading/output path set to {BASE_OUTPUT_PATH}.")

@@ -8,7 +8,7 @@ import dataset_processing.core
 import helpers
 
 DATASET_ROOT = helpers.env_var.get_dataset_root()
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):

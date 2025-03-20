@@ -6,7 +6,7 @@ from helpers import log
 from . import core
 from . import eurosat, ucmerced, reBEN, patternnet
 
-logger = log.get_logger("main")
+logger = log.main_logger
 
 DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "reBEN", "PatternNet"]
 

@@ -9,7 +9,7 @@ import helpers
 from . import Co12Metric
 from . import deletion
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class OutputCompleteness(Co12Metric):

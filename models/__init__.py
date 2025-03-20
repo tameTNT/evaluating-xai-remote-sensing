@@ -5,7 +5,7 @@ from . import core
 from . import resnet
 from . import convnext
 
-logger = log.get_logger("main")
+logger = log.main_logger
 
 # fixme: add Swin Transformer, ResNet101
 MODEL_NAMES = t.Literal["ResNet50", "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase"]

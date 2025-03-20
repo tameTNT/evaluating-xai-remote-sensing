@@ -8,7 +8,7 @@ import einops
 import helpers
 from . import Co12Metric, Similarity
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class Continuity(Co12Metric):

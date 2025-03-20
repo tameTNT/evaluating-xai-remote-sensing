@@ -10,7 +10,7 @@ from torchvision.ops import Conv2dNormActivation
 from models.core import FreezableModel
 import helpers
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class ConvNeXtTemplate(FreezableModel):

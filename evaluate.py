@@ -32,7 +32,7 @@ num_workers = 4
 
 explainer_name = "KPCACAM"  # or "PartitionSHAP"
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 torch_device = helpers.utils.get_torch_device()
 torch.manual_seed(random_seed)

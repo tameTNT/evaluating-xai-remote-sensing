@@ -7,7 +7,7 @@ from jaxtyping import Float
 import helpers
 from . import Co12Metric
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class Compactness(Co12Metric):

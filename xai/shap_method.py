@@ -8,7 +8,7 @@ from jaxtyping import Float
 from helpers import log
 from xai import Explainer
 
-logger = log.get_logger("main")
+logger = log.main_logger
 
 
 class PartitionSHAP(Explainer):

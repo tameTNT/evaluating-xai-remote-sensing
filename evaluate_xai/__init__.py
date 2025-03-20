@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import helpers
 from xai import Explainer
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class Similarity:

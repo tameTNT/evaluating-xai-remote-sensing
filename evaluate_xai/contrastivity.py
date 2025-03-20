@@ -9,7 +9,7 @@ import numpy as np
 import helpers
 from . import Co12Metric, Similarity
 
-logger = helpers.log.get_logger("main")
+logger = helpers.log.main_logger
 
 
 class Contrastivity(Co12Metric):

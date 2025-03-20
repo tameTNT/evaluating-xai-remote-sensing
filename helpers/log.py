@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import os
 
 import helpers.env_var
 
@@ -10,9 +11,9 @@ LOG_DIR.mkdir(parents=False, exist_ok=True)
 
 def get_logger(name: str) -> logging.Logger:
     # Basic setup mirrors https://docs.python.org/3/howto/logging-cookbook.html#using-logging-in-multiple-modules
-    logger = logging.getLogger(name)
-    if not logger.handlers:  # avoid adding handlers multiple times
-        logger.setLevel(logging.DEBUG)
+    active_logger = logging.getLogger(name)
+    if not active_logger.handlers:  # avoid adding handlers multiple times
+        active_logger.setLevel(logging.DEBUG)
 
         # create file handler which logs debug messages (and creates a new file for each run of the program)
         log_path = LOG_DIR / f"{name}.log"
@@ -34,12 +35,16 @@ def get_logger(name: str) -> logging.Logger:
         ch.setFormatter(formatter)
 
         # add the handlers to the logger
-        logger.addHandler(fh)
-        logger.addHandler(ch)
+        active_logger.addHandler(fh)
+        active_logger.addHandler(ch)
 
-        logger.debug(f"New logger successfully initialised at {fh.baseFilename}")
+        active_logger.debug(f"New logger successfully initialised at {fh.baseFilename}")
     else:
         # noinspection PyUnresolvedReferences
-        logger.debug(f"Logger successfully returned from {logger.handlers[0].baseFilename}")
+        active_logger.debug(f"Logger successfully returned from {active_logger.handlers[0].baseFilename}")
 
-    return logger
+    return active_logger
+
+
+# exported for modules to import and use
+main_logger = get_logger(f"main_{os.getpid()}")
