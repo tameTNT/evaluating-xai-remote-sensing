@@ -3,6 +3,7 @@ import platform
 import time
 from pathlib import Path
 import typing as t
+import signal
 
 import numpy as np
 import safetensors.torch as st
@@ -225,6 +226,23 @@ logger = helpers.log.get_logger("main")  # todo: support different logger name a
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
 logger.debug(f"Running script with args: {args}")
 
+
+# Adapted from https://stackoverflow.com/a/31464349/7253717
+class GracefulKiller:
+    please_kill = False
+
+    def __init__(self):
+        # SLURM will send a signal to the script to kill it
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, signum, frame):
+        self.please_kill = True
+
+
+killer = GracefulKiller()
+
+
 if platform.system() == "Windows":
     num_workers = 0
     logger.warning("num_workers != 0 is not supported on Windows. Setting num_workers=0.")
@@ -366,6 +384,7 @@ def train_model(
         wandb_run = None
 
     # warn_tensor_cycles()
+    val_mean_acc = 0.0
     with tqdm(total=train_max_epochs, unit="epoch", ncols=110) as prog_bar1:
         for epoch in range(train_max_epochs):
             training_loss_arr = np.zeros(0)
@@ -375,6 +394,13 @@ def train_model(
             with tqdm(total=len(training_dataloader), desc="Training",
                       unit="batch", ncols=110, leave=False) as prog_bar2:
                 for i, data in enumerate(training_dataloader):  # type: int, dict[str, torch.Tensor]
+                    if killer.please_kill:
+                        model_save_path = weights_save_path / (f"{wandb_run.id}_"
+                                                               f"killed_at_{epoch:03}_{val_mean_acc:.3f}.st")
+                        logger.warning(f"Received kill signal. Saving model to {model_save_path} and exiting.")
+                        st.save_model(model, model_save_path)
+                        raise KeyboardInterrupt("Received kill signal (from SLURM).")
+
                     images: torch.Tensor = data["image"]
                     labels: torch.Tensor = data["label"]
 
