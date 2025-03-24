@@ -1,0 +1,3 @@
+--model_name SwinTransformerSmall --use_pretrained --dataset_name UCMerced --batch_size 32 --optimiser_name SGD --lr 2e-3 --max_epochs 15 --lr_early_stop_threshold 2e-5
+# Doubled learning rate due to doubled batch size
+# temp removed: --frozen_lr 2e-3 --frozen_max_epochs 15 --frozen_lr_early_stop_threshold 2e-5

@@ -1,0 +1,1 @@
+--model_name SwinTransformerSmall --dataset_name EuroSATMS --normalisation_type mean_std --batch_size 32 --optimiser_name SGD --lr 2e-3 --max_epochs 30 --lr_early_stop_threshold 2e-4
