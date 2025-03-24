@@ -7,7 +7,7 @@ import torch
 from jaxtyping import Int, Float
 
 import helpers
-from models.core import FreezableModel
+from models.core import Model
 
 logger = helpers.log.main_logger
 
@@ -29,7 +29,7 @@ def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, fl
 class Explainer:
     def __init__(
             self,
-            model: FreezableModel,
+            model: Model,
             extra_path: Path = Path(""),
             attempt_load: torch.Tensor = None,
     ):
@@ -37,7 +37,7 @@ class Explainer:
         Initialise an Explainer object. Can generate explanations using .explain()
         which can then be accessed via .explanation and .ranked_explanation.
 
-        :param model: The FreezableModel (subclass of torch.nn.Module) to explain.
+        :param model: The Model (subclass of torch.nn.Module) to explain.
         :param extra_path: An additional string to insert into the save path.
           Usually used to save explanations for different datasets.
           The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
@@ -151,7 +151,7 @@ class Explainer:
 
 def get_explainer_object(
         name: EXPLAINER_NAMES,
-        model: FreezableModel,
+        model: Model,
         extra_path: Path = Path(""),
         attempt_load: torch.Tensor = None,
 ) -> Explainer:

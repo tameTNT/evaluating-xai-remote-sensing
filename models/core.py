@@ -7,7 +7,7 @@ from helpers import log
 logger = log.main_logger
 
 
-class FreezableModel(nn.Module):
+class Model(nn.Module):
     modified_input_layer = False
 
     expected_input_dim: int

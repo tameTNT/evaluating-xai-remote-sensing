@@ -7,13 +7,14 @@ from torchvision.models import convnext_tiny, convnext_small, convnext_base
 from torchvision.models.convnext import LayerNorm2d
 from torchvision.ops import Conv2dNormActivation
 
-from models.core import FreezableModel
+from models.core import Model
 import helpers
 
 logger = helpers.log.main_logger
+AVAILABLE_SIZES = t.Literal["tiny", "small", "base"]
 
 
-class ConvNeXtTemplate(FreezableModel):
+class ConvNeXtTemplate(Model):
     expected_input_dim = 224
     input_layers_to_train = 1  # train just the Conv2dNormActivation layer at the top
 
@@ -23,7 +24,7 @@ class ConvNeXtTemplate(FreezableModel):
             n_input_bands: int,
             n_output_classes: int,
             *args,
-            size: t.Literal["tiny", "small", "base"] = "small",
+            size: AVAILABLE_SIZES = "small",
             **kwargs
     ):
         """
@@ -44,8 +45,7 @@ class ConvNeXtTemplate(FreezableModel):
             convnext_constructor = convnext_base
             weights = torchvision.models.ConvNeXt_Base_Weights
         else:
-            raise ValueError(f"size must be one of 'tiny', 'small', 'base', or 'base'; "
-                             f"not '{size}'.")
+            raise ValueError(f"size must be one of {t.get_args(AVAILABLE_SIZES)}; not '{size}'.")
 
         if self.pretrained:
             self.model = convnext_constructor(weights=weights.IMAGENET1K_V1)
@@ -75,8 +75,8 @@ class ConvNeXtTemplate(FreezableModel):
             self.modified_input_layer = True
 
         # update the output linear layer
-        logger.debug(f"Changing output linear layer from to {n_output_classes} output channels.")
         old_fc: nn.Linear = self.model.classifier[-1]
+        logger.debug(f"Changing output linear layer from {old_fc.out_features} to {n_output_classes} output channels.")
         self.model.classifier[-1] = nn.Linear(old_fc.in_features, n_output_classes)
 
         logger.info(f"Model {self.__class__.__name__} successfully initialised with {n_input_bands} input channels "

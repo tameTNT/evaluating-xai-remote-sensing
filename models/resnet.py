@@ -13,12 +13,12 @@ from torchvision.models._utils import _ovewrite_named_param, handle_legacy_inter
 from torchvision.utils import _log_api_usage_once
 
 import helpers.log
-from models.core import FreezableModel
+from models.core import Model
 
 logger = helpers.log.main_logger
 
 
-class ResNet50(FreezableModel):
+class ResNet50(Model):
     expected_input_dim = 224
     input_layers_to_train = 2  # we want to train layer 2 too (BatchNorm)
 
@@ -54,8 +54,9 @@ class ResNet50(FreezableModel):
             self.modified_input_layer = True
 
         # update the output linear layer
-        logger.debug(f"Changing output linear layer from to {n_output_classes} output channels.")
-        self.model.fc = nn.Linear(self.model.fc.in_features, n_output_classes)
+        old_fc: nn.Linear = self.model.fc
+        logger.debug(f"Changing output linear layer from {old_fc.out_features} to {n_output_classes} output channels.")
+        self.model.fc = nn.Linear(old_fc.in_features, n_output_classes)
 
         logger.info(f"Model {self.__class__.__name__} successfully initialised with {n_input_bands} input channels "
                     f"and {n_output_classes} output classes.")

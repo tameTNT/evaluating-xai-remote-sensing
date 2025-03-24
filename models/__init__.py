@@ -13,7 +13,7 @@ MODEL_NAMES = t.Literal["ResNet50", "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBa
 
 def get_model_type(
         name: MODEL_NAMES,
-) -> t.Type[core.FreezableModel]:
+) -> t.Type[core.Model]:
     """
     Get the model type corresponding to the given name.
     :param name: One of the model names in MODEL_NAMES.
