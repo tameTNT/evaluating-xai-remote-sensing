@@ -76,9 +76,10 @@ class SwinTransformerTemplate(Model):
                     f"and {n_output_classes} output classes.")
 
     def yield_layers(self) -> t.Generator[nn.Module, None, None]:
-        for part in (self.model.features, self.model.norm, self.model.avgpool, self.model.head):
-            for child in part.children():
-                yield child
+        for child in self.model.features.children():
+            yield child
+        yield self.model.norm
+        yield self.model.head
 
     def forward(self, x):
         return self.model(x)

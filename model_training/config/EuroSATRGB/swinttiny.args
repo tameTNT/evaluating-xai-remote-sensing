@@ -1,0 +1,2 @@
+--model_name SwinTransformerTiny --use_pretrained --dataset_name EuroSATRGB --normalisation_type scaling --batch_size 16 --optimiser_name SGD --frozen_lr 1e-3 --frozen_max_epochs 15 --frozen_lr_early_stop_threshold 1e-4 --lr 1e-3 --max_epochs 15 --lr_early_stop_threshold 1e-4 --do_not_track
+# Training parameters adapted from https://doi.org/10.1038/s41598-024-67186-4
