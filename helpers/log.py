@@ -17,10 +17,12 @@ def get_logger(name: str) -> logging.Logger:
 
         # create file handler which logs debug messages (and creates a new file for each run of the program)
         log_path = LOG_DIR / f"{name}.log"
-        fh = RotatingFileHandler(log_path, mode="a", backupCount=10)
-        fh.setLevel(logging.DEBUG)
-        if log_path.exists():
+        # File opening is deferred until first emit()/logging call by delay=True arg
+        fh = RotatingFileHandler(log_path, mode="a", delay=True, backupCount=5)
+        if log_path.is_file():  # check if file already exists (not written to yet by this process since delay=True)
             fh.doRollover()  # archive (add .1/.2/etc.) the old log file if it exists
+
+        fh.setLevel(logging.DEBUG)
 
         # create console handler with a higher log level
         ch = logging.StreamHandler()
