@@ -37,7 +37,7 @@ class ResNet50(Model):
             self.model = resnet50_new(weights=None)
 
         logger.debug(f"Model {self.__class__.__name__} initialised "
-                     f"{'with' if self.pretrained else 'without'} pretrained weights")
+                     f"{'with' if self.pretrained else 'without'} pretrained weights.")
 
         # modify model after loading pretrained weights
         old_input_conv: nn.Conv2d = self.model.conv1

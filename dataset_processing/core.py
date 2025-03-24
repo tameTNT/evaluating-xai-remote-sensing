@@ -284,15 +284,15 @@ class RSDatasetMixin:
 
         if scaling_transform is not None:
             transform_list.append(scaling_transform)
-            logger.debug(f"Using {scaling_transform} for {self.logging_name}")
+            logger.debug(f"Using {scaling_transform} for {self.logging_name}.")
 
         if normalisation is not None:
             transform_list.append(normalisation)
-            logger.debug(f"Using {normalisation} for {self.logging_name}")
+            logger.debug(f"Using {normalisation} for {self.logging_name}.")
 
         if augmentations is not None:
             transform_list += augmentations
-            logger.debug(f"Applying additional augmentations={augmentations} for {self.logging_name}")
+            logger.debug(f"Applying additional augmentations={augmentations} for {self.logging_name}.")
 
         # Resize to image size required by input layer of model
         if use_resize:  # rescale the image to the required size via interpolation

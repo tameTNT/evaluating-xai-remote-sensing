@@ -21,7 +21,8 @@ class Model(nn.Module):
 
     def yield_layers(self) -> t.Generator[nn.Module, None, None]:
         """
-        Yields all layers of self.model sequentially. By default, this is the same as self.model.children().
+        Yields all layers of self.model sequentially starting from the input layer.
+        By default, this is the same as looping through self.model.children() and yielding each child.
 
         Can be overridden if a model has a different structure (with lots of nested sequences for example).
         So .children() would clump a bunch of layers together, which may not be desirable when iterating.
@@ -37,15 +38,18 @@ class Model(nn.Module):
         """
 
         n_frozen = 0
+        logger.debug(f"Freezing layers of {self.__class__.__name__} starting from the output layer.")
         for dist_from_output, layer in enumerate(reversed(list(self.yield_layers()))):
             # print(dist_from_output, layer)
             if dist_from_output >= keep:
                 for param in layer.parameters():
                     param.requires_grad = False
                 n_frozen += 1
-                logger.debug(f"Froze {layer.__class__.__name__} layer of {self.__class__.__name__}")
+                logger.debug(f"Froze {layer.__class__.__name__} layer of {self.__class__.__name__}.")
+            else:
+                logger.debug(f"Kept {layer.__class__.__name__} layer of {self.__class__.__name__} unfrozen.")
 
-        logger.info(f"Froze {n_frozen} layers of {self.__class__.__name__}")
+        logger.info(f"Froze {n_frozen} layers of {self.__class__.__name__}.")
 
     def unfreeze_all_layers(self):
         """

@@ -50,7 +50,7 @@ class SwinTransformerTemplate(Model):
             self.model = swin_v2_constructor(weights=None)
 
         logger.debug(f"Model {self.__class__.__name__} initialised "
-                     f"{'with' if self.pretrained else 'without'} pretrained weights")
+                     f"{'with' if self.pretrained else 'without'} pretrained weights.")
 
         # modify model after loading pretrained weights (this is why we don't use the num_classes option)
         # if necessary, change the input convolution

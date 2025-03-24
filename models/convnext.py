@@ -53,7 +53,7 @@ class ConvNeXtTemplate(Model):
             self.model = convnext_constructor(weights=None)
 
         logger.debug(f"Model {self.__class__.__name__} initialised "
-                     f"{'with' if self.pretrained else 'without'} pretrained weights")
+                     f"{'with' if self.pretrained else 'without'} pretrained weights.")
 
         # modify model after loading pretrained weights
         # if necessary, change the input convolution
