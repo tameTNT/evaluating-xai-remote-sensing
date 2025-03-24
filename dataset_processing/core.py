@@ -192,16 +192,20 @@ class RSDatasetMixin:
 
         # normalised images are in the range [-1, 1] originally
         if self.mean.nonzero().numel() > 0:  # either via explicit mean/std
-            # was originally normalised via imges = (images - mean) / std
-            mean = self.mean.cpu()[rgb_indices]
-            std = self.std.cpu()[rgb_indices]
-            # turn to range [0, max]
             b, c, h, w = images.shape
             assert c == 3, f"Expected 3 channels only when inverting for display, got {c} instead."
+
+            # was originally normalised via imges = (images - mean) / std
+            mean = self.mean.cpu()[rgb_indices].view(1, c, 1, 1)  # make broadcastable
+            std = self.std.cpu()[rgb_indices].view(1, c, 1, 1)
+
+            # turn to range [0, max]
             images: torch.Tensor = torch.from_numpy(images) * std + mean
-            images: torch.Tensor = images.reshape(b, 3, -1)  # flatten for normalisation per channel
-            images /= images.quantile(0.98, dim=-1, keepdim=True)  # scale to ~[0, 1]
-            images = images.reshape(b, 3, h, w).clip(0, 1).cpu().numpy()
+            images: torch.Tensor = images.reshape(b, c, -1)  # flatten for normalisation per channel
+            upper_quantile = images.quantile(0.98, dim=-1, keepdim=True)  # use 98th percentile as max
+            upper_quantile = torch.where(upper_quantile == 0., 1., upper_quantile)  # avoid division by 0
+            images /= upper_quantile  # scale to ~[0, 1]
+            images = images.reshape(b, c, h, w).clip(0, 1).cpu().numpy()
         else:  # or via naive assumption of initial [0, 1] images
             images: np.ndarray = (images + 1) / 2  # de-normalise to [0, 1]
 
