@@ -3,11 +3,12 @@ import typing as t
 import torch
 
 from helpers import log
+
 from . import core
-from eurosat import EuroSATRGB, EuroSATMS
-from ucmerced import UCMerced
-from reben import ReBEN
-from patternnet import PatternNet
+from .eurosat import EuroSATRGB, EuroSATMS
+from .ucmerced import UCMerced
+from .reben import ReBEN
+from .patternnet import PatternNet
 
 logger = log.main_logger
 

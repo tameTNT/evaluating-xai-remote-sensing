@@ -1,10 +1,11 @@
 import typing as t
 
 from helpers import log
-from core import Model
-from resnet import ResNet50
-from convnext import ConvNeXtTiny, ConvNeXtSmall, ConvNeXtBase
-from swin_transformer import SwinTransformerTiny, SwinTransformerSmall, SwinTransformerBase
+
+from .core import Model
+from .resnet import ResNet50
+from .convnext import ConvNeXtTiny, ConvNeXtSmall, ConvNeXtBase
+from .swin_transformer import SwinTransformerTiny, SwinTransformerSmall, SwinTransformerBase
 
 logger = log.main_logger
 
