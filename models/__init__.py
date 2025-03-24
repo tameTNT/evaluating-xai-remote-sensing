@@ -1,20 +1,17 @@
 import typing as t
 
 from helpers import log
-from . import core
-from . import resnet
-from . import convnext
 from core import Model
 from resnet import ResNet50
 from convnext import ConvNeXtTiny, ConvNeXtSmall, ConvNeXtBase
+from swin_transformer import SwinTransformerTiny, SwinTransformerSmall, SwinTransformerBase
 
 logger = log.main_logger
 
-# fixme: add Swin Transformer, ResNet101
-MODEL_NAMES = t.Literal["ResNet50", "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase"]
 MODEL_NAMES = t.Literal[
     "ResNet50",  # fixme: add ResNet101
     "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase",
+    "SwinTransformerTiny", "SwinTransformerSmall", "SwinTransformerBase"
 ]
 
 
