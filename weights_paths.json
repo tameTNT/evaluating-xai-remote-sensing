@@ -1,8 +1,22 @@
 {
   "EuroSATRGB": {
-    "ResNet50": "checkpoints/EuroSATRGB/ResNet50/full/zxyyp118_final_0.990.st"
+    "ResNet50": "checkpoints/EuroSATRGB/ResNet50/full/zxyyp118_final_0.990.st",
+    "ConvNeXtSmall": "checkpoints/EuroSATRGB/ConvNeXtSmall/full/hx5j3cg6_final_0.983.st",
+    "SwinTransformer": ""
   },
   "EuroSATMS": {
-    "ResNet50": "checkpoints/EuroSATMS/ResNet50/full/pjvc8fso_final_0.967.st"
+    "ResNet50": "checkpoints/EuroSATMS/ResNet50/full/pjvc8fso_final_0.967.st",
+    "ConvNeXtSmall": "checkpoints/EuroSATMS/ConvNeXtSmall/full/5th57zpd_epoch040_final_0.978.st",
+    "SwinTransformer": ""
+  },
+  "PatternNet": {
+    "ResNet50": "checkpoints/PatternNet/ResNet50/full/kbuxj8zp_final_0.995.st",
+    "ConvNeXtSmall": "checkpoints/PatternNet/ConvNeXtSmall/full/znfkpbph_epoch030_final_0.993.st",
+    "SwinTransformer": ""
+  },
+  "UCMerced": {
+    "ResNet50": "checkpoints/UCMerced/ResNet50/full/x0nsw1g5_final_0.978.st",
+    "ConvNeXtSmall": "checkpoints/UCMerced/ConvNeXtSmall/full/rqfta3j8_final_0.988.st",
+    "SwinTransformer": ""
   }
 }
