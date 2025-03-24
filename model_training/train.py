@@ -229,16 +229,18 @@ logger.debug(f"Running script with args: {args}")
 
 
 # Adapted from https://stackoverflow.com/a/31464349/7253717
-# Handle SIGINT and SIGTERM signals to allow for graceful shutdown of script
+# Allows for graceful shutdown of script
 class GracefulKiller:
     please_kill = False
 
     def __init__(self):
         # SLURM will send a signal to the script to kill it
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
+        signal.signal(signal.SIGINT, self.exit_gracefully)   # interrupt signal
+        signal.signal(signal.SIGTERM, self.exit_gracefully)  # termination signal
+        # signal.signal(signal.SIGKILL, self.exit_gracefully)  # you can't catch SIGKILL
 
     def exit_gracefully(self, signum, frame):
+        print("Interrupt/termination signal received!")
         self.please_kill = True
 
 
@@ -406,7 +408,8 @@ def train_model(
                     if killer.please_kill:
                         model_save_path = weights_save_path / (f"{wandb_run.id}_"
                                                                f"killed_at_{epoch:03}_{val_mean_acc:.3f}.st")
-                        logger.warning(f"Received kill signal. Saving model to {model_save_path} and exiting.")
+                        logger.warning(f"Received termination/kill signal. "
+                                       f"Saving model to {model_save_path} and exiting.")
                         st.save_model(model, model_save_path)
                         raise KeyboardInterrupt("Received kill signal (from SLURM).")
 
@@ -464,7 +467,7 @@ def train_model(
             st.save_model(model, model_save_path)
             # noinspection PyTypeChecker
             json.dump(
-                {"epoch": epoch, "lr": current_lr, "args": vars(args)},
+                {"completed_epoch": epoch, "lr": current_lr, "args": str(args)},
                 model_save_path.with_suffix(".json").open("w")
             )
             logger.debug(f"Saved current model and state at epoch {epoch} to {model_save_path}.")
