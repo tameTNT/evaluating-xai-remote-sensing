@@ -8,7 +8,7 @@ import helpers
 DATASET_ROOT = helpers.env_var.get_dataset_root()
 
 
-class BigEarthNetV2(BigEarthNetV2Base, dataset_processing.core.RSDatasetMixin):
+class ReBEN(BigEarthNetV2Base, dataset_processing.core.RSDatasetMixin):
     def __init__(self, **kwargs):
         dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 

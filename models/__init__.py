@@ -4,16 +4,23 @@ from helpers import log
 from . import core
 from . import resnet
 from . import convnext
+from core import Model
+from resnet import ResNet50
+from convnext import ConvNeXtTiny, ConvNeXtSmall, ConvNeXtBase
 
 logger = log.main_logger
 
 # fixme: add Swin Transformer, ResNet101
 MODEL_NAMES = t.Literal["ResNet50", "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase"]
+MODEL_NAMES = t.Literal[
+    "ResNet50",  # fixme: add ResNet101
+    "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase",
+]
 
 
 def get_model_type(
         name: MODEL_NAMES,
-) -> t.Type[core.Model]:
+) -> t.Type[Model]:
     """
     Get the model type corresponding to the given name.
     :param name: One of the model names in MODEL_NAMES.
@@ -21,17 +28,7 @@ def get_model_type(
     """
 
     logger.debug(f"Attempting to load {name} model...")
-    if name == "ResNet50":
-        m = resnet.ResNet50
-    elif name == "ConvNeXtTiny":
-        m = convnext.ConvNeXtTiny
-    elif name == "ConvNeXtSmall":
-        m = convnext.ConvNeXtSmall
-    elif name == "ConvNeXtBase":
-        m = convnext.ConvNeXtBase
-    else:
-        logger.error(f"Invalid model name ({name}) provided to get_model_type. "
-                     f"Must be one of {t.get_args(MODEL_NAMES)}.")
-        raise ValueError(f"Model {name} does not exist.")
-
+    assert name in t.get_args(MODEL_NAMES), (f"Invalid model name ({name}) provided to get_model_type. "
+                                             f"Must be one of {t.get_args(MODEL_NAMES)}.")
+    m = globals()[name]
     return m

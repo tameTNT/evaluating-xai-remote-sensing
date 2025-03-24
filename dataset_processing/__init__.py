@@ -4,11 +4,14 @@ import torch
 
 from helpers import log
 from . import core
-from . import eurosat, ucmerced, reBEN, patternnet
+from eurosat import EuroSATRGB, EuroSATMS
+from ucmerced import UCMerced
+from reben import ReBEN
+from patternnet import PatternNet
 
 logger = log.main_logger
 
-DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "reBEN", "PatternNet"]
+DATASET_NAMES = t.Literal["EuroSATRGB", "EuroSATMS", "UCMerced", "ReBEN", "PatternNet"]
 
 
 # noinspection PyIncorrectDocstring
@@ -44,20 +47,8 @@ def get_dataset_object(
     }
 
     logger.debug(f"Attempting to load {name} dataset...")
-    if name == "EuroSATRGB":
-        ds = eurosat.EuroSATRGB(**standard_kwargs, **kwargs)
-    elif name == "EuroSATMS":
-        ds = eurosat.EuroSATMS(**standard_kwargs, **kwargs)
-    elif name == "UCMerced":
-        ds = ucmerced.UCMerced(**standard_kwargs, **kwargs)
-    elif name == "reBEN":
-        ds = reBEN.BigEarthNetV2(**standard_kwargs, **kwargs)
-    elif name == "PatternNet":
-        ds = patternnet.PatternNet(**standard_kwargs, **kwargs)
-    else:
-        logger.error(f"Invalid dataset name ({name}) provided to get_dataset_object. "
-                     f"Must be one of {t.get_args(DATASET_NAMES)}.")
-        raise ValueError(f"Dataset {name} does not exist.")
-
+    assert name in t.get_args(DATASET_NAMES), (f"Invalid dataset name ({name}) provided to get_dataset_object. "
+                                               f"Must be one of {t.get_args(DATASET_NAMES)}.")
+    ds = globals()[name](**standard_kwargs, **kwargs)
     logger.info(f"Dataset {ds.logging_name} loaded with {len(ds)} samples.")
     return ds
