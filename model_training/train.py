@@ -137,14 +137,14 @@ training_group.add_argument(
     type=str,
     default="SGD",
     choices=t.get_args(SUPPORTED_OPTIMISERS),
-    help="Name of the optimiser to use. Defaults to SGD.",
+    help="Name of the optimiser to use. Defaults to 'SGD'.",
 )
 training_group.add_argument(
     "--loss_criterion_name",
     type=str,
     default="CrossEntropyLoss",
-    choices=["CrossEntropyLoss"],  # todo: support more loss criteria?
-    help="Loss criterion to use. Defaults to CrossEntropyLoss.",
+    choices=["CrossEntropyLoss"],
+    help="Loss criterion to use. Defaults to 'CrossEntropyLoss'.",
 )
 
 frozen_args_group = parser.add_argument_group("Frozen model training arguments",

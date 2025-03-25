@@ -20,7 +20,7 @@ class PartitionSHAP(Explainer):
             self,
             x: Float[torch.Tensor, "n_samples channels height width"],
             max_evals: int = 10000,
-            batch_size: int = 96,  # todo: make this an arg
+            batch_size: int = 64,
     ):
         """
         Explains the model's predictions for the given images using the PartitionSHAP
@@ -35,7 +35,7 @@ class PartitionSHAP(Explainer):
             perform. Effectively controls the 'resolution' of the explanation
             with a factor of 10 approximately doubling the resolution.
         :param batch_size: Batch size for evaluation.
-          NB: batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
+          e.g. batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
         :return:
         """
 

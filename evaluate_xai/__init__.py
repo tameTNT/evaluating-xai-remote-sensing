@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 import helpers
 from xai import Explainer
+from . import deletion
 
 logger = helpers.log.main_logger
 

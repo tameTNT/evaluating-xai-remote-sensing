@@ -68,8 +68,6 @@ plt.title("Images to be explained")
 plt.show()
 
 # ==== Generate explanation for selected images ====
-# todo: support saving/loading large batches of explanations
-#  rather than needing new obj each time for each batch
 explainer = xai.get_explainer_object(
     explainer_name, model=model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
 )

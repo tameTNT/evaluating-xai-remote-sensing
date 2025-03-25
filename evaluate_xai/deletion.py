@@ -35,6 +35,7 @@ def delete_top_k_important(
     If importance_rank is a tuple of an int and a np.random.Generator, a random
     ranking, with grid element size of the first argument, is generated instead.
     """
+    # fixme: batch this if we run out of memory...
 
     masked_imgs = x.numpy(force=True)
     n_channels = masked_imgs.shape[1]
