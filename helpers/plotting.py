@@ -94,7 +94,7 @@ def show_image(
     elif x.ndim == 4:
         if x.shape[-1] in (1, 3):
             x = einops.rearrange(x, "n h w c -> n c h w")
-
+        # fixme: handle MS images
         # todo: use torchvision image grid instead to add padding
         x = einops.rearrange(x, "n c h w -> h (n w) c")
         # x = torchvision.utils.make_grid(x, nrow=x.shape[0])

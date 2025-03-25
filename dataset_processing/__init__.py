@@ -27,7 +27,7 @@ def get_dataset_object(
         use_resize: bool = True,
         download: bool = False,
         **kwargs
-) -> t.Union[eurosat.EuroSATBase, ucmerced.UCMerced]:
+) -> t.Union[EuroSATRGB, EuroSATMS, UCMerced, ReBEN, PatternNet]:
     """
     todo: write this docstring
     :param name: The name of the dataset to load. One of the dataset names in DATASET_NAMES.

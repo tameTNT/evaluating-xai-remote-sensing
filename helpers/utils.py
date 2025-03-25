@@ -12,19 +12,19 @@ logger = log.main_logger
 
 def get_torch_device() -> torch.device:
     if torch.cuda.is_available():
-        torch_device = torch.device('cuda')
-        logger.debug(f'Found {torch.cuda.get_device_name()} to use as a cuda device.')
+        torch_device = torch.device("cuda")
+        logger.debug(f"Found {torch.cuda.get_device_name()} to use as a cuda device.")
 
-    elif platform.system() == 'Darwin':
-        torch_device = torch.device('mps')
+    elif platform.system() == "Darwin":
+        torch_device = torch.device("mps")
 
     else:
-        torch_device = torch.device('cpu')
-    logger.info(f'Using {torch_device} as torch device.')
+        torch_device = torch.device("cpu")
+    logger.info(f"Using {torch_device} as torch device.")
 
-    if platform.system() != 'Linux':
+    if platform.system() != "Linux":
         torch.set_num_threads(1)
-        logger.debug('Set number of threads to 1 as using a non-Linux machine.')
+        logger.debug("Set number of threads to 1 as using a non-Linux machine.")
 
     return torch_device
 
