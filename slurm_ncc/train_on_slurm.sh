@@ -8,7 +8,7 @@ printf '%s\n' "#!/bin/bash" \
        "#SBATCH -p ug-gpu-small" \
        '#SBATCH --qos="short"' \
        "#SBATCH --mem=28G" \
-       "#SBATCH -t 00-08:00:00" \
+       "#SBATCH -t 00-09:00:00" \
        "#SBATCH --gres=gpu:1g.10gb:1" \
        "#SBATCH --mail-user=jgcw74@durham.ac.uk" \
        "#SBATCH --mail-type=BEGIN" \
