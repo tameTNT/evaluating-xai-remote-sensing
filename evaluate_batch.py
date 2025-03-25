@@ -113,6 +113,11 @@ if __name__ == "__main__":
         help="Batch size to use for DataLoaders and xAI methods."
              "Try reducing this if there are any memory errors.",
     )
+    script_meta_group.add_argument(
+        "--visualise",
+        action="store_true",
+        help="If set, visualise the explanations generated and evaluations performed.",
+    )
 
     options_group = parser.add_argument_group("Primary Options",
                                               "Specify key options for the script. All required.")
@@ -168,13 +173,6 @@ if __name__ == "__main__":
              "Defaults to 'shuffle'.",
     )
     evaluation_group.add_argument(
-        "--similarity_intersection_k",
-        type=int,
-        default=5000,
-        help="Number of pixels to use for the intersection similarity metric. "
-             "Defaults to 5000.",
-    )
-    evaluation_group.add_argument(
         "--deletion_iterations",
         type=int,
         default=15,
@@ -188,6 +186,13 @@ if __name__ == "__main__":
         help="Number of random trials to use for the methods with a random comparison. "
              "Defaults to 5.",
     )
+    evaluation_group.add_argument(
+        "--similarity_intersection_proportion",
+        type=float,
+        default=0.1,
+        help="Proportional of image pixels to use for the intersection similarity metric. "
+             "Defaults to 10% (0.1).",
+    )
 
     args: argparse.Namespace = parser.parse_args()
     print("Got args:", args, "\n")
@@ -196,6 +201,7 @@ if __name__ == "__main__":
     checkpoints_path: Path = args.checkpoints_path.expanduser().resolve()
     num_workers: int = args.num_workers
     batch_size: int = args.batch_size
+    visualise: bool = args.visualise
 
     dataset_name: dataset_processing.DATASET_NAMES = args.dataset_name
     normalisation_type: str = args.normalisation_type
@@ -204,9 +210,9 @@ if __name__ == "__main__":
 
     samples_per_class: int = args.samples_per_class
     deletion_method: evaluate_xai.deletion.METHODS = args.deletion_method
-    similarity_intersection_k: int = args.similarity_intersection_k
     deletion_iterations: int = args.deletion_iterations
     num_random_trials: int = args.num_random_trials
+    similarity_intersection_proportion: float = args.similarity_intersection_proportion
     
     logger.info(f"Successfully got script arguments: {args}.")
 
@@ -215,12 +221,25 @@ if __name__ == "__main__":
 
     dataset, model_to_explain = get_data_and_model()
 
-    results_df = pd.DataFrame(columns=pd.MultiIndex.from_tuples(
-        [("correctness", "model_randomisation"), ("correctness", "incremental_deletion"),
-         ("output_completeness", "deletion_check"), ("output_completeness", "preservation_check"),
-         ("continuity", "perturbation"), ("contrastivity", "adversarial_attack"),
-         ("compactness", "threshold")]
-    ), index=range(dataset.N_CLASSES))
+    similarity_intersection_k = int(similarity_intersection_proportion * model_to_explain.expected_input_dim ** 2)
+    available_sim_metrics = t.get_args(evaluate_xai.SIMILARITY_METRICS)
+
+    results_df = pd.DataFrame(columns=[
+        # ↓, low similarity
+        *[f"correctness : randomised_model_similarity : {metric_name}" for metric_name in available_sim_metrics],
+        # ↓, best is 0
+        "correctness : incremental_deletion_auc_ratio",
+        # ↑, best is 1
+        "output_completeness : deletion_check_conf_drop",
+        # ↓, best is 0
+        "output_completeness : preservation_check_conf_drop",
+        # ↑, high similarity
+        *[f"continuity : perturbation_similarity : {metric_name}" for metric_name in available_sim_metrics],
+        # ↓, low similarity
+        *[f"contrastivity : adversarial_attack_similarity : {metric_name}" for metric_name in available_sim_metrics],
+        # ↑, near 1
+        "compactness : threshold_score"
+    ], index=range(dataset.N_CLASSES))
 
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
@@ -239,37 +258,44 @@ if __name__ == "__main__":
         # Combine all the explainers for this class into one
         combined_exp = functools.reduce(lambda x, y: x | y, explainers_for_c)
 
-        # helpers.plotting.visualise_importance(combined_exp.input, combined_exp.ranked_explanation,
-        #                                       alpha=.2, with_colorbar=False)
-        # plt.title(f"Explanations for Class {c:02}")
-        # plt.show()
+        if visualise:
+            # todo: stack large numbers like with visualise_incremental_deletion
+            helpers.plotting.visualise_importance(combined_exp.input, combined_exp.ranked_explanation,
+                                                  alpha=.2, with_colorbar=False)
+            plt.title(f"Explanations for Class {c:02}")
+            plt.show()
 
         # ==== Evaluate Correctness ====
         correctness = Correctness(combined_exp, max_batch_size=batch_size)
 
-        correctness_mr_dict = correctness.evaluate(
-            method="model_randomisation", visualise=False,
+        correctness_mr_similarity_dict = correctness.evaluate(
+            method="model_randomisation", visualise=visualise,
         )(l2_normalise=True, intersection_k=similarity_intersection_k)
-        top_k_intersection_with_randomised: np.ndarray = correctness_mr_dict["top_k_intersection"]
+        # convert dict to array in order given by available_sim_metrics (which dictates column order)
+        similarity_with_randomised = np.stack([correctness_mr_similarity_dict[m] for m in available_sim_metrics])
 
         correctness_id_dict = correctness.evaluate(
             method="incremental_deletion",
             deletion_method=deletion_method,
             iterations=deletion_iterations, n_random_rankings=num_random_trials,
-            random_seed=random_seed, visualise=False,
+            random_seed=random_seed, visualise=visualise,
         )
+
+        # ==== Evaluate Output Completeness ====
+        # todo
 
         # ==== Save all results in the dataframe ====
         results_df.loc[c] = [
-            # We want the intersection to be low since the model was randomised
-            top_k_intersection_with_randomised.mean(),
-            # We expect the informed deletion to be smaller than the randomised one so this should be small
+            # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
+            *similarity_with_randomised.mean(axis=1),
+            # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
+            # We expect the AUC of informed deletion < randomised one, so ratio should be small
             (correctness_id_dict["informed"]/correctness_id_dict["random"]).mean(),
-            # todo: include remaining metrics
+            # todo: include remaining Co12 metrics
         ]
 
-    store = pd.HDFStore(str(Path("output.csv")))
-    store["results_df"] = results_df  # saves results_df object to HDF5 file
+    store = pd.HDFStore(str(Path(explainer_name)/"output.h5"))
+    store[f"{dataset_name}_{model_name}"] = results_df  # saves results_df object to HDF5 file
 
 else:
     raise RuntimeError("Please run this script from the command line.")

@@ -14,6 +14,7 @@ from xai import Explainer
 from . import deletion
 
 logger = helpers.log.main_logger
+SIMILARITY_METRICS = t.Literal["l2_distance", "spearman_rank", "top_k_intersection", "structural_similarity"]
 
 
 class Similarity:
@@ -42,9 +43,7 @@ class Similarity:
             self,
             l2_normalise: bool = True,
             intersection_k: int = 5000,
-    ) -> dict[t.Literal["l2_distance", "spearman_rank",
-                        "top_k_intersection", "structural_similarity"],
-              Float[np.ndarray, "n_samples"]]:
+    ) -> dict[SIMILARITY_METRICS, Float[np.ndarray, "n_samples"]]:
 
         logger.info(f"Generating similarity metrics for {self}.")
 

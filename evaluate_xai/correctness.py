@@ -35,7 +35,9 @@ class Correctness(Co12Metric):
             self,
             method: t.Literal["model_randomisation", "incremental_deletion"],
             **kwargs,
-    ) -> t.Union[Similarity, dict]:
+    ) -> t.Union[Similarity,
+                 dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]]:
+
         super().evaluate(method, **kwargs)
 
         if method == "model_randomisation":
