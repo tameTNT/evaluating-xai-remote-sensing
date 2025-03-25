@@ -20,7 +20,11 @@ EXPLAINER_NAMES = t.Literal["PartitionSHAP", "GradCAM", "KPCACAM"]
 def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, float]:
     """
     Returns True if the explanation is equal to the given eps.
+    Also allows the inputs to be different sizes (this returns False, -1 immediately).
     """
+    if a.shape != b.shape:
+        logger.debug(f"Shapes of a ({a.shape}) and b ({b.shape}) are not equal.")
+        return False, -1
     diff = (a - b).abs().sum().item()
     return diff < eps, diff
     # return torch.allclose(a, b, atol=eps)
@@ -51,9 +55,6 @@ class Explainer:
         self.extra_path = extra_path
         self.save_path = (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
         self.save_path.mkdir(parents=True, exist_ok=True)
-        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / PartitionSHAP / ResNet50.npz
-        self.npz_path = self.save_path / f"{self.model.__class__.__name__}.npz"
-        self.json_path = self.npz_path.with_suffix(".json")
         logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
         self.input = torch.tensor(0).to(self.device)
@@ -70,6 +71,19 @@ class Explainer:
                 logger.warning(f"Failed to load existing explanation from "
                                f"{self.npz_path} and {self.json_path}. "
                                f"Using null values.")
+
+    def __repr__(self):
+        return (f"{self.__class__.__name__}(model={self.model.__class__.__name__}, input_shape={self.input.shape}, "
+                f"has_explanation={self.explanation is not None}, save_path='{self.save_path}')")
+
+    @property
+    def npz_path(self) -> Path:
+        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / PartitionSHAP / ResNet50.npz
+        return self.save_path / f"{self.model.__class__.__name__}.npz"
+
+    @property
+    def json_path(self) -> Path:
+        return self.npz_path.with_suffix(".json")
 
     @property
     def ranked_explanation(self) -> Int[np.ndarray, "n_samples height width"]:
@@ -147,6 +161,39 @@ class Explainer:
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs={self.kwargs}.")
+
+    def __or__(self, other: "Explainer") -> "Explainer":
+        """
+        Combine two compatible Explainer objects together via `c = a | b`.
+        Being 'compatible' means they both have an explanation for inputs of the same image sizes
+        (the batch size need not be the same) for the same model with the same kwargs.
+        :param other: The other Explainer object to combine.
+        :return: A new Explainer object with the combined explanations and inputs.
+        """
+
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Mismatched classes for or operation: "
+                            f"a is {self.__class__.__name__} and b is {other.__class__.__name__}.")
+        assert (self.explanation is not None) and (other.explanation is not None), \
+            "One or both explainers have no stored explanation."
+        assert self.model is other.model, \
+            "Explainers are for different models."
+        assert self.kwargs == other.kwargs, \
+            f"Explainers have different kwargs: a.kwargs={self.kwargs}, b.kwargs={other.kwargs}"
+
+        assert self.input.shape[1:] == other.input.shape[1:], \
+            (f"Explainers have different image shapes: "
+             f"a.shape={self.input.shape[1:]}, b.shape={other.input.shape[1:]}")
+        assert self.explanation.shape[1:] == other.explanation.shape[1:], \
+            (f"Explainers have different explanation shapes: "
+             f"a.shape={self.explanation.shape[1:]}, b.shape={other.explanation.shape[1:]}")
+
+        new_exp = self.__class__(self.model)
+        new_exp.input = torch.cat([self.input, other.input], dim=0)
+        new_exp.explanation = np.concatenate([self.explanation, other.explanation], axis=0)
+        new_exp.attempt_load = None
+
+        return new_exp
 
 
 def get_explainer_object(
