@@ -30,7 +30,8 @@ batch_size = 32
 model_name = "ResNet50"
 num_workers = 4
 
-explainer_name = "KPCACAM"  # or "PartitionSHAP"
+explainer_name = "KPCACAM"
+shap_max_evals = 10000
 
 logger = helpers.log.main_logger
 
@@ -48,8 +49,8 @@ dataset = dataset_processing.get_dataset_object(
 
 logger.info("Creating model and loading pretrained weights.")
 
-weights_paths = json.load(Path("weights_paths.json").open("r"))[dataset_name][model_name]
-model_weights_path = (helpers.env_var.get_project_root() / weights_paths)
+weights_path = json.load(Path("weights_paths.json").open("r"))[dataset_name][model_name]
+model_weights_path = helpers.env_var.get_project_root() / "checkpoints" / dataset_name / model_name / weights_path
 
 model_to_explain = model_type(
     pretrained=False, n_input_bands=dataset.N_BANDS, n_output_classes=dataset.N_CLASSES,
@@ -76,7 +77,7 @@ explainer = xai.get_explainer_object(
 explain_args = {}
 if explainer_name == "PartitionSHAP":
     explain_args["batch_size"] = batch_size
-    explain_args["max_evals"] = 10000
+    explain_args["max_evals"] = shap_max_evals
 elif explainer_name == "GradCAM" or explainer_name == "KPCACAM":
     explain_args["target_layer_func"] = "get_explanation_target_layers"
 
