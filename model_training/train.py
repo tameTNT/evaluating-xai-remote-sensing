@@ -480,25 +480,28 @@ def train_model(
                 predicted_labels = sample_outputs.argmax(dim=1)
                 incorrect_mask = predicted_labels != samples_labels
                 incorrect_samples = samples[incorrect_mask]
-                scaled_incorrect_samples = validation_dataset.inverse_transform(incorrect_samples)
-                labels_for_incorrect = samples_labels[incorrect_mask]
-                incorrect_preds = predicted_labels[incorrect_mask]
+                if len(incorrect_samples) > 0:  # at least 1 incorrect sample
+                    scaled_incorrect_samples = validation_dataset.inverse_transform(incorrect_samples)
+                    labels_of_incorrect = samples_labels[incorrect_mask]
+                    incorrect_preds = predicted_labels[incorrect_mask]
 
-                samples_table = wandb.Table(columns=[])
-                samples_table.add_column("epoch",
-                                         (torch.ones_like(incorrect_preds) * epoch).numpy())
-                samples_table.add_column("prediction",
-                                         [validation_dataset.classes[label_idx] for label_idx in incorrect_preds])
-                samples_table.add_column("label",
-                                         [validation_dataset.classes[label_idx] for label_idx in labels_for_incorrect])
-                samples_table.add_column("true_sample",
-                                         [wandb.Image(img) for img in scaled_incorrect_samples])
+                    samples_table = wandb.Table(columns=[])
+                    samples_table.add_column("epoch",
+                                             (torch.ones_like(incorrect_preds) * epoch).numpy())
+                    samples_table.add_column("prediction",
+                                             [validation_dataset.classes[idx] for idx in incorrect_preds])
+                    samples_table.add_column("label",
+                                             [validation_dataset.classes[idx] for idx in labels_of_incorrect])
+                    samples_table.add_column("true_sample",
+                                             [wandb.Image(img) for img in scaled_incorrect_samples])
+                    wandb_run.log({
+                        "samples/incorrect": samples_table,
+                    }, commit=False)  # don't commit this step yet
 
                 wandb_run.log({
                     "loss/validation": val_mean_loss,
                     "accuracy/validation": val_mean_acc,
                     "learning_rate": current_lr,
-                    "samples/incorrect": samples_table,
                 })
 
             if epoch != 0 and epoch % 10 == 0:
