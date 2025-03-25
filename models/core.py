@@ -1,5 +1,6 @@
 import typing as t
 
+import torch
 import torch.nn as nn
 
 from helpers import log
@@ -93,8 +94,16 @@ class Model(nn.Module):
 
         return f"> {num_frozen} layers frozen: {', '.join([layer.__class__.__name__ for layer in frozen_layers])} <"
 
+    @staticmethod
+    def reshape_transform(x: torch.Tensor, height: int = 0, width: int = 0) -> torch.Tensor:
+        """
+        The reshape transform function an Explainer object (e.g. GradCAM) should use.
+        This is needed for transformer type models (e.g. Swin Transformer).
+        """
+        return x  # by default, no reshape is needed
+
     def get_explanation_target_layers(self) -> list[nn.Module]:
         """
         Returns the target layer(s) that an Explainer object (e.g. GradCAM) should use.
         """
-        raise NotImplementedError("get_explanation_target_layer() not implemented in base class.")
+        raise NotImplementedError("get_explanation_target_layers() not implemented in base class.")

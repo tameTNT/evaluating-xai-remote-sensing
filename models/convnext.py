@@ -90,7 +90,8 @@ class ConvNeXtTemplate(Model):
     def forward(self, x):
         return self.model(x)
 
-    def get_explanation_target_layers(self) -> list[nn.Module]:
+    def get_explanation_target_layers(self):
+        # the final convolution layer in the model before avgpooling and classification
         return [self.model.features[-1][-1]]
 
 
