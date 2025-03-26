@@ -16,3 +16,6 @@
 
 /slurm_ncc/train_model_temp.batch
 /memory_dumps/
+
+/inconsistent_platform_behaviour/*.pt
+/inconsistent_platform_behaviour/*.npz
