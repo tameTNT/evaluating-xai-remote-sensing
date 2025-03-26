@@ -1,3 +1,5 @@
+# Run this file directly within the directory where the script is located.
+
 import os
 import platform
 
@@ -19,7 +21,7 @@ rand_tensor = torch.stack(
 # torch.set_printoptions(precision=10)
 # print(rand_tensor[0])
 
-torch.save(rand_tensor, f"rand_tensor_{platform.system()}.pt")
+torch.save(rand_tensor, f"original_tensor_{platform.system()}.pt")
 
 resized_tensor = resize(
     rand_tensor, [66, 66],
@@ -32,9 +34,9 @@ torch.save(resized_tensor, f"resized_tensor_{platform.system()}.pt")
 if (os.path.exists("resized_tensor_Windows.pt")
         and os.path.exists("resized_tensor_Darwin.pt")
         and os.path.exists("resized_tensor_Linux.pt")):
-    win_tensor = torch.load("rand_tensor_Windows.pt", weights_only=True)
-    mac_tensor = torch.load("rand_tensor_Darwin.pt", weights_only=True)
-    linux_tensor = torch.load("rand_tensor_Linux.pt", weights_only=True)
+    win_tensor = torch.load("original_tensor_Windows.pt", weights_only=True)
+    mac_tensor = torch.load("original_tensor_Darwin.pt", weights_only=True)
+    linux_tensor = torch.load("original_tensor_Linux.pt", weights_only=True)
     print("Difference between original tensors:")
     print("    Win/Mac:", (win_tensor.float() - mac_tensor.float()).abs().sum())
     print("  Win/Linux:", (win_tensor.float() - linux_tensor.float()).abs().sum())

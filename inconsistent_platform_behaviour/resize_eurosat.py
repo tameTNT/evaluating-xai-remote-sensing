@@ -1,3 +1,5 @@
+# Run this file directly within the directory where the script is located.
+
 import os
 import sys
 from pathlib import Path
@@ -14,8 +16,8 @@ import numpy as np
 import platform
 
 
-print("Executing...")
 RESIZE_SIZE = 96
+print(f"Running for RESIZE_SIZE={RESIZE_SIZE}...")
 
 torch.manual_seed(42)
 np_rng = np.random.default_rng(42)
@@ -32,7 +34,7 @@ class_idxs_sampled = np_rng.choice(class_idxs, 32, replace=False)
 batch = torch.stack([eurosat[j]["image"] for j in class_idxs_sampled])
 
 torch.set_printoptions(precision=10)
-print(batch[0])
+# print(batch[0])
 
 np.savez_compressed(CUR_DIR / f"eurosat_rgb_{RESIZE_SIZE:03}_{platform.system()}.npz", batch=batch.numpy())
 
