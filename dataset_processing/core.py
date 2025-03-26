@@ -300,6 +300,7 @@ class RSDatasetMixin:
 
         # Resize to image size required by input layer of model
         if use_resize:  # rescale the image to the required size via interpolation
+            # Warning! Behaves inconsistently across platforms (Windows vs Unix)!!!
             scaling_transform = vision_transforms.Resize(
                 self.image_size, interpolation=vision_transforms.InterpolationMode.BILINEAR,
                 antialias=True,

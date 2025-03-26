@@ -18,18 +18,17 @@ def get_project_root() -> Path:
 
 def get_xai_output_root() -> Path:
     """
-    Return the output directory to use for XAI results since there appears to
-    be a difference in pixel values depending on the platform.
+    Return the output directory to use for XAI results.
 
-    Loading the windows images on Linux/macOS gives a difference of 0.0111 on
-    eurosat for instance for exactly the same input eurosat image loaded
-    from disk.
+    Different directories are used for Windows and Unix systems since Resize leads to very slightly different
+    output images/files on Windows compared to Unix systems so equality comparisons used in xai Explainers fail.
+    See inconsistent_platform_behaviour/resize_eurosat.py and resize_by_platform.py for more details.
     """
 
     if platform.system() == "Windows":
         return get_project_root() / "xai_output_windows"
     else:
-        return get_project_root() / "xai_output"
+        return get_project_root() / "xai_output_unix"
 
 
 def get_dataset_root() -> Path:
