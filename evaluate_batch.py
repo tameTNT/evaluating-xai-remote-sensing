@@ -292,6 +292,8 @@ if __name__ == "__main__":
         explainers_for_c = generate_explanations(class_idxs_sampled, c)
         # Combine all the explainers for this class into one
         combined_exp = functools.reduce(lambda x, y: x | y, explainers_for_c)
+        # update extra path to ensure each combined explainer is saved per class
+        combined_exp.extra_path = Path(dataset_name) / f"c{c:02}" / "combined"
 
         if visualise:
             # todo: stack large numbers like with visualise_incremental_deletion

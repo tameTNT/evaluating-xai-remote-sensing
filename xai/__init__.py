@@ -53,9 +53,6 @@ class Explainer:
         self.device = helpers.utils.get_model_device(model)
 
         self.extra_path = extra_path
-        self.save_path = (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
-        self.save_path.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"self.save_path of {self.__class__.__name__} set to {self.save_path}.")
 
         self.input = torch.tensor(0).to(self.device)
         self.kwargs = dict()
@@ -77,8 +74,18 @@ class Explainer:
                 f"has_explanation={self.explanation is not None}, save_path='{self.save_path}')")
 
     @property
+    def save_path(self) -> Path:
+        return (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
+
+    @property
     def npz_path(self) -> Path:
-        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / PartitionSHAP / ResNet50.npz
+        # delay the creation of the directory until we save to it
+        # (avoids creating directory unnecessarily if we call .parent as we do in contrastivity.py)
+        if not self.save_path.exists():
+            self.save_path.mkdir(parents=True)
+            logger.debug(f"Created save_path of {self.__class__.__name__}: {self.save_path}.")
+
+        # e.g. BASE_OUTPUT_PATH / EuroSATRGB / b000 / GradCAM / ResNet50.npz
         return self.save_path / f"{self.model.__class__.__name__}.npz"
 
     @property
