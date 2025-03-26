@@ -37,7 +37,7 @@ class Similarity:
         self.hidden_idxs = np.where(~mask)[0]
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(shape={self.shape})"
+        return f"{self.__class__.__name__}(shape={self.shape}, num_hidden_idxs={len(self.hidden_idxs)})"
 
     def __call__(
             self,
@@ -158,6 +158,9 @@ class Co12Metric:
         self.max_batch_size = max_batch_size
         self.visualise = False
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(exp={self.exp})"
+
     def evaluate(self, method: str, visualise: bool = False, **kwargs):
         logger.info(f"Evaluating {self.__class__.__name__} (via {method} with kwargs={kwargs}) "
                     f"of {self.exp.__class__.__name__} "
@@ -199,7 +202,7 @@ class Co12Metric:
             x: torch.Tensor,
             model: torch.nn.Module = None
     ) -> Explainer:
-        if model is None:
+        if model is None:  # use the same model as the original explainer
             model = self.exp.model
 
         new_exp = self.exp.__class__(

@@ -62,6 +62,10 @@ class Contrastivity(Co12Metric):
         if need_to_generate:
             logger.info("No existing adversarial images. Generating new ones via foolbox.")
             foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=img_bounds)
+
+            # WARNING: there is a rogue call to the base logging.info() on
+            # line 127 of foolbox/attacks/deepfool.py which should be commented out.
+            # Otherwise, all logging calls are printed to the terminal
             # noinspection PyCallingNonCallable
             _, clipped_adv_imgs, success = attack(**attack_kwargs)(
                 foolbox_model, self.exp.input, criteria, epsilons=0.01,

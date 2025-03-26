@@ -95,7 +95,7 @@ class OutputCompleteness(Co12Metric):
         seeds = np.random.default_rng(random_seed).choice(10*n_random_rankings, n_random_rankings, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_rankings, *self.exp.input.shape))
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
-                            desc="Randomly perturbing"):  # type: int, int
+                            desc="Randomly perturbing", leave=False):  # type: int, int
             a_random_ranking = deletion.generate_random_ranking(
                 self.exp.input.shape[-2:], 16, seed
             )

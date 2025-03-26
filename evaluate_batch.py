@@ -301,10 +301,12 @@ if __name__ == "__main__":
             plt.show()
 
         # ==== Evaluate Co12 Metrics ====
+        # todo: create tqdm bar that tracks each metric progress overall
         metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
         # todo: set leave=False on all tqdm calls within these
 
         # == Evaluate Correctness ==
+        logger.info("Evaluating generated explanations...")
         correctness = Correctness(**metric_kwargs)
 
         correctness_similarity = correctness.evaluate(
@@ -355,6 +357,7 @@ if __name__ == "__main__":
         )
 
         # ==== Save all results in the dataframe's row for that class ====
+        logger.info("Saving calculated evaluation metrics to results dataframe...")
         results_df.loc[dataset.classes[c]] = [
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
