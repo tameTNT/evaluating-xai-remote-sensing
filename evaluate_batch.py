@@ -27,8 +27,6 @@ import helpers
 torch_device = helpers.utils.get_torch_device()
 logger = helpers.log.main_logger
 
-SHAP_MAX_EVALS = 10000
-
 
 def get_data_and_model() -> tuple:
     logger.debug("Loading dataset and model...")
@@ -58,7 +56,7 @@ def get_explainer_args() -> dict:
     explain_args = {}
     if explainer_name == "PartitionSHAP":
         explain_args["batch_size"] = batch_size
-        explain_args["max_evals"] = SHAP_MAX_EVALS
+        explain_args["max_evals"] = shap_max_evals
 
     return explain_args
 
@@ -81,6 +79,21 @@ def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Expla
         explainers.append(explainer)
 
     return explainers
+
+
+def build_parameters_dict() -> dict:
+    return {
+        "shap_max_evals": shap_max_evals,
+        "output_completeness_threshold": output_completeness_threshold,
+        "continuity_perturbation_degree": continuity_perturbation_degree,
+        "compactness_threshold": compactness_threshold,
+        "samples_per_class": samples_per_class,
+        "deletion_method": deletion_method,
+        "deletion_iterations": deletion_iterations,
+        "num_random_trials": num_random_trials,
+        "similarity_intersection_proportion": similarity_intersection_proportion,
+        "min_samples_for_similarity": min_samples_for_similarity,
+    }
 
 
 def evaluate_sim_to_array(sim: Similarity) -> np.array:
@@ -167,6 +180,13 @@ if __name__ == "__main__":
         choices=t.get_args(xai.EXPLAINER_NAMES),
         help="Name of the xAI method to evaluate.",
     )
+    options_group.add_argument(
+        "--shap_max_evals",
+        type=int,
+        default=10000,
+        help="Maximum number of evaluations to use for SHAP methods. "
+             "Defaults to 10000.",
+    )
     metric_options = parser.add_argument_group("Metric Options",
                                                "Options for specific evaluation metrics.")
     metric_options.add_argument(
@@ -204,7 +224,7 @@ if __name__ == "__main__":
         "--deletion_method",
         type=str,
         default="shuffle",
-        choices=evaluate_xai.deletion.METHODS,
+        choices=["blur", "inpaint", "nn", "shuffle"],
         help="Method to use for deletion/perturbation-related evaluation methods. "
              "Defaults to 'shuffle'.",
     )
@@ -251,6 +271,7 @@ if __name__ == "__main__":
     normalisation_type: str = args.normalisation_type
     model_name: models.MODEL_NAMES = args.model_name
     explainer_name: xai.EXPLAINER_NAMES = args.explainer_name
+    shap_max_evals: int = args.shap_max_evals
 
     output_completeness_threshold: float = args.output_completeness_threshold
     continuity_perturbation_degree: float = args.continuity_perturbation_degree
@@ -291,19 +312,30 @@ if __name__ == "__main__":
         "compactness : threshold_score"
     ], index=dataset.classes)  # new row for each dataset class
 
-    h5_output_path = helpers.env_var.get_project_root() / "results" / explainer_name / h5_output_name
-    if not h5_output_path.parent.exists():
-        h5_output_path.parent.mkdir(parents=True)
+    h5_output_path = helpers.env_var.get_project_root() / "results" / explainer_name
+    if not h5_output_path.exists():
+        h5_output_path.mkdir(parents=True)
 
-    store = pd.HDFStore(str(h5_output_path), mode="a")
-    df_name = f"{dataset_name}_{model_name}"
-    if df_name not in store:
-        store[df_name] = results_df
+    store_for_explainer_name = pd.HDFStore(str(h5_output_path / h5_output_name), mode="a")
+    ds_model_df_name = f"{dataset_name}_{model_name}"
+
+    json_parameters_path = h5_output_path / "parameters.json"
+    if ds_model_df_name not in store_for_explainer_name:
+        store_for_explainer_name[ds_model_df_name] = results_df
+        # noinspection PyTypeChecker
+        json.dump(build_parameters_dict(), json_parameters_path.open("w+"), indent=4)
+    else:
+        stored_parameters = json.load(json_parameters_path.open("r"))
+        assert stored_parameters == build_parameters_dict(), \
+            f"Stored parameters (in {json_parameters_path}) do not match current script's ones."
+
+    # fixme: don't keep the file open the whole time - let other files write to it (since this will be run in parallel)
+    #   when opening, catch if it is already been read from
 
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
 
-        existing_df_row = store[df_name].loc[dataset.classes[c]]
+        existing_df_row = store_for_explainer_name[ds_model_df_name].loc[dataset.classes[c]]
         if existing_df_row.isna().sum() == 0:  # no NaN values in row
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
             continue
@@ -416,9 +448,9 @@ if __name__ == "__main__":
             compactness_scores.mean(),
         ])
 
-        store[df_name] = results_df  # saves updated results_df object to HDF5 file
+        store_for_explainer_name[ds_model_df_name] = results_df  # saves updated results_df object to HDF5 file
 
-    store.close()  # close the HDF5 file after reading/writing to it!
+    store_for_explainer_name.close()  # close the HDF5 file after reading/writing to it!
 
 else:
     raise RuntimeError("Please run this script from the command line.")
