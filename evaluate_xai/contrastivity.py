@@ -88,8 +88,9 @@ class Contrastivity(Co12Metric):
         # noinspection PyTypeChecker
         success: np.ndarray[bool] = original_preds != adv_preds
         if not success.all():
+            failed_idxs = np.flatnonzero(~success)
             logger.warning(f"Failed to successfully load/generate truly adversarial images for "
-                           f"idxs={np.flatnonzero(~success)}.")
+                           f"idxs={failed_idxs} ({len(failed_idxs)}/{len(success)}).")
 
         if self.visualise:
             stacked_samples = einops.rearrange(

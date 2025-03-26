@@ -223,6 +223,13 @@ if __name__ == "__main__":
         help="Proportional of image pixels to use for the intersection similarity metric. "
              "Defaults to 10% (0.1).",
     )
+    shared_options.add_argument(
+        "--min_samples_for_similarity",
+        type=int,
+        default=10,
+        help="Minimum number of samples to allow to calculate a similarity metric. "
+             "Defaults to 5.",
+    )
 
     args: argparse.Namespace = parser.parse_args()
     print("Got args:", args, "\n")
@@ -247,6 +254,7 @@ if __name__ == "__main__":
     deletion_iterations: int = args.deletion_iterations
     num_random_trials: int = args.num_random_trials
     similarity_intersection_proportion: float = args.similarity_intersection_proportion
+    min_samples_for_similarity: int = args.min_samples_for_similarity
 
     print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
     logger.info(f"Successfully got script arguments: {args}.")
@@ -305,7 +313,7 @@ if __name__ == "__main__":
         # ==== Evaluate Co12 Metrics ====
         # todo: create tqdm bar that tracks each metric progress overall
         metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
-        # todo: set leave=False on all tqdm calls within these
+        sim_inf_array = np.zeros((len(available_sim_metrics), combined_exp.input.shape[0])) - np.inf
 
         # == Evaluate Correctness ==
         logger.info("Evaluating generated explanations...")
@@ -343,13 +351,24 @@ if __name__ == "__main__":
             method="perturbation", visualise=visualise,
             degree=continuity_perturbation_degree, random_seed=random_seed,
         )
-        continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
+        if len(continuity_similarity.return_idxs) < min_samples_for_similarity:
+            logger.warning(f"Model outputs changed on too many perturbed samples for class {c} meaning there are "
+                           f"not enough samples for min_samples threshold ({min_samples_for_similarity}). "
+                           "Skipping continuity evaluation for this class. Using -inf values.")
+            continuity_similarity_vals = sim_inf_array
+        else:
+            continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
 
         # == Evaluate Contrastivity ==
         contrastivity = Contrastivity(**metric_kwargs)
         contrastivity_similarity = contrastivity.evaluate(
             method="adversarial_attack", visualise=visualise,
         )
+        if len(contrastivity_similarity.return_idxs) < min_samples_for_similarity:
+            logger.warning(f"Not a sufficient number of successful adversarial attacks for class {c} to "
+                           f"meet min_samples threshold ({min_samples_for_similarity}). "
+                           "Skipping contrastivity evaluation for this class. Using -inf values.")
+            contrastivity_similarity_vals = sim_inf_array
         contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
 
         # == Evaluate Compactness ==
