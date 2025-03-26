@@ -295,7 +295,7 @@ if __name__ == "__main__":
     if not h5_output_path.parent.exists():
         h5_output_path.parent.mkdir(parents=True)
 
-    store = pd.HDFStore(str(h5_output_path))
+    store = pd.HDFStore(str(h5_output_path), mode="a")
     df_name = f"{dataset_name}_{model_name}"
     if df_name not in store:
         store[df_name] = results_df
@@ -303,8 +303,8 @@ if __name__ == "__main__":
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
 
-        existing_df = store[df_name].loc[dataset.classes[c]]
-        if existing_df.isna().sum() == 0:
+        existing_df_row = store[df_name].loc[dataset.classes[c]]
+        if existing_df_row.isna().sum() == 0:  # no NaN values in row
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
             continue
 
@@ -401,7 +401,9 @@ if __name__ == "__main__":
 
         # ==== Save all results in the dataframe's row for that class ====
         logger.info("Saving calculated evaluation metrics to results dataframe...")
-        results_df.loc[dataset.classes[c]] = [
+        # Use pd.to_numeric (converts numpy array objects) since we require numeric
+        # values for HDF5 for fast saving/loading
+        results_df.loc[dataset.classes[c]] = pd.to_numeric([
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
             # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
@@ -412,11 +414,11 @@ if __name__ == "__main__":
             *continuity_similarity_vals.mean(axis=1),
             *contrastivity_similarity_vals.mean(axis=1),
             compactness_scores.mean(),
-        ]
+        ])
 
         store[df_name] = results_df  # saves updated results_df object to HDF5 file
 
-    store.close()
+    store.close()  # close the HDF5 file after reading/writing to it!
 
 else:
     raise RuntimeError("Please run this script from the command line.")
