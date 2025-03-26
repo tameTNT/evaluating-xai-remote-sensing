@@ -36,7 +36,9 @@ class Contrastivity(Co12Metric):
     ) -> Similarity:
 
         if attack_kwargs is None:
-            attack_kwargs = {}
+            # use the default number of steps
+            # We're only working with 10-20 class datasets so 5 candidates is reasonable
+            attack_kwargs = {"steps": 50, "candidates": 5}
 
         original_preds = self.run_model(self.exp.input).argmax(1)
         # We don't care about the images' true labels,
@@ -82,6 +84,9 @@ class Contrastivity(Co12Metric):
         adv_preds = self.run_model(clipped_adv_imgs).argmax(1)
         logger.debug(f"{len(clipped_adv_imgs)} adversarial examples (og->adv): "
                      f"{original_preds}->{adv_preds}.")
+        # todo: adv examples often appear to be in 'loops' like in paper:
+        #  "Counterfactual Explanations for Remote Sensing Time Series Data:
+        #   An Application to Land Cover Classification"
 
         # Only compare similarity of explanations where the model predictions changed
         # since the explanations should reflect the underlying model (and change a lot)

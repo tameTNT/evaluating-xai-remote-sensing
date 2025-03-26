@@ -108,7 +108,7 @@ class Explainer:
 
         if self.explanation is not None:
             equal, diff = tolerant_equal(self.input, x.to(self.device))
-            logger.debug(f"self.input and x {'are' if equal else 'are not'} equal with diff={diff}.")
+            logger.debug(f"self.input and x {'are' if equal else 'are not'} ~equal with diff={diff}.")
             return equal
         else:
             return False
