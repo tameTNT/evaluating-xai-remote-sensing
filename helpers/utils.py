@@ -16,8 +16,21 @@ def get_torch_device() -> torch.device:
         logger.debug(f"Found {torch.cuda.get_device_name()} to use as a cuda device.")
 
     elif platform.system() == "Darwin":
-        torch_device = torch.device("mps")
+        # noinspection PyTypeChecker
+        if torch.torch_version.TorchVersion(torch.__version__) >= (2, 6):
+            torch_device = torch.device("mps")
+        else:
+            # See https://github.com/pytorch/pytorch/issues/142344
 
+            # Example error when running GradCAM explainer using MPS device:
+            #   File ".../site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+            #     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+            #   RuntimeError: view size is not compatible with input tensor's size and stride
+            #   (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+
+            logger.warning("MPS with backward graph computations is only fixed in PyTorch 2.6.0 and later. "
+                           "Falling back to cpu.")
+            torch_device = torch.device("cpu")
     else:
         torch_device = torch.device("cpu")
     logger.info(f"Using {torch_device} as torch device.")
