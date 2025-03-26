@@ -125,6 +125,12 @@ if __name__ == "__main__":
         action="store_true",
         help="If set, visualise the explanations generated and evaluations performed.",
     )
+    script_meta_group.add_argument(
+        "--h5_output_name",
+        type=str,
+        default="evaluation_output.h5",
+        help="Name of the HDF5 file to store the evaluation results in. Defaults to 'evaluation_output.h5'.",
+    )
 
     options_group = parser.add_argument_group("Primary Options",
                                               "Specify key options for the script. All required.")
@@ -239,6 +245,7 @@ if __name__ == "__main__":
     num_workers: int = args.num_workers
     batch_size: int = args.batch_size
     visualise: bool = args.visualise
+    h5_output_name: str = args.h5_output_name
 
     dataset_name: dataset_processing.DATASET_NAMES = args.dataset_name
     normalisation_type: str = args.normalisation_type
@@ -284,8 +291,23 @@ if __name__ == "__main__":
         "compactness : threshold_score"
     ], index=dataset.classes)  # new row for each dataset class
 
+    h5_output_path = helpers.env_var.get_project_root() / "results" / explainer_name / h5_output_name
+    if not h5_output_path.parent.exists():
+        h5_output_path.parent.mkdir(parents=True)
+
+    store = pd.HDFStore(str(h5_output_path))
+    df_name = f"{dataset_name}_{model_name}"
+    if df_name not in store:
+        store[df_name] = results_df
+
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
+
+        existing_df = store[df_name].loc[dataset.classes[c]]
+        if existing_df.isna().sum() == 0:
+            logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
+            continue
+
         class_idxs = np.where(classes == c)[0]
 
         num_samples_to_take = samples_per_class
@@ -392,8 +414,9 @@ if __name__ == "__main__":
             compactness_scores.mean(),
         ]
 
-    store = pd.HDFStore(str(Path(explainer_name)/"output.h5"))
-    store[f"{dataset_name}_{model_name}"] = results_df  # saves results_df object to HDF5 file
+        store[df_name] = results_df  # saves updated results_df object to HDF5 file
+
+    store.close()
 
 else:
     raise RuntimeError("Please run this script from the command line.")
