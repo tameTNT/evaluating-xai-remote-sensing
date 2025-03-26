@@ -16,6 +16,7 @@ import models
 import dataset_processing
 import xai
 import evaluate_xai.deletion
+from evaluate_xai import Similarity
 from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 from evaluate_xai.continuity import Continuity
@@ -72,6 +73,7 @@ def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Expla
         explainer = xai.get_explainer_object(
             explainer_name, model_to_explain,
             extra_path=Path(dataset_name) / f"c{class_idx:02}" / f"b{i:03}",
+            attempt_load=batch,
         )
         if not explainer.has_explanation_for(batch):
             logger.debug(f"No existing explanation for batch {i} of class {class_idx}. Generating new ones.")
@@ -79,6 +81,11 @@ def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Expla
         explainers.append(explainer)
 
     return explainers
+
+
+def evaluate_sim_to_array(sim: Similarity) -> np.array:
+    sim_return_dict = sim(l2_normalise=True, intersection_k=similarity_intersection_k)
+    return np.stack([sim_return_dict[m] for m in available_sim_metrics])
 
 
 if __name__ == "__main__":
@@ -154,17 +161,40 @@ if __name__ == "__main__":
         choices=t.get_args(xai.EXPLAINER_NAMES),
         help="Name of the xAI method to evaluate.",
     )
+    metric_options = parser.add_argument_group("Metric Options",
+                                               "Options for specific evaluation metrics.")
+    metric_options.add_argument(
+        "--output_completeness_threshold",
+        type=float,
+        default=0.2,
+        help="Proportion of images to delete/preserve for output completeness evaluation metrics. "
+             "Defaults to 0.2.",
+    )
+    metric_options.add_argument(
+        "--continuity_perturbation_degree",
+        type=float,
+        default=0.15,
+        help="Severity of perturbation to apply for continuity evaluation. "
+             "Defaults to 0.15.",
+    )
+    metric_options.add_argument(
+        "--compactness_threshold",
+        type=float,
+        default=0.5,
+        help="Threshold to use for compactness evaluation. "
+             "Defaults to 0.5.",
+    )
 
-    evaluation_group = parser.add_argument_group("Evaluation Options",
-                                                 "Options for the evaluation of the xAI method.")
-    evaluation_group.add_argument(
+    shared_options = parser.add_argument_group("Shared Options",
+                                               "General shared options for xAI evaluation.")
+    shared_options.add_argument(
         "--samples_per_class",
         type=int,
         default=0,
         help="Number of samples to evaluate per class. If not given or <=0, "
              "generates explanations for all samples in the class.",
     )
-    evaluation_group.add_argument(
+    shared_options.add_argument(
         "--deletion_method",
         type=str,
         default="shuffle",
@@ -172,21 +202,21 @@ if __name__ == "__main__":
         help="Method to use for deletion/perturbation-related evaluation methods. "
              "Defaults to 'shuffle'.",
     )
-    evaluation_group.add_argument(
+    shared_options.add_argument(
         "--deletion_iterations",
         type=int,
         default=15,
         help="Number of iterations to use for the incremental methods. "
              "Defaults to 15.",
     )
-    evaluation_group.add_argument(
+    shared_options.add_argument(
         "--num_random_trials",
         type=int,
         default=5,
-        help="Number of random trials to use for the methods with a random comparison. "
+        help="Number of random trials to use for the methods with a random comparison element. "
              "Defaults to 5.",
     )
-    evaluation_group.add_argument(
+    shared_options.add_argument(
         "--similarity_intersection_proportion",
         type=float,
         default=0.1,
@@ -208,12 +238,17 @@ if __name__ == "__main__":
     model_name: models.MODEL_NAMES = args.model_name
     explainer_name: xai.EXPLAINER_NAMES = args.explainer_name
 
+    output_completeness_threshold: float = args.output_completeness_threshold
+    continuity_perturbation_degree: float = args.continuity_perturbation_degree
+    compactness_threshold: float = args.compactness_threshold
+
     samples_per_class: int = args.samples_per_class
     deletion_method: evaluate_xai.deletion.METHODS = args.deletion_method
     deletion_iterations: int = args.deletion_iterations
     num_random_trials: int = args.num_random_trials
     similarity_intersection_proportion: float = args.similarity_intersection_proportion
-    
+
+    print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
     logger.info(f"Successfully got script arguments: {args}.")
 
     torch.manual_seed(random_seed)
@@ -239,7 +274,7 @@ if __name__ == "__main__":
         *[f"contrastivity : adversarial_attack_similarity : {metric_name}" for metric_name in available_sim_metrics],
         # ↑, near 1
         "compactness : threshold_score"
-    ], index=range(dataset.N_CLASSES))
+    ], index=dataset.classes)  # new row for each dataset class
 
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
@@ -265,14 +300,18 @@ if __name__ == "__main__":
             plt.title(f"Explanations for Class {c:02}")
             plt.show()
 
-        # ==== Evaluate Correctness ====
-        correctness = Correctness(combined_exp, max_batch_size=batch_size)
+        # ==== Evaluate Co12 Metrics ====
+        metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
+        # todo: set leave=False on all tqdm calls within these
 
-        correctness_mr_similarity_dict = correctness.evaluate(
+        # == Evaluate Correctness ==
+        correctness = Correctness(**metric_kwargs)
+
+        correctness_similarity = correctness.evaluate(
             method="model_randomisation", visualise=visualise,
-        )(l2_normalise=True, intersection_k=similarity_intersection_k)
-        # convert dict to array in order given by available_sim_metrics (which dictates column order)
-        similarity_with_randomised = np.stack([correctness_mr_similarity_dict[m] for m in available_sim_metrics])
+        )
+        # Evaluate Similarity object to array in order given by available_sim_metrics (dictates column order)
+        correctness_similarity_vals = evaluate_sim_to_array(correctness_similarity)
 
         correctness_id_dict = correctness.evaluate(
             method="incremental_deletion",
@@ -281,17 +320,52 @@ if __name__ == "__main__":
             random_seed=random_seed, visualise=visualise,
         )
 
-        # ==== Evaluate Output Completeness ====
-        # todo
+        # == Evaluate Output Completeness ==
+        output_completeness = OutputCompleteness(**metric_kwargs)
+        deletion_check = output_completeness.evaluate(
+            method="deletion_check", deletion_method=deletion_method,
+            threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+            random_seed=random_seed, visualise=visualise,
+        )
+        preservation_check = output_completeness.evaluate(
+            method="preservation_check", deletion_method=deletion_method,
+            threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+            random_seed=random_seed, visualise=visualise,
+        )
 
-        # ==== Save all results in the dataframe ====
-        results_df.loc[c] = [
+        # == Evaluate Continuity ==
+        continuity = Continuity(**metric_kwargs)
+        continuity_similarity = continuity.evaluate(
+            method="perturbation", visualise=visualise,
+            degree=continuity_perturbation_degree, random_seed=random_seed,
+        )
+        continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
+
+        # == Evaluate Contrastivity ==
+        contrastivity = Contrastivity(**metric_kwargs)
+        contrastivity_similarity = contrastivity.evaluate(
+            method="adversarial_attack", visualise=visualise,
+        )
+        contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
+
+        # == Evaluate Compactness ==
+        compactness = Compactness(**metric_kwargs)
+        compactness_scores = compactness.evaluate(
+            method="threshold", threshold=compactness_threshold, visualise=visualise,
+        )
+
+        # ==== Save all results in the dataframe's row for that class ====
+        results_df.loc[dataset.classes[c]] = [
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
-            *similarity_with_randomised.mean(axis=1),
+            *correctness_similarity_vals.mean(axis=1),
             # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
             # We expect the AUC of informed deletion < randomised one, so ratio should be small
             (correctness_id_dict["informed"]/correctness_id_dict["random"]).mean(),
-            # todo: include remaining Co12 metrics
+            deletion_check.mean(),
+            preservation_check.mean(),
+            *continuity_similarity_vals.mean(axis=1),
+            *contrastivity_similarity_vals.mean(axis=1),
+            compactness_scores.mean(),
         ]
 
     store = pd.HDFStore(str(Path(explainer_name)/"output.h5"))
