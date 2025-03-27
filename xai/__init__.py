@@ -36,6 +36,7 @@ class Explainer:
             model: Model,
             extra_path: Path = Path(""),
             attempt_load: torch.Tensor = None,
+            batch_size: int = 0,
     ):
         """
         Initialise an Explainer object. Can generate explanations using .explain()
@@ -58,6 +59,8 @@ class Explainer:
         self.kwargs = dict()
         # All explanations should attribute one value to each pixel of each image in the batch
         self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
+
+        self.batch_size = batch_size
 
         self.attempt_load = attempt_load
         if self.attempt_load is not None:
@@ -119,7 +122,7 @@ class Explainer:
             **kwargs
     ):
         logger.info(f"Generating explanations in {self.__class__.__name__} "
-                    f"for x.shape={x.shape} with kwargs={kwargs}.")
+                    f"for x.shape={x.shape} with kwargs={kwargs}. Using batch_size={self.batch_size}.")
         self.input = x.to(self.device)
         self.kwargs = kwargs
 

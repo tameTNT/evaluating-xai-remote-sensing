@@ -41,9 +41,6 @@ class Contrastivity(Co12Metric):
             attack_kwargs = {"steps": 50, "candidates": 5}
 
         original_preds = self.run_model(self.exp.input).argmax(1)
-        # We don't care about the images' true labels,
-        # just the model's original predictions (and associated explanation)
-        criteria = foolbox.criteria.Misclassification(torch.from_numpy(original_preds).to(self.exp.device))
 
         # check for existing generated adversarial images to save having to regenerate
         need_to_generate = True
@@ -64,17 +61,35 @@ class Contrastivity(Co12Metric):
 
         # if no existing adversarial images, generate them
         if need_to_generate:
-            logger.info("No existing adversarial images. Generating new ones via foolbox.")
+            img_outputs = []
+            attack_batch_size = self.max_batch_size
+            if attack_batch_size == 0:
+                attack_batch_size = self.exp.input.shape[0]
+
+            logger.info(f"No existing adversarial images. "
+                        f"Generating new ones via foolbox with batch size {attack_batch_size}.")
             foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=img_bounds)
 
-            # WARNING: there is a rogue call to the base logging.info() on
-            # line 127 of foolbox/attacks/deepfool.py which should be commented out.
-            # Otherwise, all logging calls are printed to the terminal
-            # noinspection PyCallingNonCallable
-            _, clipped_adv_imgs, success = attack(**attack_kwargs)(
-                foolbox_model, self.exp.input, criteria, epsilons=0.01,
-            )
+            for batch_input, batch_preds in zip(
+                    helpers.utils.make_device_batches(
+                        self.exp.input, attack_batch_size, self.exp.device),
+                    helpers.utils.make_device_batches(
+                        torch.from_numpy(original_preds), attack_batch_size, self.exp.device),
+            ):
+                # We don't care about the images' true labels,
+                # just the model's original predictions (and associated explanation)
+                batch_criteria = foolbox.criteria.Misclassification(batch_preds)
 
+                # WARNING: there is a rogue call to the base logging.info() on
+                # line 127 of foolbox/attacks/deepfool.py which should be commented out.
+                # Otherwise, all logging calls are printed to the terminal
+                # noinspection PyCallingNonCallable
+                _, clipped_adv_imgs, _ = attack(**attack_kwargs)(
+                    foolbox_model, batch_input, batch_criteria, epsilons=0.01,
+                )
+                img_outputs.append(clipped_adv_imgs)
+
+            clipped_adv_imgs = torch.cat(img_outputs, dim=0)
             np.savez_compressed(previous_adv_output_path,
                                 clipped_adv_imgs=clipped_adv_imgs.numpy(force=True),
                                 original_imgs=self.exp.input.numpy(force=True))

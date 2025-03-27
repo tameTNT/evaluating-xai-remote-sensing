@@ -5,6 +5,7 @@ from pytorch_grad_cam import KPCA_CAM as OriginalKPCACAM
 # from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import torch
 from jaxtyping import Float
+import numpy as np
 
 import helpers
 from xai import Explainer
@@ -33,13 +34,22 @@ class GradCAMBase(Explainer):
             self.model, target_layers=self.model.get_explanation_target_layers(),
             reshape_transform=self.model.reshape_transform
         )
-        cam_output = gradcam_explainer(
-            input_tensor=x,
-            aug_smooth=False, eigen_smooth=False,  # todo: add these as options
-            targets=None
-        )  # if no targets specified, uses the model's output
 
-        self.explanation = cam_output  # no additional processing needed
+        outputs = []
+        cam_batch_size = self.batch_size
+        if cam_batch_size == 0:  # if no batch size given, just pass the whole tensor
+            cam_batch_size = x.shape[0]
+
+        for batch_input in helpers.utils.make_device_batches(x, cam_batch_size, self.device):
+            cam_output: np.ndarray = gradcam_explainer(
+                input_tensor=batch_input,
+                aug_smooth=False, eigen_smooth=False,  # todo: add these as options
+                targets=None
+            )  # no targets specified, so uses the model's output/most confident prediction
+            outputs.append(cam_output)
+
+        cam_output = np.concatenate(outputs, axis=0)
+        self.explanation = cam_output  # no additional processing needed (already numpy with correct channels)
         self.save_state()
 
 

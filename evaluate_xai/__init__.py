@@ -188,7 +188,7 @@ class Co12Metric:
         preds = []
         for minibatch in tqdm(
                 helpers.utils.make_device_batches(x, self.max_batch_size, model_device),
-                total=np.ceil(x.shape[0] / self.max_batch_size).astype(int), ncols=110,
+                total=np.ceil(x.shape[0] / self.max_batch_size).astype(int), unit="batch", ncols=110,
                 desc=f"Predicting for {self.__class__.__name__}", leave=False,
         ):
             batch_preds = self.exp.model(minibatch).softmax(dim=-1).detach().cpu()
@@ -207,6 +207,7 @@ class Co12Metric:
 
         new_exp = self.exp.__class__(
             model, extra_path=self.exp.extra_path/name, attempt_load=x,
+            batch_size=self.max_batch_size,  # new explainers should use the same batch size
         )
         if not new_exp.has_explanation_for(x):
             logger.info(f"No existing explanation found for provided samples "

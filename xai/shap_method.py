@@ -34,7 +34,7 @@ class PartitionSHAP(Explainer):
         :param max_evals: Maximum number of partition explainer evaluations to
             perform. Effectively controls the 'resolution' of the explanation
             with a factor of 10 approximately doubling the resolution.
-        :param batch_size: Batch size for evaluation.
+        :param batch_size: Batch size for evaluation. Does not need to store gradients from each so this can be high.
           e.g. batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
         :return:
         """

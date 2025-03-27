@@ -39,6 +39,7 @@ class Compactness(Co12Metric):
         """
 
         abs_exp = np.abs(self.exp.explanation)  # negative values also contribute to visual clutter
+        # fixme: invalid value encountered in divide? can this be 0 somehow?
         norm_exp: np.ndarray = abs_exp / abs_exp.max(axis=(1, 2), keepdims=True)
 
         if self.visualise:
