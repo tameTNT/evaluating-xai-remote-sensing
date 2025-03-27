@@ -1,7 +1,7 @@
-/.idea
-/.run
+/.idea/
+/.run/
 
-/.logs
+/.logs/
 *.log
 
 /checkpoints/
@@ -10,12 +10,12 @@
 /xai_output_unix/
 /xai_output_windows/
 
-*/*__pycache__/
+**/*__pycache__/
 *pycharm-support-libs/
 .ipynb_checkpoints/
 
 /slurm_ncc/train_model_temp.batch
-/memory_dumps/
+/memory_dumps
 
 /inconsistent_platform_behaviour/*.pt
 /inconsistent_platform_behaviour/*.npz

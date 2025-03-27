@@ -12,7 +12,7 @@
 #SBATCH --mail-type=BEGIN
 
 #SBATCH --job-name=AMPsat_port_jupyter
-#SBATCH -o /home2/jgcw74/l3_project/.logs/1.1jupyterOnPortAMP.log
+#SBATCH -o /home2/jgcw74/l3_project/.logs/slurm/1.1jupyterOnPortAMP.log
 
 ##Activate conda and environment
 eval "$(conda shell.bash hook)"

@@ -13,7 +13,7 @@ printf '%s\n' "#!/bin/bash" \
        "#SBATCH --mail-user=jgcw74@durham.ac.uk" \
        "#SBATCH --mail-type=BEGIN" \
        "#SBATCH --job-name=$1" \
-       "#SBATCH -o /home2/jgcw74/l3_project/.logs/$1.log" \
+       "#SBATCH -o /home2/jgcw74/l3_project/.logs/slurm/$1.log" \
        "##Activate conda and environment" \
        "eval $(conda shell.bash hook)" \
        "conda activate sat_project" \
