@@ -141,7 +141,7 @@ if __name__ == "__main__":
     script_meta_group.add_argument(
         "--h5_output_name",
         type=str,
-        default="evaluation_output.h5",
+        default="evaluation_output",
         help="Name of the HDF5 file to store the evaluation results in. Defaults to 'evaluation_output.h5'.",
     )
 
@@ -246,8 +246,8 @@ if __name__ == "__main__":
         "--similarity_intersection_proportion",
         type=float,
         default=0.1,
-        help="Proportional of image pixels to use for the intersection similarity metric. "
-             "Defaults to 10% (0.1).",
+        help="Proportion of image pixels to use for the intersection similarity metric. "
+             "Defaults to 0.1.",
     )
     shared_options.add_argument(
         "--min_samples_for_similarity",
@@ -316,10 +316,10 @@ if __name__ == "__main__":
     if not h5_output_path.exists():
         h5_output_path.mkdir(parents=True)
 
-    store_for_explainer_name = pd.HDFStore(str(h5_output_path / h5_output_name), mode="a")
+    store_for_explainer_name = pd.HDFStore(f"{h5_output_path / h5_output_name}.h5", mode="a")
     ds_model_df_name = f"{dataset_name}_{model_name}"
 
-    json_parameters_path = h5_output_path / "parameters.json"
+    json_parameters_path = h5_output_path / f"{h5_output_name}_parameters.json"
     if ds_model_df_name not in store_for_explainer_name:
         store_for_explainer_name[ds_model_df_name] = results_df
         # noinspection PyTypeChecker
@@ -408,7 +408,7 @@ if __name__ == "__main__":
         if len(continuity_similarity.return_idxs) < min_samples_for_similarity:
             logger.warning(f"Model outputs changed on too many perturbed samples for class {c} meaning there are "
                            f"not enough samples for min_samples threshold ({min_samples_for_similarity}). "
-                           "Skipping continuity evaluation for this class. Using -inf values.")
+                           "Skipping continuity evaluation for this class: using -inf values.")
             continuity_similarity_vals = sim_inf_array
         else:
             continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
@@ -421,7 +421,7 @@ if __name__ == "__main__":
         if len(contrastivity_similarity.return_idxs) < min_samples_for_similarity:
             logger.warning(f"Not a sufficient number of successful adversarial attacks for class {c} to "
                            f"meet min_samples threshold ({min_samples_for_similarity}). "
-                           "Skipping contrastivity evaluation for this class. Using -inf values.")
+                           "Skipping contrastivity evaluation for this class: using -inf values.")
             contrastivity_similarity_vals = sim_inf_array
         contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
 
@@ -434,7 +434,7 @@ if __name__ == "__main__":
         # ==== Save all results in the dataframe's row for that class ====
         logger.info("Saving calculated evaluation metrics to results dataframe...")
         # Use pd.to_numeric (converts numpy array objects) since we require numeric
-        # values for HDF5 for fast saving/loading
+        # values for HDF5 for fast saving/loading fixme: still gives a warning??
         results_df.loc[dataset.classes[c]] = pd.to_numeric([
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
@@ -451,6 +451,6 @@ if __name__ == "__main__":
         store_for_explainer_name[ds_model_df_name] = results_df  # saves updated results_df object to HDF5 file
 
     store_for_explainer_name.close()  # close the HDF5 file after reading/writing to it!
-
+    logger.info(f"HDF5 file ({h5_output_path / h5_output_name}) closed successfully. Script execution complete.")
 else:
     raise RuntimeError("Please run this script from the command line.")
