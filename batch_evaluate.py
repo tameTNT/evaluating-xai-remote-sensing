@@ -375,71 +375,79 @@ if __name__ == "__main__":
             plt.show()
 
         # ==== Evaluate Co12 Metrics ====
-        # todo: create tqdm bar that tracks each metric progress overall
-        metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
-        sim_inf_array = np.zeros((len(available_sim_metrics), combined_exp.input.shape[0])) - np.inf
+        with tqdm(total=7, ncols=110, desc="Calculating metrics", leave=False) as metric_pbar:
+            metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
+            sim_inf_array = np.zeros((len(available_sim_metrics), combined_exp.input.shape[0])) - np.inf
 
-        # == Evaluate Correctness ==
-        logger.info("Evaluating generated explanations...")
-        correctness = Correctness(**metric_kwargs)
+            # == Evaluate Correctness ==
+            logger.info("Evaluating generated explanations...")
+            correctness = Correctness(**metric_kwargs)
 
-        correctness_similarity = correctness.evaluate(
-            method="model_randomisation", visualise=visualise,
-        )
-        # Evaluate Similarity object to array in order given by available_sim_metrics (dictates column order)
-        correctness_similarity_vals = evaluate_sim_to_array(correctness_similarity)
+            correctness_similarity = correctness.evaluate(
+                method="model_randomisation", visualise=visualise,
+            )
+            # Evaluate Similarity object to array in order given by available_sim_metrics (dictates column order)
+            correctness_similarity_vals = evaluate_sim_to_array(correctness_similarity)
+            metric_pbar.update()
 
-        correctness_id_dict = correctness.evaluate(
-            method="incremental_deletion",
-            deletion_method=deletion_method,
-            iterations=deletion_iterations, n_random_rankings=num_random_trials,
-            random_seed=random_seed, visualise=visualise,
-        )
+            correctness_id_dict = correctness.evaluate(
+                method="incremental_deletion",
+                deletion_method=deletion_method,
+                iterations=deletion_iterations, n_random_rankings=num_random_trials,
+                random_seed=random_seed, visualise=visualise,
+            )
+            metric_pbar.update()
 
-        # == Evaluate Output Completeness ==
-        output_completeness = OutputCompleteness(**metric_kwargs)
-        deletion_check = output_completeness.evaluate(
-            method="deletion_check", deletion_method=deletion_method,
-            threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
-            random_seed=random_seed, visualise=visualise,
-        )
-        preservation_check = output_completeness.evaluate(
-            method="preservation_check", deletion_method=deletion_method,
-            threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
-            random_seed=random_seed, visualise=visualise,
-        )
+            # == Evaluate Output Completeness ==
+            output_completeness = OutputCompleteness(**metric_kwargs)
+            deletion_check = output_completeness.evaluate(
+                method="deletion_check", deletion_method=deletion_method,
+                threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+                random_seed=random_seed, visualise=visualise,
+            )
+            metric_pbar.update()
 
-        # == Evaluate Continuity ==
-        continuity = Continuity(**metric_kwargs)
-        continuity_similarity = continuity.evaluate(
-            method="perturbation", visualise=visualise,
-            degree=continuity_perturbation_degree, random_seed=random_seed,
-        )
-        if len(continuity_similarity.return_idxs) < min_samples_for_similarity:
-            logger.warning(f"Model outputs changed on too many perturbed samples for class {c} meaning there are "
-                           f"not enough samples for min_samples threshold ({min_samples_for_similarity}). "
-                           "Skipping continuity evaluation for this class: using -inf values.")
-            continuity_similarity_vals = sim_inf_array
-        else:
-            continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
+            preservation_check = output_completeness.evaluate(
+                method="preservation_check", deletion_method=deletion_method,
+                threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+                random_seed=random_seed, visualise=visualise,
+            )
+            metric_pbar.update()
 
-        # == Evaluate Contrastivity ==
-        contrastivity = Contrastivity(**metric_kwargs)
-        contrastivity_similarity = contrastivity.evaluate(
-            method="adversarial_attack", visualise=visualise,
-        )
-        if len(contrastivity_similarity.return_idxs) < min_samples_for_similarity:
-            logger.warning(f"Not a sufficient number of successful adversarial attacks for class {c} to "
-                           f"meet min_samples threshold ({min_samples_for_similarity}). "
-                           "Skipping contrastivity evaluation for this class: using -inf values.")
-            contrastivity_similarity_vals = sim_inf_array
-        contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
+            # == Evaluate Continuity ==
+            continuity = Continuity(**metric_kwargs)
+            continuity_similarity = continuity.evaluate(
+                method="perturbation", visualise=visualise,
+                degree=continuity_perturbation_degree, random_seed=random_seed,
+            )
+            if len(continuity_similarity.return_idxs) < min_samples_for_similarity:
+                logger.warning(f"Model outputs changed on too many perturbed samples for class {c} meaning there are "
+                               f"not enough samples for min_samples threshold ({min_samples_for_similarity}). "
+                               "Skipping continuity evaluation for this class: using -inf values.")
+                continuity_similarity_vals = sim_inf_array
+            else:
+                continuity_similarity_vals = evaluate_sim_to_array(continuity_similarity)
+            metric_pbar.update()
 
-        # == Evaluate Compactness ==
-        compactness = Compactness(**metric_kwargs)
-        compactness_scores = compactness.evaluate(
-            method="threshold", threshold=compactness_threshold, visualise=visualise,
-        )
+            # == Evaluate Contrastivity ==
+            contrastivity = Contrastivity(**metric_kwargs)
+            contrastivity_similarity = contrastivity.evaluate(
+                method="adversarial_attack", visualise=visualise,
+            )
+            if len(contrastivity_similarity.return_idxs) < min_samples_for_similarity:
+                logger.warning(f"Not a sufficient number of successful adversarial attacks for class {c} to "
+                               f"meet min_samples threshold ({min_samples_for_similarity}). "
+                               "Skipping contrastivity evaluation for this class: using -inf values.")
+                contrastivity_similarity_vals = sim_inf_array
+            contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
+            metric_pbar.update()
+
+            # == Evaluate Compactness ==
+            compactness = Compactness(**metric_kwargs)
+            compactness_scores = compactness.evaluate(
+                method="threshold", threshold=compactness_threshold, visualise=visualise,
+            )
+            metric_pbar.update()
 
         # ==== Save all results in the dataframe's row for that class ====
         logger.info("Saving calculated evaluation metrics to results dataframe...")
