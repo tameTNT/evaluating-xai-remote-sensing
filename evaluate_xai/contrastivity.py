@@ -51,11 +51,20 @@ class Contrastivity(Co12Metric):
                 clipped_adv_imgs = torch.from_numpy(data["clipped_adv_imgs"]).to(self.exp.device)
                 temp = torch.from_numpy(data["original_imgs"]).to(self.exp.device)
 
-            if torch.equal(temp, self.exp.input):
-                logger.info("Saved adversarial images match current explanation input. Loaded.")
+            if temp.shape != self.exp.input.shape:
+                num_desired = self.exp.input.shape[0]
+            else:
+                num_desired = temp.shape[0]
+
+            if torch.equal(temp[:num_desired], self.exp.input):
+                logger.info("Saved adversarial images match current explanation input. "
+                            "Loaded and skipping generation.")
+                clipped_adv_imgs = clipped_adv_imgs[:num_desired]
+                logger.warning(f"Only needed to use the first {num_desired} images from the saved adversarial images.")
                 need_to_generate = False
             else:
-                logger.warning("Saved adversarial images do not match current explanation input.")
+                logger.warning(f"Saved adversarial images (shape={temp.shape}) do not match "
+                               f"current explanation input (shape={self.exp.input.shape}).")
 
         # if no existing adversarial images, generate them
         if need_to_generate:
