@@ -33,7 +33,7 @@ def get_data_and_model() -> tuple:
 
     model_type = models.get_model_type(model_name)
     ds = dataset_processing.get_dataset_object(
-        dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test in production
+        dataset_name, "test", model_type.expected_input_dim,
         normalisation_type=normalisation_type, use_resize=True,
         batch_size=batch_size, num_workers=num_workers, device=torch_device,
         download=False,
