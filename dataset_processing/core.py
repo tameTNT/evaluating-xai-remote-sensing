@@ -192,6 +192,7 @@ class RSDatasetMixin:
 
         # normalised images are in the range [-1, 1] originally
         if self.mean.nonzero().numel() > 0:  # either via explicit mean/std
+            # futuretodo: this doesn't work for multichannel images properly - at least not EuroSATMS
             b, c, h, w = images.shape
             assert c == 3, f"Expected 3 channels only when inverting for display, got {c} instead."
 

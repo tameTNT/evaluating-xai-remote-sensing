@@ -456,7 +456,8 @@ if __name__ == "__main__":
                                f"meet min_samples threshold ({min_samples_for_similarity}). "
                                "Skipping contrastivity evaluation for this class: using -inf values.")
                 contrastivity_similarity_vals = sim_inf_array
-            contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
+            else:
+                contrastivity_similarity_vals = evaluate_sim_to_array(contrastivity_similarity)
             metric_pbar.update()
 
             # == Evaluate Compactness ==

@@ -87,6 +87,13 @@ class Contrastivity(Co12Metric):
                 # just the model's original predictions (and associated explanation)
                 batch_criteria = foolbox.criteria.Misclassification(batch_preds)
 
+                # Images may be out of bounds slightly due to naive normalisation
+                batch_min, batch_max = batch_input.min(), batch_input.max()
+                if batch_min < img_bounds[0] or batch_max > img_bounds[1]:
+                    logger.warning(f"Input images were outside the bounds {img_bounds}: "
+                                   f"min={batch_min}, max={batch_max}. Clamping.")
+                    batch_input = batch_input.clamp(img_bounds[0], img_bounds[1])
+
                 # WARNING: there is a rogue call to the base logging.info() on
                 # line 127 of foolbox/attacks/deepfool.py which should be commented out.
                 # Otherwise, all logging calls are printed to the terminal

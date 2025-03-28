@@ -2,6 +2,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import time
+import os
+
+# import multiprocess
 
 import helpers.env_var
 
@@ -12,6 +15,7 @@ LOG_DIR.mkdir(parents=False, exist_ok=True)
 def get_logger(name: str) -> logging.Logger:
     # Basic setup mirrors https://docs.python.org/3/howto/logging-cookbook.html#using-logging-in-multiple-modules
     active_logger = logging.getLogger(name)
+
     if not active_logger.handlers:  # avoid adding handlers multiple times
         active_logger.setLevel(logging.DEBUG)
 
@@ -19,8 +23,8 @@ def get_logger(name: str) -> logging.Logger:
         log_path = LOG_DIR / f"{name}.log"
         # File opening is deferred until first emit()/logging call by delay=True arg
         fh = RotatingFileHandler(log_path, mode="a", delay=True, backupCount=5)
-        if log_path.is_file():  # check if file already exists (not written to yet by this process since delay=True)
-            fh.doRollover()  # archive (add .1/.2/etc.) the old log file if it exists
+        # if log_path.is_file():  # check if file already exists (not written to yet by this process since delay=True)
+        #     fh.doRollover()  # archive (add .1/.2/etc.) the old log file if it exists
 
         fh.setLevel(logging.DEBUG)
 
@@ -49,4 +53,8 @@ def get_logger(name: str) -> logging.Logger:
 
 
 # exported for modules to import and use
-main_logger = get_logger(f"main_{time.time()}")
+# if multiprocess.parent_process() is None:  # this process is the main process
+#     main_logger = get_logger(f"main_{int(time.time())}")
+# else:
+#     main_logger = get_logger(f"mp_{int(time.time())}")
+main_logger = get_logger(f"main_{int(time.time())}_{os.getpid()}")
