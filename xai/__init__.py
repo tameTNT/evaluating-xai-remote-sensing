@@ -57,7 +57,7 @@ class Explainer:
 
         self.input = torch.tensor(0).to(self.device)
         self.kwargs = dict()
-        # All explanations should attribute one value to each pixel of each image in the batch
+        # All explanations should attribute just one value to each pixel of each image in the batch
         self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
 
         # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
@@ -147,11 +147,11 @@ class Explainer:
         json.dump(self.kwargs, self.json_path.open("w+"))
 
         logger.debug(f"Saved {self.__class__.__name__}'s explanation "
-                     f"to {self.npz_path}.")
+                     f"to {self.npz_path} (kwargs={self.kwargs}).")
 
     def load_state(self):
         """
-        Loads self.input, self.args and self.explanation from self.npz_path
+        Loads self.input, self.kwargs and self.explanation from self.npz_path
         """
 
         logger.debug(f"Attempting to load explanation from "
@@ -174,7 +174,7 @@ class Explainer:
         # todo: enforce kwargs are the same as given (for explanation generated in same way)
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
-                    f"with kwargs={self.kwargs}.")
+                    f"with kwargs set to {self.kwargs}.")
 
     def __or__(self, other: "Explainer") -> "Explainer":
         """
@@ -205,6 +205,7 @@ class Explainer:
         new_exp = self.__class__(self.model)
         new_exp.input = torch.cat([self.input, other.input], dim=0)
         new_exp.explanation = np.concatenate([self.explanation, other.explanation], axis=0)
+        new_exp.kwargs = self.kwargs
         new_exp.attempt_load = None
 
         return new_exp
