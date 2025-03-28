@@ -1,3 +1,6 @@
+import multiprocessing as mp
+from functools import partial
+
 import einops
 import numpy as np
 import shap
@@ -47,11 +50,13 @@ class PartitionSHAP(Explainer):
         np01_x = einops.rearrange((x + 1) / 2, "b c h w -> b h w c").numpy(force=True)
 
         def predict_fn(np_imgs: np.ndarray):
-            model_input_imgs = einops.rearrange(torch.from_numpy(np_imgs * 2) - 1, "b h w c -> b c h w").to(self.device)
-            if model_input_imgs.shape[0] > self.batch_size:  # enforce batch size in case of shap misbehaving
+            model_input_imgs = einops.rearrange(
+                torch.from_numpy(np_imgs * 2) - 1, "b h w c -> b c h w"
+            ).to(self.device)
+
+            if model_input_imgs.shape[0] > self.batch_size:  # enforce batch size in case this function is misused
                 outputs = []
-                for img_batch in helpers.utils.make_device_batches(
-                        model_input_imgs, self.batch_size, self.device):
+                for img_batch in helpers.utils.make_device_batches(model_input_imgs, self.batch_size, self.device):
                     batch_output: torch.Tensor = self.model(img_batch)
                     outputs.append(batch_output)
                 model_output = torch.cat(outputs, dim=0)
@@ -60,21 +65,34 @@ class PartitionSHAP(Explainer):
 
             return model_output.numpy(force=True)
 
-        # todo: use multiprocessing speedup like here: https://github.com/shap/shap/issues/77#issuecomment-2105595557
         blur_str = f"blur({blur_size[0]},{blur_size[1]})"
         blur_masker = shap.maskers.Image(blur_str, np01_x[0].shape)
         explainer = shap.PartitionExplainer(predict_fn, blur_masker, silent=True)
 
         # noinspection PyUnresolvedReferences
-        shap_values = explainer(
-            np01_x,
+        explainer_partial_call = partial(
+            explainer,
             max_evals=max_evals,
             batch_size=shap_batch_size,
             # order from most confident prediction (left) to lowest
             outputs=shap.Explanation.argsort.flip[:1],
         )
 
+        # multiprocessing approach based on https://github.com/shap/shap/issues/77#issuecomment-2105595557
+        logger.info("Beginning multi-process SHAP evaluation...")
+        ctx: mp.context.SpawnContext = mp.get_context("spawn")
+        with ctx.Pool(processes=None) as pool:  # use all available cores/cpus
+            x_mp_batches = [
+                x[start_idx:end_idx]
+                for start_idx, end_idx in zip(
+                    range(0, len(x), shap_batch_size),
+                    range(shap_batch_size, len(x) + shap_batch_size, shap_batch_size),
+                )
+            ]
+            explainer_results: list[shap.Explanation] = pool.map(explainer_partial_call, x_mp_batches)
+            shap_values = np.concatenate([mp_result.values for mp_result in explainer_results])
+
         # only save the most confident prediction (sorted to be first above)
         # summing over the colour channels (final axis of output)
-        self.explanation = shap_values.values[..., 0].sum(-1)
+        self.explanation = shap_values[..., 0].sum(-1)
         self.save_state()
