@@ -60,6 +60,9 @@ class Explainer:
         # All explanations should attribute one value to each pixel of each image in the batch
         self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
 
+        # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
+        # requires gradient store, etc. which takes up a lot of memory, limiting batch size
+        # Note how this is different from a batch_size kwarg for e.g. PartitionSHAP
         self.batch_size = batch_size
 
         self.attempt_load = attempt_load
@@ -122,7 +125,8 @@ class Explainer:
             **kwargs
     ):
         logger.info(f"Generating explanations in {self.__class__.__name__} "
-                    f"for x.shape={x.shape} with kwargs={kwargs}. Using batch_size={self.batch_size}.")
+                    f"for x.shape={x.shape} with kwargs={kwargs} (self.kwargs updated). "
+                    f"General Explainer batch size (with gradients) is {self.batch_size}.")
         self.input = x.to(self.device)
         self.kwargs = kwargs
 

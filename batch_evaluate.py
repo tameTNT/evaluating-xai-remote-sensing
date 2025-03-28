@@ -55,7 +55,7 @@ def get_data_and_model() -> tuple:
 def get_explainer_args() -> dict:
     explain_args = {}
     if explainer_name == "PartitionSHAP":
-        explain_args["batch_size"] = batch_size
+        explain_args["shap_batch_size"] = shap_batch_size
         explain_args["max_evals"] = shap_max_evals
 
     return explain_args
@@ -64,7 +64,8 @@ def get_explainer_args() -> dict:
 def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Explainer]:
     num_batches = int(np.ceil(len(_for_idxs) / batch_size))
     explainers = []
-    for i in tqdm(range(num_batches), unit="batch", ncols=110, leave=False):
+    for i in tqdm(range(num_batches), desc="Generating explanations",
+                  unit="batch", ncols=110, leave=False):
         idxs_for_batch = _for_idxs[i*batch_size:(i+1)*batch_size]
         batch = torch.stack([dataset[j]["image"] for j in idxs_for_batch])
 
@@ -187,6 +188,13 @@ if __name__ == "__main__":
         help="Maximum number of evaluations to use for SHAP methods. "
              "Defaults to 10000.",
     )
+    options_group.add_argument(
+        "--shap_batch_size",
+        type=int,
+        default=0,
+        help="Batch size to use for SHAP methods. Note that no gradients are stored so this "
+             "can be larger than the regular batch size. If 0, defaults to the same as the regular batch size.",
+    )
     metric_options = parser.add_argument_group("Metric Options",
                                                "Options for specific evaluation metrics.")
     metric_options.add_argument(
@@ -272,6 +280,8 @@ if __name__ == "__main__":
     model_name: models.MODEL_NAMES = args.model_name
     explainer_name: xai.EXPLAINER_NAMES = args.explainer_name
     shap_max_evals: int = args.shap_max_evals
+    shap_batch_size: int = args.shap_batch_size
+    shap_batch_size = batch_size if shap_batch_size == 0 else shap_batch_size
 
     output_completeness_threshold: float = args.output_completeness_threshold
     continuity_perturbation_degree: float = args.continuity_perturbation_degree
