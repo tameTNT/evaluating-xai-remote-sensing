@@ -43,7 +43,7 @@ class GradCAMBase(Explainer):
         for batch_input in helpers.utils.make_device_batches(x, cam_batch_size, self.device):
             cam_output: np.ndarray = gradcam_explainer(
                 input_tensor=batch_input,
-                aug_smooth=False, eigen_smooth=False,  # todo: add these as options
+                aug_smooth=False, eigen_smooth=False,  # futuretodo: add these as options
                 targets=None
             )  # no targets specified, so uses the model's output/most confident prediction
             outputs.append(cam_output)

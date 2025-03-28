@@ -18,7 +18,6 @@ SIMILARITY_METRICS = t.Literal["l2_distance", "spearman_rank", "top_k_intersecti
 
 
 class Similarity:
-    # todo: add docstrings
     def __init__(self, exp1: Explainer, exp2: Explainer, mask: np.ndarray[bool] = None):
         x1 = exp1.explanation
         x2 = exp2.explanation
@@ -184,7 +183,8 @@ class Co12Metric:
         x = x.to(model_dtype)
 
         logger.info(f"Generating model predictions on new images (e.g. perturbed) "
-                    f"for {self.__class__.__name__}")
+                    f"for {self.__class__.__name__} with batch size {self.max_batch_size} "
+                    f"for model {self.exp.model.__class__.__name__}.")
         preds = []
         for minibatch in tqdm(
                 helpers.utils.make_device_batches(x, self.max_batch_size, model_device),

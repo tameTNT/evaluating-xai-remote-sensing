@@ -10,7 +10,7 @@ from .swin_transformer import SwinTransformerTiny, SwinTransformerSmall, SwinTra
 logger = log.main_logger
 
 MODEL_NAMES = t.Literal[
-    "ResNet50",  # todo: add ResNet101
+    "ResNet50",  # futuretodo: add ResNet101
     "ConvNeXtTiny", "ConvNeXtSmall", "ConvNeXtBase",
     "SwinTransformerTiny", "SwinTransformerSmall", "SwinTransformerBase"
 ]

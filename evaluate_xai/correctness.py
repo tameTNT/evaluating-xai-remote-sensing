@@ -29,7 +29,7 @@ def visualise_incremental_deletion(
 
 
 class Correctness(Co12Metric):
-    # todo: add docstrings - discuss execution time and add definition from review paper
+    # todo: add docstrings - discuss execution time and add definitions from review paper
 
     def evaluate(
             self,
@@ -148,7 +148,6 @@ class Correctness(Co12Metric):
             fig.tight_layout()
             plt.show()
 
-        # todo: return just one metric here? difference?
         return {"informed": exp_informed_area_under_curve_per_img,
                 "random": random_area_under_curve_per_img}
 

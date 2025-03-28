@@ -68,7 +68,7 @@ def validation_step(
             val_loss_arr = np.append(val_loss_arr, loss.item())
             val_acc_arr = np.append(val_acc_arr, accuracy.item())
 
-    # todo: return some examples of misclassified images?
+    # futuretodo: return some examples of misclassified images?
     return val_loss_arr.mean(), val_acc_arr.mean()
 
 

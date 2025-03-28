@@ -267,8 +267,6 @@ checkpoints_path.mkdir(exist_ok=True)
 logger.debug(f'Checkpoints directory set to {checkpoints_path}.')
 
 model_type = models.get_model_type(model_name)
-# todo: profile memory usage of the model when loading and running on datasets? Big memory usage spike at start?
-#  see logs (.3 and .7 for both EuroSATRGB and PatternNet datasets, ResNet50 and ConvNeXtSmall)
 training_dataset = dataset_processing.get_dataset_object(
     dataset_name, "train", model_type.expected_input_dim,
     normalisation_type=normalisation_type, use_augmentations=use_augmentations, use_resize=use_resize,
@@ -324,7 +322,7 @@ def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
-        patience=5, threshold=0.1  # todo: add these as script args
+        patience=5, threshold=0.1  # futuretodo: add these as script args
     )
     return opt, sch
 
@@ -333,7 +331,7 @@ def train_model(
         train_lr: float,
         is_frozen_model: bool = False,
         train_max_epochs: int = 50,
-        scheduler_reduction_steps: int = 4,  # todo: add as script arg
+        scheduler_reduction_steps: int = 4,  # futuretodo: add as script arg
         early_stop_threshold: float = 0.0001
 ):
     weights_save_path = checkpoints_path / training_dataset.__class__.__name__ / model.__class__.__name__
@@ -371,7 +369,7 @@ def train_model(
                     "optimiser": repr(optimiser),
                     "scheduler": {
                         "name": scheduler.__class__.__name__,
-                        # todo: these attributes are particular to ReduceLROnPlateau
+                        # futuretodo: these attributes are particular to ReduceLROnPlateau - generalise
                         "reduction steps (for /10)": scheduler_reduction_steps,
                         "patience": scheduler.patience,
                         "threshold": scheduler.threshold,
@@ -475,7 +473,7 @@ def train_model(
             if wandb_run:
                 logger.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
-                    model, sampling_iterator, 1  # todo: maybe collect a fixed multiple of the number of classes?
+                    model, sampling_iterator, 1  # futuretodo: maybe collect a fixed multiple of the number of classes?
                 )
                 predicted_labels = sample_outputs.argmax(dim=1)
                 incorrect_mask = predicted_labels != samples_labels

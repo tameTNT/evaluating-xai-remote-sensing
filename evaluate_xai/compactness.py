@@ -11,8 +11,6 @@ logger = helpers.log.main_logger
 
 
 class Compactness(Co12Metric):
-    # todo: add docstrings based on paper
-
     def evaluate(
             self,
             method: t.Literal["threshold"],
@@ -48,7 +46,7 @@ class Compactness(Co12Metric):
             plt.title("Normalised explanations")
             plt.show()
 
-        # todo: Is this even valid for RS images where there are large regions which are relevant?
+        # futurenote: Is this even valid for RS images where there are large regions which are relevant?
         #   so large portions of the image *should* be above the threshold?
         proportion_under_threshold = np.sum(norm_exp <= threshold, axis=(1, 2)) / norm_exp[0].size
 

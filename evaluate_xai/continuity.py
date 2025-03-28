@@ -12,8 +12,6 @@ logger = helpers.log.main_logger
 
 
 class Continuity(Co12Metric):
-    # todo: add docstrings based on paper
-
     def evaluate(
             self,
             method: t.Literal["perturbation"],

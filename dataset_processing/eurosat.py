@@ -41,7 +41,7 @@ class EuroSATBase(EuroSAT, dataset_processing.core.RSDatasetMixin):
             # https://ceurspt.wikidata.dbis.rwth-aachen.de/Vol-2771/AICS2020_paper_50.pdf
         else:
             raise NotImplementedError(f"Unsupported EuroSAT version: {self.variant}")
-            # todo: new combination of bands e.g. NDVI, NDWI, etc.
+            # futuretodo: new combination of bands e.g. NDVI, NDWI, etc.
             #   see indices in https://doi.org/10.5194/isprs-archives-XLIII-B3-2021-369-2021
             #   see also https://torchgeo.readthedocs.io/en/stable/tutorials/transforms.html
 

@@ -13,8 +13,6 @@ logger = helpers.log.main_logger
 
 
 class Contrastivity(Co12Metric):
-    # todo: add docstrings based on paper
-
     def evaluate(
             self,
             method: t.Literal["adversarial_attack"],
@@ -99,7 +97,7 @@ class Contrastivity(Co12Metric):
         adv_preds = self.run_model(clipped_adv_imgs).argmax(1)
         logger.debug(f"{len(clipped_adv_imgs)} adversarial examples (og->adv): "
                      f"{original_preds}->{adv_preds}.")
-        # todo: adv examples often appear to be in 'loops' like in paper:
+        # futurenote: adv examples often appear to be in 'loops' like in paper:
         #  "Counterfactual Explanations for Remote Sensing Time Series Data:
         #   An Application to Land Cover Classification"
 

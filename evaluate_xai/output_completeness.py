@@ -13,8 +13,6 @@ logger = helpers.log.main_logger
 
 
 class OutputCompleteness(Co12Metric):
-    # todo: add docstrings based on paper
-
     def evaluate(
             self,
             method: t.Literal["deletion_check", "preservation_check"],
