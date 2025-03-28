@@ -61,15 +61,15 @@ class PatternNet(PatternNetBase, dataset_processing.core.RSDatasetMixin):
             "val": val_idxs,
             "test": test_idxs
         }
-        # # replace self.imgs with only the imgs in the split
-        # self.imgs = self.imgs[self.split_idxs[self.split]]
+        # replace self.imgs with only the imgs in the split
+        self.imgs = [self.imgs[idx] for idx in self.split_idxs[self.split]]
 
-    def __getitem__(self, idx):
-        split_idx = self.split_idxs[self.split][idx]
-        return super().__getitem__(split_idx)
-
-    def __len__(self):
-        return len(self.split_idxs[self.split])
+    # def __getitem__(self, idx):
+    #     split_idx = self.split_idxs[self.split][idx]
+    #     return super().__getitem__(split_idx)
+    #
+    # def __len__(self):
+    #     return len(self.split_idxs[self.split])
 
     def get_original_train_dataloader(self, shuffle=False):
         return torch.utils.data.DataLoader(
