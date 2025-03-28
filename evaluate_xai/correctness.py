@@ -95,7 +95,7 @@ class Correctness(Co12Metric):
         logger.debug("Repeating _incremental_deletion for randomised deletions.")
         seeds = np.random.default_rng(random_seed).choice(10*n_random_rankings, n_random_rankings, replace=False)
         imgs_with_random_deletions = np.zeros((n_random_rankings, n_samples, iterations, *image_shape))
-        for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110,
+        for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110, mininterval=5,
                             desc="Randomly perturbing", leave=False):  # type: int, int
             a_random_ranking = deletion.generate_random_ranking(
                 image_shape[-2:], 16, seed
@@ -188,7 +188,7 @@ class Correctness(Co12Metric):
 
         incrementally_deleted = np.zeros((num_iterations, *self.exp.input.shape))
 
-        for i, k in tqdm(enumerate(k_values), total=len(k_values), ncols=110,
+        for i, k in tqdm(enumerate(k_values), total=len(k_values), ncols=110, mininterval=5,
                          desc="Deleting important pixels", leave=False):
             output = deletion.delete_top_k_important(
                 self.exp.input, importance_ranking, k, method

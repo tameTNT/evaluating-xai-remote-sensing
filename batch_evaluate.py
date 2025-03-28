@@ -75,7 +75,7 @@ def get_explainer_args() -> dict:
 def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Explainer]:
     num_batches = int(np.ceil(len(_for_idxs) / batch_size))
     explainers = []
-    for i in tqdm(range(num_batches), desc="Generating explanations",
+    for i in tqdm(range(num_batches), desc="Generating explanations", mininterval=2,
                   unit="batch", ncols=110, leave=False):
         idxs_for_batch = _for_idxs[i*batch_size:(i+1)*batch_size]
         batch = torch.stack([dataset[j]["image"] for j in idxs_for_batch])
