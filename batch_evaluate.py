@@ -67,6 +67,7 @@ def get_explainer_args() -> dict:
     if explainer_name == "PartitionSHAP":
         explain_args["shap_batch_size"] = shap_batch_size
         explain_args["max_evals"] = shap_max_evals
+        explain_args["num_mp_processes"] = shap_multi_processes
 
     return explain_args
 
@@ -205,6 +206,13 @@ if __name__ == "__main__":
         help="Batch size to use for SHAP methods. Note that no gradients are stored so this "
              "can be larger than the regular batch size. If 0, defaults to the same as the regular batch size.",
     )
+    options_group.add_argument(
+        "--shap_multi_processes",
+        type=int,
+        default=1,
+        help="Number of multi-processes to use to speed up SHAP methods. "
+             "Defaults to 1 (no multiprocessing).",
+    )
     metric_options = parser.add_argument_group("Metric Options",
                                                "Options for specific evaluation metrics.")
     metric_options.add_argument(
@@ -292,6 +300,7 @@ if __name__ == "__main__":
     shap_max_evals: int = args.shap_max_evals
     shap_batch_size: int = args.shap_batch_size
     shap_batch_size = batch_size if shap_batch_size == 0 else shap_batch_size
+    shap_multi_processes: int = args.shap_multi_processes
 
     output_completeness_threshold: float = args.output_completeness_threshold
     continuity_perturbation_degree: float = args.continuity_perturbation_degree
