@@ -216,6 +216,7 @@ def get_explainer_object(
         model: Model,
         extra_path: Path = Path(""),
         attempt_load: torch.Tensor = None,
+        batch_size: int = 0,
 ) -> Explainer:
     """
     Returns an explainer object of the specified type.
@@ -229,15 +230,18 @@ def get_explainer_object(
     if name == "PartitionSHAP":
         logger.debug("Building PartitionSHAP explainer...")
         from xai.shap_method import PartitionSHAP
-        explainer = PartitionSHAP(model, extra_path=extra_path, attempt_load=attempt_load)
+        explainer = PartitionSHAP(model, extra_path=extra_path,
+                                  attempt_load=attempt_load, batch_size=batch_size)
     elif name == "GradCAM":
         logger.debug("Building GradCAM explainer...")
         from xai.gradcam import GradCAM
-        explainer = GradCAM(model, extra_path=extra_path, attempt_load=attempt_load)
+        explainer = GradCAM(model, extra_path=extra_path,
+                            attempt_load=attempt_load, batch_size=batch_size)
     elif name == "KPCACAM":
         logger.debug("Building KPCACAM explainer...")
         from xai.gradcam import KPCACAM
-        explainer = KPCACAM(model, extra_path=extra_path, attempt_load=attempt_load)
+        explainer = KPCACAM(model, extra_path=extra_path,
+                            attempt_load=attempt_load, batch_size=batch_size)
     else:
         logger.error(f"Invalid explainer name ({name}) provided to get_explainer_object. "
                      f"Must be one of {t.get_args(EXPLAINER_NAMES)}.")

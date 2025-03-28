@@ -82,7 +82,7 @@ def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Expla
         explainer = xai.get_explainer_object(
             explainer_name, model_to_explain,
             extra_path=Path(dataset_name) / f"c{class_idx:02}" / f"b{i:03}",
-            attempt_load=batch,
+            attempt_load=batch, batch_size=batch_size,
         )
         if not explainer.has_explanation_for(batch):
             logger.debug(f"No existing explanation for batch {i} of class {class_idx}. Generating new ones.")
@@ -479,5 +479,3 @@ if __name__ == "__main__":
         h5_store.close()
 
     logger.info(f"Script execution complete.")
-else:
-    raise RuntimeError("Please run this script from the command line.")
