@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-import os
+import time
 
 import helpers.env_var
 
@@ -49,4 +49,4 @@ def get_logger(name: str) -> logging.Logger:
 
 
 # exported for modules to import and use
-main_logger = get_logger(f"main_{os.getpid()}")
+main_logger = get_logger(f"main_{time.time()}")
