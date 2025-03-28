@@ -52,6 +52,16 @@ def get_data_and_model() -> tuple:
     return ds, model
 
 
+def get_hdf5():
+    if not h5_output_path.exists():
+        h5_output_path.mkdir(parents=True)
+
+    # fixme: slim chance that the file is already open in another process
+    store_for_explainer_name = pd.HDFStore(f"{h5_output_path / h5_output_name}.h5", mode="a")
+
+    return store_for_explainer_name
+
+
 def get_explainer_args() -> dict:
     explain_args = {}
     if explainer_name == "PartitionSHAP":
@@ -320,32 +330,30 @@ if __name__ == "__main__":
         *[f"contrastivity : adversarial_attack_similarity : {metric_name}" for metric_name in available_sim_metrics],
         # ↑, near 1
         "compactness : threshold_score"
-    ], index=dataset.classes)  # new row for each dataset class
+    ], index=dataset.classes, dtype=float)  # new row for each dataset class
 
     h5_output_path = helpers.env_var.get_project_root() / "results" / explainer_name
-    if not h5_output_path.exists():
-        h5_output_path.mkdir(parents=True)
 
-    store_for_explainer_name = pd.HDFStore(f"{h5_output_path / h5_output_name}.h5", mode="a")
     ds_model_df_name = f"{dataset_name}_{model_name}"
-
     json_parameters_path = h5_output_path / f"{h5_output_name}_parameters.json"
-    if ds_model_df_name not in store_for_explainer_name:
-        store_for_explainer_name[ds_model_df_name] = results_df
+    h5_store = get_hdf5()
+    df_already_exists = ds_model_df_name in h5_store
+    if not df_already_exists:
+        h5_store[ds_model_df_name] = results_df
+        h5_store.close()  # close the HDF5 file again asap after reading/writing to it!
         # noinspection PyTypeChecker
         json.dump(build_parameters_dict(), json_parameters_path.open("w+"), indent=4)
     else:
+        h5_store.close()
         stored_parameters = json.load(json_parameters_path.open("r"))
         assert stored_parameters == build_parameters_dict(), \
             f"Stored parameters (in {json_parameters_path}) do not match current script's ones."
 
-    # fixme: don't keep the file open the whole time - let other files write to it (since this will be run in parallel)
-    #   when opening, catch if it is already been read from
-
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
-
-        existing_df_row = store_for_explainer_name[ds_model_df_name].loc[dataset.classes[c]]
+        h5_store = get_hdf5()
+        existing_df_row = h5_store[ds_model_df_name].loc[dataset.classes[c]]
+        h5_store.close()
         if existing_df_row.isna().sum() == 0:  # no NaN values in row
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
             continue
@@ -452,7 +460,7 @@ if __name__ == "__main__":
         # ==== Save all results in the dataframe's row for that class ====
         logger.info("Saving calculated evaluation metrics to results dataframe...")
         # Use pd.to_numeric (converts numpy array objects) since we require numeric
-        # values for HDF5 for fast saving/loading fixme: still gives a warning??
+        # values for HDF5 for fast saving/loading
         results_df.loc[dataset.classes[c]] = pd.to_numeric([
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
@@ -466,9 +474,10 @@ if __name__ == "__main__":
             compactness_scores.mean(),
         ])
 
-        store_for_explainer_name[ds_model_df_name] = results_df  # saves updated results_df object to HDF5 file
+        h5_store = get_hdf5()
+        h5_store[ds_model_df_name] = results_df  # saves updated results_df object to HDF5 file
+        h5_store.close()
 
-    store_for_explainer_name.close()  # close the HDF5 file after reading/writing to it!
-    logger.info(f"HDF5 file ({h5_output_path / h5_output_name}) closed successfully. Script execution complete.")
+    logger.info(f"Script execution complete.")
 else:
     raise RuntimeError("Please run this script from the command line.")
