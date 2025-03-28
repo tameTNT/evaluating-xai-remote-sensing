@@ -21,6 +21,7 @@ class PartitionSHAP(Explainer):
             x: Float[torch.Tensor, "n_samples channels height width"],
             max_evals: int = 10000,
             shap_batch_size: int = 64,
+            blur_size: tuple[int, int] = (128, 128),
     ):
         """
         Explains the model's predictions for the given images using the PartitionSHAP
@@ -30,16 +31,18 @@ class PartitionSHAP(Explainer):
         the model's most confident prediction is saved.
 
         :param x: Normalised images in [-1, 1] with shape
-          (n_samples, channels, height, width)
+            (n_samples, channels, height, width)
         :param max_evals: Maximum number of partition explainer evaluations to
             perform. Effectively controls the 'resolution' of the explanation
             with a factor of 10 approximately doubling the resolution.
         :param shap_batch_size: Batch size for shap evaluation. Does not need to store gradients from each so this can be high.
-          e.g. batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
+            e.g. batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
+        :param blur_size: Size of the blur mask to use for the SHAP Partition explainer.
+            This is eventually passed to cv2.blur as the kernel. Defaults to (128, 128). Good for 224x224 images.
         :return:
         """
 
-        super().explain(x, max_evals=max_evals, shap_batch_size=shap_batch_size)
+        super().explain(x, max_evals=max_evals, shap_batch_size=shap_batch_size, blur_size=blur_size)
 
         np01_x = einops.rearrange((x + 1) / 2, "b c h w -> b h w c").numpy(force=True)
 
@@ -56,10 +59,11 @@ class PartitionSHAP(Explainer):
                 model_output: torch.Tensor = self.model(model_input_imgs)
 
             return model_output.numpy(force=True)
-        # fixme: change blur size based on image
+
         # todo: use multiprocessing speedup like here: https://github.com/shap/shap/issues/77#issuecomment-2105595557
-        blur_masker = shap.maskers.Image("blur(128,128)", np01_x[0].shape)
-        explainer = shap.PartitionExplainer(predict_fn, blur_masker)
+        blur_str = f"blur({blur_size[0]},{blur_size[1]})"
+        blur_masker = shap.maskers.Image(blur_str, np01_x[0].shape)
+        explainer = shap.PartitionExplainer(predict_fn, blur_masker, silent=True)
 
         # noinspection PyUnresolvedReferences
         shap_values = explainer(
