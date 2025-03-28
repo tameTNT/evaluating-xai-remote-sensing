@@ -1,0 +1,1 @@
+--batch_size 32 --normalisation_type scaling --samples_per_class 32
