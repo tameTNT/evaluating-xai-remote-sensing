@@ -42,8 +42,9 @@ class Contrastivity(Co12Metric):
 
         # check for existing generated adversarial images to save having to regenerate
         need_to_generate = True
-        # adversarial images are specific to a trained model (using their gradients)
-        previous_adv_output_path = (self.exp.save_path /
+        # Adversarial images are specific to a trained model (using their gradients) not an explainer
+        # e.g. xai_output_unix/EuroSATRGB/c00/combined/ConvNeXtSmall_adversarial_examples.npz
+        previous_adv_output_path = (self.exp.save_path.parent /  # not explainer specific so use .parent
                                     f"{self.exp.model.__class__.__name__}_adversarial_examples.npz")
 
         if previous_adv_output_path.exists():
@@ -105,6 +106,10 @@ class Contrastivity(Co12Metric):
                 img_outputs.append(clipped_adv_imgs)
 
             clipped_adv_imgs = torch.cat(img_outputs, dim=0)
+
+            if not previous_adv_output_path.exists():  # create the directory if it doesn't exist
+                previous_adv_output_path.parent.mkdir(parents=True, exist_ok=True)
+
             np.savez_compressed(previous_adv_output_path,
                                 clipped_adv_imgs=clipped_adv_imgs.numpy(force=True),
                                 original_imgs=self.exp.input.numpy(force=True))
