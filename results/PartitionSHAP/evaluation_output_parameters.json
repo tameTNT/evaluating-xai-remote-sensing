@@ -1,5 +1,5 @@
 {
-    "shap_max_evals": 10000,
+    "shap_max_evals": 3000,
     "output_completeness_threshold": 0.2,
     "continuity_perturbation_degree": 0.15,
     "compactness_threshold": 0.5,
