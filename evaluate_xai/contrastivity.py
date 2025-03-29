@@ -42,10 +42,9 @@ class Contrastivity(Co12Metric):
 
         # check for existing generated adversarial images to save having to regenerate
         need_to_generate = True
-        # adversarial images only need to be generated on a per-image basis not per explanation, so use .parent
-        image_dims = self.exp.input.shape[-2:]
-        previous_adv_output_path = (self.exp.save_path.parent /
-                                    f"adversarial_examples_{image_dims[0]}_{image_dims[1]}.npz")
+        # adversarial images are specific to a trained model (using their gradients)
+        previous_adv_output_path = (self.exp.save_path /
+                                    f"{self.exp.model.__class__.__name__}_adversarial_examples.npz")
 
         if previous_adv_output_path.exists():
             logger.debug(f"Adversarial images potentially already generated, loading from {previous_adv_output_path}.")

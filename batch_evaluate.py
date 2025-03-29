@@ -372,7 +372,7 @@ if __name__ == "__main__":
         num_samples_to_take = samples_per_class
         if len(class_idxs) < num_samples_to_take:
             logger.warning(f"samples_per_class={samples_per_class} > num samples for class {c} ({len(class_idxs)}). "
-                           f"Using ({len(class_idxs)}).")
+                           f"Using {len(class_idxs)}.")
             num_samples_to_take = len(class_idxs)
         elif samples_per_class <= 0:
             num_samples_to_take = len(class_idxs)
