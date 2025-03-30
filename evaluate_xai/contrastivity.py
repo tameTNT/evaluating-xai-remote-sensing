@@ -62,7 +62,8 @@ class Contrastivity(Co12Metric):
                 logger.info("Saved adversarial images match current explanation input. "
                             "Loaded and skipping generation.")
                 clipped_adv_imgs = clipped_adv_imgs[:num_desired]
-                logger.warning(f"Only needed to use the first {num_desired} images from the saved adversarial images.")
+                logger.warning(f"Only needed to use the first {num_desired} images "
+                               f"(of {temp.shape[0]}) from the saved adversarial images.")
                 need_to_generate = False
             else:
                 logger.warning(f"Saved adversarial images (shape={temp.shape}) do not match "
