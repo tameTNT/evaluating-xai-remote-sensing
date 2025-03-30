@@ -83,7 +83,7 @@ def delete_top_k_important(
 
     elif method == "shuffle":
         for i in range(len(masked_imgs)):
-            if target_regions.size == 0:
+            if target_regions.size == 0:  # no pixels in target_regions ndarray
                 continue  # skip if no pixels to shuffle
             pixels_to_scramble = masked_imgs[i, :, top_k_mask[i, 0]]
 

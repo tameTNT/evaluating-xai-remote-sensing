@@ -48,6 +48,7 @@ class Compactness(Co12Metric):
 
         # futurenote: Is this even valid for RS images where there are large regions which are relevant?
         #   so large portions of the image *should* be above the threshold?
+        # nparray.size returns the number of elements so this divides by the number of pixels per image
         proportion_under_threshold = np.sum(norm_exp <= threshold, axis=(1, 2)) / norm_exp[0].size
 
         return proportion_under_threshold

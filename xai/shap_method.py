@@ -132,7 +132,7 @@ def predict_function(np_imgs: np.ndarray, device, max_batch_size, model):
 
     # strictly enforce max batch size in case this function is misused by shap explainer
     # don't want to risk any COM errors 😬
-    if model_input_imgs.size(0) > max_batch_size:
+    if model_input_imgs.shape[0] > max_batch_size:
         outputs = []
         for img_batch in helpers.utils.make_device_batches(model_input_imgs, max_batch_size, device):
             batch_output: torch.Tensor = model(img_batch)

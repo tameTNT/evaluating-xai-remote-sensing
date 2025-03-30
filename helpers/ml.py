@@ -91,11 +91,11 @@ def sample_outputs(
             images = data["image"].to(model_device)
             labels = data["label"].to(model_device)
 
-            all_samples = torch.cat([all_samples, images], dim=0) if all_samples.size else images
-            all_labels = torch.cat([all_labels, labels], dim=0) if all_labels.size else labels
+            all_samples = torch.cat([all_samples, images], dim=0)
+            all_labels = torch.cat([all_labels, labels], dim=0)
 
             output = model_to_test(images)
-            all_outputs = torch.cat([all_outputs, output], dim=0) if all_outputs.size else output
+            all_outputs = torch.cat([all_outputs, output], dim=0)
 
     return all_samples.cpu(), all_labels.cpu().int(), all_outputs.cpu()
 

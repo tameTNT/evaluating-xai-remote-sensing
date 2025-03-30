@@ -30,7 +30,7 @@ class ReBEN(BigEarthNetV2Base, dataset_processing.core.RSDatasetMixin):
             download=self.download,
         )
 
-        self.N_CLASSES = self._load_image(0, "s2").size(0)
+        self.N_CLASSES = self._load_image(0, "s2").shape[0]
         self.N_BANDS = len(self.bands)
 
     def get_original_train_dataloader(self, shuffle=False):

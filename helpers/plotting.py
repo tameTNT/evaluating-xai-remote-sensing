@@ -50,7 +50,7 @@ def plot_image_with_annotation(
 
 
 def plot_pred_bars(predictions_array: torch.Tensor, true_label):
-    x_range = range(predictions_array.size(0))
+    x_range = range(predictions_array.shape[0])
     plt.grid(False)
     plt.xticks([])
     plt.xticks(list(x_range), minor=True)
