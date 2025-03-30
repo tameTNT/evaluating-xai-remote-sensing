@@ -1,0 +1,1 @@
+--batch_size 32 --normalisation_type mean_std --samples_per_class 32
