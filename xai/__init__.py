@@ -44,11 +44,13 @@ class Explainer:
 
         :param model: The Model (subclass of torch.nn.Module) to explain.
         :param extra_path: An additional string to insert into the save path.
-          Usually used to save explanations for different datasets.
-          The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
-          If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / ...
+            Usually used to save explanations for different datasets.
+            The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
+            If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / ...
         :param attempt_load: Whether to attempt to load an existing explanation.
-          If provided, should be a torch.Tensor which the object will try to load the explanations for.
+            If provided, should be a torch.Tensor which the object will try to load the explanations for.
+        :param batch_size: Batch size to use when passing images to the underlying model.
+            If not given or 0, this is set to len(x) when .explain(x, ...) is called.
         """
         self.model = model
         self.device = helpers.utils.get_model_device(model)
@@ -62,7 +64,7 @@ class Explainer:
 
         # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
         # requires gradient store, etc. which takes up a lot of memory, limiting batch size
-        # Note how this is different from a batch_size kwarg for e.g. PartitionSHAP
+        # Note how this is different from the shap_batch_size kwarg for e.g. PartitionSHAP
         self.batch_size = batch_size
 
         self.attempt_load = attempt_load
@@ -129,6 +131,7 @@ class Explainer:
                     f"General Explainer batch size (with gradients) is {self.batch_size}.")
         self.input = x.to(self.device)
         self.kwargs = kwargs
+        self.batch_size = self.batch_size or len(x)  # if self.batch_size is currently 0, set it to len(x)
 
     def save_state(self):
         """
