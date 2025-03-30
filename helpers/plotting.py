@@ -79,22 +79,35 @@ def show_image(
         - (c, h, w) OR (h, w, c) for a single image
         - (n, c, h, w) OR (n, h, w, c) for n images
 
-    The number of channels (c) should either be 1 (grayscale) or 3 (RGB).
+    The number of channels (c) should either be 13 or less.
+    Image dimensions (h, w) should also be at least 14x14.
 
     kwargs (e.g. vmin, vmax) are passed to `plt.imshow`.
+
+    If c > 3, the function will call `show_ms_images` to show all channels.
+    kwargs are instead passed to `show_ms_images`.
     """
 
     if isinstance(x, torch.Tensor):
         x = x.numpy(force=True)
 
     if x.ndim == 3:
-        if x.shape[0] in (1, 3):
+        if x.shape[0] <= 13:  # to allow for up to 13 band images (we assume images are at least 14x14)
             x = einops.rearrange(x, "c h w -> h w c")
+        # channel is now final dimension
+        if x.shape[-1] not in (1, 3):
+            x = einops.rearrange(x, "h w c -> c h w")
+            show_ms_images(x.reshape(1, *x.shape), **kwargs)
+            return
 
     elif x.ndim == 4:
-        if x.shape[-1] in (1, 3):
+        if x.shape[-1] <= 13:  # same logic as above
             x = einops.rearrange(x, "n h w c -> n c h w")
-        # fixme: handle MS images
+        # channel is now second dimension
+        if x.shape[1] not in (1, 3):
+            show_ms_images(x, **kwargs)
+            return
+
         # todo: use torchvision image grid instead to add padding
         x = einops.rearrange(x, "n c h w -> h (n w) c")
         # x = torchvision.utils.make_grid(x, nrow=x.shape[0])
@@ -165,12 +178,19 @@ def visualise_importance(
         importance_rank: Int[np.ndarray, "n_samples height width"],
         alpha: float = 0.2,
         with_colorbar: bool = True,
+        band_idxs: list[int] = None,
         **kwargs,
 ):
     """
     Overlay (with transparency `alpha`) the importance rank over the image with
     a colour bar.
     """
+
+    if x.shape[-1] > 3:  # multi-spectral image
+        if band_idxs is None:
+            raise ValueError("bands must be specified for multi-spectral images")
+        else:
+            x = x[..., band_idxs]
 
     show_image(x, grayscale=True, **kwargs)
     rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")

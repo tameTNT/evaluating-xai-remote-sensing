@@ -172,6 +172,17 @@ class RSDatasetMixin:
         raise NotImplementedError(f"get_original_train_dataloader not implemented "
                                   f"in base class {self.__class__.__name__}.")
 
+    @property
+    def rgb_indices(self) -> list[int]:
+        rgb_indices = []
+        for band in self.rgb_bands:
+            if band in self.bands:
+                rgb_indices.append(self.bands.index(band))
+            else:
+                raise ValueError(f"{self.__class__.__name__} doesn't contain some of the RGB bands.")
+
+        return rgb_indices
+
     def inverse_transform(
             self,
             sample: Float[torch.Tensor, "n_samples channels height width"]
@@ -181,14 +192,7 @@ class RSDatasetMixin:
         in numpy format ready for display.
         """
 
-        rgb_indices = []
-        for band in self.rgb_bands:
-            if band in self.bands:
-                rgb_indices.append(self.bands.index(band))
-            else:
-                raise ValueError("Dataset doesn't contain some of the RGB bands")
-
-        images: np.ndarray = np.take(sample.numpy(), indices=rgb_indices, axis=1)
+        images: np.ndarray = np.take(sample.numpy(), indices=self.rgb_indices, axis=1)
 
         # normalised images are in the range [-1, 1] originally
         if self.mean.nonzero().numel() > 0:  # either via explicit mean/std
@@ -197,8 +201,8 @@ class RSDatasetMixin:
             assert c == 3, f"Expected 3 channels only when inverting for display, got {c} instead."
 
             # was originally normalised via imges = (images - mean) / std
-            mean = self.mean.cpu()[rgb_indices].view(1, c, 1, 1)  # make broadcastable
-            std = self.std.cpu()[rgb_indices].view(1, c, 1, 1)
+            mean = self.mean.cpu()[self.rgb_indices].view(1, c, 1, 1)  # make broadcastable
+            std = self.std.cpu()[self.rgb_indices].view(1, c, 1, 1)
 
             # turn to range [0, max]
             images: torch.Tensor = torch.from_numpy(images) * std + mean

@@ -89,8 +89,8 @@ class PartitionSHAP(Explainer):
                 self.device, self.batch_size, self.model, logger.name
             ).values
 
-        # only save the most confident prediction (sorted to be first above)
-        # summing over the colour channels (final axis of output)
+        # only save the most confident prediction (sorted to be first by outputs arg)
+        # summing over the image colour/band channels (final axis of output)
         self.explanation = shap_values[..., 0].sum(-1)
         self.save_state()
 

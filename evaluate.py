@@ -22,16 +22,16 @@ mpl.rcParams['savefig.pad_inches'] = 0
 
 # ==== Set up script arguments ====
 random_seed = 42
-dataset_name = "EuroSATRGB"
-normalisation_type = "scaling"
+dataset_name = "EuroSATMS"
+normalisation_type = "mean_std"
 use_resize = True
 batch_size = 32
 
 model_name = "ResNet50"
 num_workers = 4
 
-explainer_name = "KPCACAM"
-shap_max_evals = 10000
+explainer_name = "PartitionSHAP"
+shap_max_evals = 500
 
 logger = helpers.log.main_logger
 
@@ -60,24 +60,24 @@ model_to_explain.eval().to(torch_device)
 logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
 # ==== Select images from dataset to explain ====
-temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
+# temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
+temp_idxs = [2369, 2338]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
-helpers.plotting.show_image(imgs_to_explain)
-plt.title("Images to be explained")
+helpers.plotting.show_image(imgs_to_explain, normalisation_type="channel")
+plt.suptitle("Images to be explained")
 plt.show()
 
 # ==== Generate explanation for selected images ====
 explainer = xai.get_explainer_object(
-    explainer_name, model=model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain
+    explainer_name, model=model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain,
+    # batch_size=batch_size,
 )
 
 explain_args = {}
 if explainer_name == "PartitionSHAP":
-    explain_args["batch_size"] = batch_size
+    explain_args["shap_batch_size"] = batch_size
     explain_args["max_evals"] = shap_max_evals
-elif explainer_name == "GradCAM" or explainer_name == "KPCACAM":
-    explain_args["target_layer_func"] = "get_explanation_target_layers"
 
 if not explainer.has_explanation_for(imgs_to_explain):
     logger.info(f"No existing explanation for imgs_to_explain. Generating a new one.")
@@ -85,9 +85,10 @@ if not explainer.has_explanation_for(imgs_to_explain):
 else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
-helpers.plotting.visualise_importance(imgs_to_explain, explainer.ranked_explanation,
-                                      alpha=.2, with_colorbar=False)
-plt.title("Explanations being evaluated")
+# move channel last
+helpers.plotting.visualise_importance(imgs_to_explain.permute(0, 2, 3, 1), explainer.ranked_explanation,
+                                      alpha=.2, with_colorbar=False, band_idxs=dataset.rgb_indices)
+plt.suptitle("Explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
