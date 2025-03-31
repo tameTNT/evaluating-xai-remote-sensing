@@ -86,12 +86,13 @@ class Correctness(Co12Metric):
 
         n_samples = self.exp.input.shape[0]
         image_shape = self.exp.input.shape[1:]
-        base_n = n_samples * iterations
+        total_num_samples = n_samples * iterations
 
         imgs_with_deletions, k_values = self.incrementally_delete(
             self.exp.ranked_explanation, iterations, deletion_method
         )
-        flattened_imgs_a = imgs_with_deletions.reshape(base_n, *image_shape)
+        imgs_flat = imgs_with_deletions.reshape(total_num_samples, *image_shape)
+        informed_outputs = self.run_model(imgs_flat)
 
         if self.visualise:
             visualise_incremental_deletion(imgs_with_deletions)
@@ -100,32 +101,41 @@ class Correctness(Co12Metric):
             plt.show()
 
         # Do the same thing for randomised deletions
-        logger.debug("Repeating _incremental_deletion for randomised deletions.")
+        logger.debug(f"Performing incremental deletion for {n_random_rankings} rounds of randomised deletions.")
+        # pick n_random_rankings seeds
         seeds = np.random.default_rng(random_seed).choice(10*n_random_rankings, n_random_rankings, replace=False)
-        imgs_with_random_deletions = np.zeros((n_random_rankings, n_samples, iterations, *image_shape))
+
+        random_outputs = []
+        sample_perturbation_history = []
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110, mininterval=5,
                             desc="Randomly perturbing", leave=False):  # type: int, int
             a_random_ranking = deletion.generate_random_ranking(
                 image_shape[-2:], 16, seed
             )
             random_rankings = a_random_ranking[np.newaxis, ...].repeat(n_samples, axis=0)
-            imgs_with_random_deletions[i] = self.incrementally_delete(
+
+            imgs_with_random_deletions = self.incrementally_delete(
                 random_rankings, iterations, deletion_method
             )[0]
-        flattened_imgs_b = imgs_with_random_deletions.reshape(n_random_rankings * base_n, *image_shape)
+            if self.visualise:
+                # Just use the first image as an example to showcase random deletions
+                sample_perturbation_history.append(imgs_with_random_deletions[0])
+
+            imgs_flat = imgs_with_random_deletions.reshape(total_num_samples, *image_shape)
+            random_outputs_for_seed = self.run_model(imgs_flat)
+            # Build up the model's outputs for each seed as we go along
+            # Leaving it until the end with all the perturbations in memory uses too much RAM!
+            random_outputs.append(random_outputs_for_seed)
+
+        random_outputs = np.concatenate(random_outputs, axis=0)  # as if all fed into model in one go
+
         # todo: save/load perturbations?
         if self.visualise:
-            # show each different random ranking on 0th image
-            visualise_incremental_deletion(imgs_with_random_deletions[:, 0])
+            # show each different random ranking on the 0th image (collected progressively above)
+            visualise_incremental_deletion(np.stack(sample_perturbation_history, axis=0))
             plt.suptitle(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations",
                          fontsize=20)
             plt.show()
-
-        # Generate model confidence for all images (in one pass for efficiency)
-        all_outputs = self.run_model(np.concatenate([flattened_imgs_a, flattened_imgs_b], axis=0))
-        # Split up the outputs again from the concatenation
-        informed_outputs = all_outputs[:base_n]
-        random_outputs = all_outputs[base_n:]
 
         # final dim is num_classes so use -1
         exp_informed_model_confidences = informed_outputs.reshape(n_samples, iterations, -1)
