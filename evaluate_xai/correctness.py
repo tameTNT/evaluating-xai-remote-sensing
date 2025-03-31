@@ -78,7 +78,7 @@ class Correctness(Co12Metric):
     def _incremental_deletion(
             self,
             deletion_method: deletion.METHODS = "nn",
-            iterations: int = 30,
+            iterations: int = 15,  # NB: more iterations means more memory (RAM) used by self.incrementally_delete
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,

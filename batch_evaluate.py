@@ -259,7 +259,7 @@ if __name__ == "__main__":
         type=int,
         default=15,
         help="Number of iterations to use for the incremental methods. "
-             "Defaults to 15.",
+             "This increases memory footprint significantly. Defaults to 15.",
     )
     shared_options.add_argument(
         "--num_random_trials",

@@ -91,6 +91,7 @@ class Contrastivity(Co12Metric):
 
                 # PyTorch's quantile function has an arbitrary input size limit of 16M elements so
                 # we need to use numpy's quantile function instead
+                # See https://github.com/pytorch/pytorch/issues/64947
                 input_lq = np.quantile(self.exp.input.numpy(force=True), img_bound_quantile)
                 input_uq = np.quantile(self.exp.input.numpy(force=True), 1-img_bound_quantile)
                 if input_lq < expected_img_bounds[0] or input_uq > expected_img_bounds[1]:
