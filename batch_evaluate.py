@@ -355,8 +355,16 @@ if __name__ == "__main__":
     else:
         h5_store.close()
         stored_parameters = json.load(json_parameters_path.open("r"))
-        assert stored_parameters == build_parameters_dict(), \
-            f"Stored parameters (in {json_parameters_path}) do not match current script's ones."
+        current_parameters = build_parameters_dict()
+        if stored_parameters != current_parameters:
+            for key, value in current_parameters.items():
+                if key not in stored_parameters or stored_parameters[key] != value:
+                    warning_txt = (f"Parameter '{key}' has changed from "
+                                   f"'{stored_parameters[key] if key in stored_parameters else '[not present]'}' "
+                                   f"to '{value}'.")
+                    print("WARNING", warning_txt)
+                    logger.warning(warning_txt)
+            logger.warning("Some parameters have changed since the last evaluation. Continuing regardless.")
 
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
