@@ -73,9 +73,9 @@ class Explainer:
             try:
                 self.load_state()
             except FileNotFoundError:
-                logger.warning(f"Failed to load existing explanation from "
-                               f"{self.npz_path} and {self.json_path}. "
-                               f"Using null values.")
+                logger.info(f"Couldn't load existing explanations from "
+                            f"{self.npz_path} and {self.json_path}. "
+                            f"Using null values.")
 
     def __repr__(self):
         return (f"{self.__class__.__name__}(model={self.model.__class__.__name__}, input_shape={self.input.shape}, "

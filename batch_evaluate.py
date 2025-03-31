@@ -58,7 +58,7 @@ def get_hdf5():
 
     # fixme: slim chance that the file is already open in another process
     store_for_explainer_name = pd.HDFStore(f"{h5_output_path / h5_output_name}.h5", mode="a")
-
+    logger.debug(f"Opened HDF5 file {h5_output_path / h5_output_name}.h5.")
     return store_for_explainer_name
 
 

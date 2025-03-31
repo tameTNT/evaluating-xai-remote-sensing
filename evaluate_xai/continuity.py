@@ -64,7 +64,7 @@ class Continuity(Co12Metric):
         same_preds: np.ndarray[bool] = perturbed_preds == original_preds
         if not same_preds.all():
             changed_idxs = np.flatnonzero(~same_preds)
-            logger.warning(f"Perturbations changed the model's prediction for "
-                           f"idxs={changed_idxs} (n={len(changed_idxs)}/{len(same_preds)}).")
+            logger.info(f"Perturbations changed the model's prediction for "
+                        f"idxs={changed_idxs} (n={len(changed_idxs)}/{len(same_preds)}).")
 
         return Similarity(self.exp, exp_for_perturbed, mask=same_preds)

@@ -52,22 +52,21 @@ class Contrastivity(Co12Metric):
             logger.debug(f"Adversarial images potentially already generated, loading from {previous_adv_output_path}.")
             with np.load(previous_adv_output_path) as data:
                 clipped_adv_imgs = torch.from_numpy(data["clipped_adv_imgs"]).to(self.exp.device)
-                temp = torch.from_numpy(data["original_imgs"]).to(self.exp.device)
+                original_imgs = torch.from_numpy(data["original_imgs"]).to(self.exp.device)
 
-            if temp.shape != self.exp.input.shape:
+            # check if previous generation was for different number of inputs/sample size
+            if original_imgs.shape != self.exp.input.shape:
                 num_desired = self.exp.input.shape[0]
-            else:
-                num_desired = temp.shape[0]
+            else:  # if shapes are the same, we check all images
+                num_desired = original_imgs.shape[0]
 
-            if torch.equal(temp[:num_desired], self.exp.input):
-                logger.info("Saved adversarial images match current explanation input. "
-                            "Loaded and skipping generation.")
-                clipped_adv_imgs = clipped_adv_imgs[:num_desired]
-                logger.warning(f"Only needed to use the first {num_desired} images "
-                               f"(of {temp.shape[0]}) from the saved adversarial images.")
-                need_to_generate = False
+            if torch.equal(original_imgs[:num_desired], self.exp.input):
+                logger.debug(f"Saved adversarial images ({num_desired}/{original_imgs.shape[0]}) "
+                             f"are for current explanation input. Loading these and skipping generation.")
+                clipped_adv_imgs = clipped_adv_imgs[:num_desired]  # only need the num_desired for this run
+                need_to_generate = False  # no need to generate after all!
             else:
-                logger.warning(f"Saved adversarial images (shape={temp.shape}) do not match "
+                logger.warning(f"Saved adversarial images (shape={original_imgs.shape}) were not for "
                                f"current explanation input (shape={self.exp.input.shape}).")
 
         # if no existing adversarial images, generate them
