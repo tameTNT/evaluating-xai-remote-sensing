@@ -386,7 +386,8 @@ if __name__ == "__main__":
 
         if visualise:
             # todo: stack large numbers like with visualise_incremental_deletion
-            helpers.plotting.visualise_importance(combined_exp.input, combined_exp.ranked_explanation,
+            helpers.plotting.visualise_importance(combined_exp.input.permute(0, 2, 3, 1),  # -> channel final dimension
+                                                  combined_exp.ranked_explanation,
                                                   alpha=.2, with_colorbar=False, band_idxs=dataset.rgb_indices)
             plt.title(f"Explanations for Class {c:02}")
             plt.show()

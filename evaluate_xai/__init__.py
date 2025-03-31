@@ -230,7 +230,7 @@ class Co12Metric:
             title: str = "Explanation on original/perturbed input",
     ):
         stacked_samples = einops.rearrange(
-            torch.stack([self.exp.input, self.exp.input]), "i n c h w -> n c (i h) w")
+            torch.stack([self.exp.input, self.exp.input]), "i n c h w -> n (i h) w c")
         stacked_explanations = einops.rearrange(
             np.stack([self.exp.ranked_explanation, sub_exp.ranked_explanation]),
             "i n h w -> n (i h) w")
