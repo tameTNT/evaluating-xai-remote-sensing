@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 # from remote_plot import plt
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import safetensors.torch as st
 import torch
@@ -18,7 +17,6 @@ from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 
 # plt.port = 36422
-mpl.rcParams['savefig.pad_inches'] = 0
 
 # ==== Set up script arguments ====
 random_seed = 42
@@ -64,7 +62,7 @@ logger.info(f"Loaded weights from {model_weights_path} successfully.")
 temp_idxs = [2369, 2338]
 # random_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
-helpers.plotting.show_image(imgs_to_explain, normalisation_type="channel")
+helpers.plotting.show_image(imgs_to_explain, normalisation_type="channel", final_fig_size=(8., 4.))
 plt.suptitle("Images to be explained")
 plt.show()
 

@@ -67,6 +67,7 @@ def show_image(
         x: t.Union[torch.Tensor, np.ndarray],
         is_01_normalised: bool = False,
         grayscale: bool = False,
+        final_fig_size: tuple[float, float] = (8., 8.),  # width, height
         **kwargs
 ):
     """
@@ -105,7 +106,10 @@ def show_image(
             x = einops.rearrange(x, "n h w c -> n c h w")
         # channel is now second dimension
         if x.shape[1] not in (1, 3):
+            if "normalisation_type" not in kwargs:
+                kwargs["normalisation_type"] = "channel"
             show_ms_images(x, **kwargs)
+            plt.gcf().set_size_inches(final_fig_size)
             return
 
         # todo: use torchvision image grid instead to add padding
@@ -123,6 +127,7 @@ def show_image(
 
     plt.imshow(x, **kwargs)
     plt.axis("off")
+    plt.gcf().set_size_inches(final_fig_size)
 
 
 def show_ms_images(
@@ -163,14 +168,15 @@ def show_ms_images(
 
             show_image(x[i, [c]], is_01_normalised=True, cmap="viridis", **norm_args)
 
-    for ax, col_name in zip(axes[0], [f"{c}" for c in range(n_channels)]):
-        ax.set_title(col_name)
-    for ax, row_name in zip(axes[:, 0], [f"{c}" for c in range(n_imgs)]):
+    for ax, col_name in zip(axes[0], [f"{c}" for c in range(n_channels)]):  # type: plt.Axes, str
+        ax.set_title(col_name, fontsize=20)
+    # Add label to each row (the index of each image in the passed array)
+    for ax, row_name in zip(axes[:, 0], [f"{c}" for c in range(n_imgs)]):  # type: plt.Axes, str
         ax.annotate(row_name, xy=(0, 0.5), xytext=(-1, 0),
                     xycoords="axes fraction", textcoords="offset fontsize",
-                    size="large", ha="right", va="center")
+                    fontsize=20, ha="right", va="center")
 
-    plt.tight_layout()
+    # plt.tight_layout()
 
 
 def visualise_importance(

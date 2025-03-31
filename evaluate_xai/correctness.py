@@ -24,8 +24,15 @@ def visualise_incremental_deletion(
     if num_iterations > 10:
         selected_images = selected_images.take(np.floor(np.linspace(0, num_iterations - 1, 10)).astype(int), axis=1)
 
+    n, i, c, h, w = selected_images.shape
     helpers.plotting.show_image(einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"))
-    plt.tight_layout()
+    # current_size = plt.gcf().get_size_inches()
+    # width gets scaled if displaying a multi-spectral image (with more than 3 channels)
+    fig = plt.gcf()
+    fig.set_size_inches((c if c > 3 else 1) * i/5, n * 3/5)  # width, height
+    fig.tight_layout(w_pad=1.5)
+    plt.gcf().set_dpi(200)
+    # plt.tight_layout()
 
 
 class Correctness(Co12Metric):
@@ -88,7 +95,8 @@ class Correctness(Co12Metric):
 
         if self.visualise:
             visualise_incremental_deletion(imgs_with_deletions)
-            plt.title(f"Incremental informed deletion over {iterations} iterations")
+            plt.suptitle(f"Incremental informed deletion over {iterations} iterations",
+                         fontsize=20)
             plt.show()
 
         # Do the same thing for randomised deletions
@@ -109,7 +117,8 @@ class Correctness(Co12Metric):
         if self.visualise:
             # show each different random ranking on 0th image
             visualise_incremental_deletion(imgs_with_random_deletions[:, 0])
-            plt.title(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations")
+            plt.suptitle(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations",
+                         fontsize=20)
             plt.show()
 
         # Generate model confidence for all images (in one pass for efficiency)
@@ -131,6 +140,10 @@ class Correctness(Co12Metric):
         random_model_confidences = random_outputs.reshape(n_random_rankings, n_samples, iterations, -1).mean(axis=0)
         # confidence class in the original prediction over the iterations for each sample
         random_class_confidence = random_model_confidences[np.arange(n_samples), :, original_pred_class]
+
+        no_deletion_confidence_diff = random_class_confidence[:, 0] - exp_informed_class_confidence[:, 0]
+        assert np.all(no_deletion_confidence_diff <= 0.01), \
+            f"For no deletions, prediction confidences should be identical, not {no_deletion_confidence_diff} > 0.01."
 
         # Second part of final output.
         random_area_under_curve_per_img = np.trapz(random_class_confidence, axis=1)
