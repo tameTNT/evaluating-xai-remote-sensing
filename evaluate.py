@@ -5,6 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import safetensors.torch as st
 import torch
+from pytorch_grad_cam.utils.image import show_cam_on_image
 
 import dataset_processing
 import helpers
@@ -20,20 +21,20 @@ from evaluate_xai.output_completeness import OutputCompleteness
 
 # ==== Set up script arguments ====
 random_seed = 42
-dataset_name = "EuroSATMS"
+dataset_name: dataset_processing.DATASET_NAMES = "EuroSATMS"
 normalisation_type = "mean_std"
 use_resize = True
 batch_size = 32
 
-model_name = "ResNet50"
+model_name: models.MODEL_NAMES = "ResNet50"
 num_workers = 4
 
-explainer_name = "PartitionSHAP"
+explainer_name: xai.EXPLAINER_NAMES = "GradCAM"
 shap_max_evals = 500
 
 logger = helpers.log.main_logger
 
-torch_device = helpers.utils.get_torch_device()
+torch_device = helpers.utils.get_torch_device(force_mps=True)
 torch.manual_seed(random_seed)
 
 # ==== Load dataset and corresponding pretrained model ====
@@ -59,8 +60,8 @@ logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
 # ==== Select images from dataset to explain ====
 # temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
-temp_idxs = [2369, 2338]
-# random_idxs = torch.randint(0, len(dataset), (10,))
+temp_idxs = [4179, 3534, 2338]
+# temp_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain, normalisation_type="channel", final_fig_size=(8., 4.))
 plt.suptitle("Images to be explained")
@@ -68,7 +69,8 @@ plt.show()
 
 # ==== Generate explanation for selected images ====
 explainer = xai.get_explainer_object(
-    explainer_name, model=model_to_explain, extra_path=Path(dataset_name), attempt_load=imgs_to_explain,
+    explainer_name, model=model_to_explain, extra_path=Path(dataset_name),
+    attempt_load=imgs_to_explain,
     # batch_size=batch_size,
 )
 
@@ -83,10 +85,20 @@ if not explainer.has_explanation_for(imgs_to_explain):
 else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
-# move channel last
+plt.imshow(show_cam_on_image(
+    (imgs_to_explain[0, [2, 1, 0]].numpy()*2 + 1).clip(0, 1).transpose(1, 2, 0),
+    explainer.explanation[0], use_rgb=True)
+)
+plt.show()
+# move channel to final dimension
+helpers.plotting.visualise_importance(imgs_to_explain.permute(0, 2, 3, 1), explainer.explanation,
+                                      alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
+plt.suptitle("Explanations")
+plt.show()
+
 helpers.plotting.visualise_importance(imgs_to_explain.permute(0, 2, 3, 1), explainer.ranked_explanation,
-                                      alpha=.2, with_colorbar=False, band_idxs=dataset.rgb_indices)
-plt.suptitle("Explanations being evaluated")
+                                      alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
+plt.suptitle("Ranked explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
@@ -106,10 +118,10 @@ print("Correctness evaluation via model randomisation (↓)", corr_sim_metrics)
 nn_aucs = correctness_metric.evaluate(
     method="incremental_deletion",
     deletion_method=deletion_method,
-    iterations=10, n_random_rankings=5,
+    iterations=10, n_random_rankings=3,
     random_seed=42, visualise=True,
 )
-print("Correctness evaluation via incremental deletion (↓)", nn_aucs)
+print("Correctness evaluation via incremental deletion (↓)", nn_aucs["informed"]/nn_aucs["random"])
 
 # == Output Completeness ==
 output_completeness_metric = OutputCompleteness(explainer, max_batch_size=batch_size)

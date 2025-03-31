@@ -10,14 +10,14 @@ from helpers import log  # direct import to avoid circular import
 logger = log.main_logger
 
 
-def get_torch_device() -> torch.device:
+def get_torch_device(force_mps: bool = False) -> torch.device:
     if torch.cuda.is_available():
         torch_device = torch.device("cuda")
         logger.debug(f"Found {torch.cuda.get_device_name()} to use as a cuda device.")
 
     elif platform.system() == "Darwin":
         # noinspection PyTypeChecker
-        if torch.torch_version.TorchVersion(torch.__version__) >= (2, 6):
+        if torch.torch_version.TorchVersion(torch.__version__) >= (2, 6) or force_mps:
             torch_device = torch.device("mps")
         else:
             # See https://github.com/pytorch/pytorch/issues/142344
