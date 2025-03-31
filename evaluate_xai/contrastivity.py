@@ -27,7 +27,8 @@ class Contrastivity(Co12Metric):
 
     def _adversarial_attack(
             self,
-            img_bounds: tuple[float, float] = (-1, 1),
+            expected_img_bounds: tuple[float, float] = (-1, 1),
+            img_bound_quantile: float = 0.02,
             attack: foolbox.attacks.Attack = foolbox.attacks.LinfDeepFoolAttack,
             attack_kwargs: dict = None,
             **kwargs,
@@ -76,9 +77,26 @@ class Contrastivity(Co12Metric):
             if attack_batch_size == 0:
                 attack_batch_size = self.exp.input.shape[0]
 
-            logger.info(f"No existing adversarial images. "
+            logger.info(f"No existing adversarial images at {previous_adv_output_path}. "
                         f"Generating new ones via foolbox with batch size {attack_batch_size}.")
-            foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=img_bounds)
+
+            attack_epsilon = 0.01  # default good for the vast majority of datasets and attacks
+            higher_epsilon = 0.05  # higher epsilon to account for the larger image value range
+            # Images may be out of bounds due to type of normalisation (especially for MS data)
+            input_ql = self.exp.input.quantile(img_bound_quantile)
+            input_qu = self.exp.input.quantile(1-img_bound_quantile)
+            if input_ql < expected_img_bounds[0] or input_qu > expected_img_bounds[1]:
+                logger.warning(f"Input images were significantly ({img_bound_quantile*100:.1f}% quantiles) "
+                               f"outside the expected bounds {expected_img_bounds}: "
+                               f"input.quantile({img_bound_quantile})={input_ql}, "
+                               f"input.quantile({1-img_bound_quantile})={input_qu}. "
+                               f"Updating expected img bounds and using higher epsilon "
+                               f"({attack_epsilon} -> {higher_epsilon}).")
+                expected_img_bounds = (min(self.exp.input.min(), expected_img_bounds[0]),
+                                       max(self.exp.input.max(), expected_img_bounds[1]))
+                attack_epsilon = higher_epsilon
+
+            foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=expected_img_bounds)
 
             for batch_input, batch_preds in zip(
                     helpers.utils.make_device_batches(
@@ -90,19 +108,12 @@ class Contrastivity(Co12Metric):
                 # just the model's original predictions (and associated explanation)
                 batch_criteria = foolbox.criteria.Misclassification(batch_preds)
 
-                # Images may be out of bounds slightly due to naive normalisation
-                batch_min, batch_max = batch_input.min(), batch_input.max()
-                if batch_min < img_bounds[0] or batch_max > img_bounds[1]:
-                    logger.warning(f"Input images were outside the bounds {img_bounds}: "
-                                   f"min={batch_min}, max={batch_max}. Clamping.")
-                    batch_input = batch_input.clamp(img_bounds[0], img_bounds[1])
-
                 # WARNING: there is a rogue call to the base logging.info() on
                 # line 127 of foolbox/attacks/deepfool.py which should be commented out.
                 # Otherwise, all logging calls are printed to the terminal
                 # noinspection PyCallingNonCallable
                 _, clipped_adv_imgs, _ = attack(**attack_kwargs)(
-                    foolbox_model, batch_input, batch_criteria, epsilons=0.01,
+                    foolbox_model, batch_input, batch_criteria, epsilons=attack_epsilon,
                 )
                 img_outputs.append(clipped_adv_imgs)
 
