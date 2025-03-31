@@ -5,6 +5,7 @@ import numpy as np
 from jaxtyping import Int, Float
 import scipy
 import skimage
+import cv2
 
 METHODS = t.Union[float, int, np.random.Generator, t.Literal["blur", "inpaint", "nn", "shuffle"]]
 
@@ -40,41 +41,46 @@ def delete_top_k_important(
     masked_imgs = x.numpy(force=True)
     n_channels = masked_imgs.shape[1]
 
-    top_k_mask = importance_ranking < k
-    top_k_mask = np.expand_dims(top_k_mask, 1).repeat(n_channels, 1)  # mask across all input channels
-    # top_k_mask.shape = (n_samples, n_channels, height, width)
-    target_regions: np.ndarray = masked_imgs[top_k_mask]
+    top_k_masks = importance_ranking < k
+    top_k_masks = np.expand_dims(top_k_masks, 1).repeat(n_channels, 1)  # mask across all input channels
+    # top_k_masks.shape = (n_samples, n_channels, height, width), True where deletion should be applied
+    target_regions: np.ndarray = masked_imgs[top_k_masks]
 
-    # We need at least one 'known' pixel (where the top_k_mask is False)
+    # We need at least one 'known' pixel (a pixel where top_k_masks is False)
     # for the inpaint and nn methods. Set the central pixel of every channel
     if method in ["inpaint", "nn"]:
-        for i, img_mask in enumerate(top_k_mask):  # type: int, np.ndarray
-            if np.sum(~img_mask) < 1:
+        for i, mask in enumerate(top_k_masks):  # type: int, np.ndarray
+            if np.sum(~mask) < 1:
                 for c in range(n_channels):
-                    top_k_mask[i, c, img_mask.shape[0] // 2, img_mask.shape[1] // 2] = False
+                    top_k_masks[i, c, mask.shape[0] // 2, mask.shape[1] // 2] = False
 
     if isinstance(method, (float, int)):
-        masked_imgs[top_k_mask] = np.clip(method, -1, 1)
+        masked_imgs[top_k_masks] = method
 
     elif method == "blur":
-        masked_imgs[top_k_mask] = scipy.ndimage.gaussian_filter(
-            target_regions, sigma=5,
-        )
+        # masked_imgs[top_k_masks] = scipy.ndimage.gaussian_filter(
+        #     target_regions, sigma=100,
+        # )
+        for i, (img, mask) in enumerate(zip(masked_imgs, top_k_masks)):
+            # RMB: opencv expects channels to come last!
+            blurred_img = cv2.GaussianBlur(img.transpose(1, 2, 0), (127, 127), 100)
+            # blurred_img = cv2.blur(img.transpose(1, 2, 0), (128, 128))
+            masked_imgs[i] = np.where(mask, blurred_img.transpose(2, 0, 1), img)
 
     elif isinstance(method, np.random.Generator):
         noise = method.normal(size=target_regions.shape) / 5
-        masked_imgs[top_k_mask] = np.clip(target_regions + noise, -1, 1)
+        masked_imgs[top_k_masks] = np.clip(target_regions + noise, -1, 1)
 
     elif method == "inpaint":
         for i in range(len(masked_imgs)):
             mask = np.zeros_like(importance_ranking[i])
-            mask[top_k_mask[i, 0]] = 1  # indicate unknown pixels
+            mask[top_k_masks[i, 0]] = 1  # indicate unknown pixels
             masked_imgs[i] = skimage.restoration.inpaint_biharmonic(
                 masked_imgs[i], mask, channel_axis=0
             )
 
     elif method == "nn":
-        masked_imgs[top_k_mask] = np.nan
+        masked_imgs[top_k_masks] = np.nan
         for i in range(len(masked_imgs)):
             # Adapted from https://stackoverflow.com/a/27745627/7253717
             filled_ind = scipy.ndimage.distance_transform_edt(
@@ -85,7 +91,7 @@ def delete_top_k_important(
         for i in range(len(masked_imgs)):
             if target_regions.size == 0:  # no pixels in target_regions ndarray
                 continue  # skip if no pixels to shuffle
-            pixels_to_scramble = masked_imgs[i, :, top_k_mask[i, 0]]
+            pixels_to_scramble = masked_imgs[i, :, top_k_masks[i, 0]]
 
             # === Shuffle among all pixels ===
             # np.random.shuffle shuffles along first axis only (positions)
@@ -100,7 +106,7 @@ def delete_top_k_important(
             #         pixels_to_scramble.transpose(1, 0)[i:i + neighbourhood_size]
             #     )
 
-            masked_imgs[i, :, top_k_mask[i, 0]] = pixels_to_scramble
+            masked_imgs[i, :, top_k_masks[i, 0]] = pixels_to_scramble
 
     return masked_imgs
 

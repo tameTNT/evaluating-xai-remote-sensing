@@ -90,7 +90,7 @@ plt.suptitle("Explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
-deletion_method = "shuffle"  # or "nn" works best here
+deletion_method = "blur"  # "shuffle" or "nn" works best here futurenote: shuffle and nn are really terrible for MS
 # Applying deletion method to sat img with large 'class regions' is hard
 
 # == Correctness ==
