@@ -82,8 +82,10 @@ class Contrastivity(Co12Metric):
             attack_epsilon = 0.01  # default good for the vast majority of datasets and attacks
             higher_epsilon = 0.05  # higher epsilon to account for the larger image value range
             # Images may be out of bounds due to type of normalisation (especially for MS data)
-            input_ql = self.exp.input.quantile(img_bound_quantile)
-            input_qu = self.exp.input.quantile(1-img_bound_quantile)
+            # PyTorch's quantile function has an arbitrary input size limit of 16M elements so
+            # we need to use numpy's quantile function instead
+            input_ql = np.quantile(self.exp.input.numpy(force=True), img_bound_quantile)
+            input_qu = np.quantile(self.exp.input.numpy(force=True), 1-img_bound_quantile)
             if input_ql < expected_img_bounds[0] or input_qu > expected_img_bounds[1]:
                 logger.warning(f"Input images were significantly ({img_bound_quantile*100:.1f}% quantiles) "
                                f"outside the expected bounds {expected_img_bounds}: "
