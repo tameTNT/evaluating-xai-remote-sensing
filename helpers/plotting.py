@@ -182,8 +182,8 @@ def visualise_importance(
         **kwargs,
 ):
     """
-    Overlay (with transparency `alpha`) the importance rank over the image with
-    a colour bar.
+    Overlay (with transparency `alpha`) the importance rank/explanation over the image with
+    a colour bar. Yellow indicates the most important/highest activation regions.
     """
 
     if x.shape[-1] > 3:  # multi-spectral image
@@ -194,10 +194,14 @@ def visualise_importance(
 
     show_image(x, grayscale=True, **kwargs)
     rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
-    plt.imshow(rank_img, alpha=alpha, cmap="plasma_r", **kwargs)
+    if np.issubdtype(rank_img.dtype, np.integer):  # ranked explanation from 0 to a high int
+        cmap = "plasma_r"  # yellow for minimum value (0 = most important)
+    else:  # float raw explanation
+        cmap = "plasma"    # yellow for maximum value
+    plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
 
     if with_colorbar:
-        cb = plt.colorbar(label="Importance Rank (0 = most important)")
+        cb = plt.colorbar(label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}")
         cb.ax.invert_yaxis()
         _ = cb.solids.set(alpha=1)
 
