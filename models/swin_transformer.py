@@ -87,25 +87,29 @@ class SwinTransformerTemplate(Model):
     def forward(self, x):
         return self.model(x)
 
-    @staticmethod
-    def reshape_transform(x: torch.Tensor, height: int = 0, width: int = 0) -> torch.Tensor:
-        # Adapted from https://github.com/jacobgil/pytorch-grad-cam/blob/master/tutorials/vision_transformers.md
-        # Reshape the last height x width elements as a 2D image
-        if len(x.shape) == 3:  # this step is necessary if we have a 3D input instead of a 4D one with H and W
-            b, n, c = x.shape
-            assert n == height * width, (f"height and width must multiply to give the number of elements {n} "
-                                         f"returned by the target layers")
-            x = x.reshape(b, height, width, c)
-
-        # Move the channels to the first dimension, like a CNN would have
-        output = einops.rearrange(x, "b h w c -> b c h w")
-        return output
+    # @staticmethod
+    # def reshape_transform(x: torch.Tensor, height: int = 8, width: int = 8) -> torch.Tensor:
+    #     # Adapted from https://github.com/jacobgil/pytorch-grad-cam/blob/master/tutorials/vision_transformers.md
+    #     # Reshape the last height x width elements as a 2D image
+    #     if len(x.shape) == 3:  # this step is necessary if we have a 3D input instead of a 4D one with H and W
+    #         b, n, c = x.shape
+    #         assert n == height * width, (f"height and width must multiply to give the number of elements {n} "
+    #                                      f"returned by the target layers")
+    #         x = x.reshape(b, height, width, c)
+    #
+    #     # Move the channels to the first dimension, like a CNN would have
+    #     output = einops.rearrange(x, "b h w c -> b c h w")
+    #     return output
 
     def get_explanation_target_layers(self):
         # For the torchvision Swin Transformer, this is the last layer output from the final attention block
         # before the MLP, ultimate normalising, flattening and linear classification
-        assert isinstance(self.model.features[-1][-1], SwinTransformerBlock)
-        return [self.model.features[-1][-1].norm2]
+        # assert isinstance(self.model.features[-1][-1], SwinTransformerBlock)
+        # return [self.model.features[-1][-1].norm2]
+
+        # We take the final layer before pooling, flattening, and linear classification
+        # (already has channels in expected position so no reshape_transform needed)
+        return [self.model.permute]
 
 
 class SwinTransformerTiny(SwinTransformerTemplate):

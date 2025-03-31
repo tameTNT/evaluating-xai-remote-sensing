@@ -60,7 +60,7 @@ class Explainer:
         self.input = torch.tensor(0).to(self.device)
         self.kwargs = dict()
         # All explanations should attribute just one value to each pixel of each image in the batch
-        self.explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
+        self._explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
 
         # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
         # requires gradient store, etc. which takes up a lot of memory, limiting batch size
@@ -132,6 +132,20 @@ class Explainer:
         self.input = x.to(self.device)
         self.kwargs = kwargs
         self.batch_size = self.batch_size or len(x)  # if self.batch_size is currently 0, set it to len(x)
+
+    @property
+    def explanation(self) -> Float[np.ndarray, "n_samples height width"]:
+        return self._explanation
+
+    @explanation.setter
+    def explanation(self, val: Float[np.ndarray, "n_samples height width"]):
+        # Check if there are any explanations which are just all 0 (bad!)
+        all_0_exps = np.where(np.all(val == 0, axis=(1, 2)))[0]
+        if len(all_0_exps) > 0:
+            logger.warning(f"{self.__class__.__name__} Explanation contains "
+                           f"{len(all_0_exps)} all 0 explanations at idx={all_0_exps}.")
+
+        self._explanation = val
 
     def save_state(self):
         """

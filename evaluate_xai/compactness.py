@@ -37,8 +37,14 @@ class Compactness(Co12Metric):
         """
 
         abs_exp = np.abs(self.exp.explanation)  # negative values also contribute to visual clutter
-        # fixme: invalid value encountered in divide? can this be 0 somehow?
         norm_exp: np.ndarray = abs_exp / abs_exp.max(axis=(1, 2), keepdims=True)
+
+        # check for any explanations with NaN values (from division by 0)
+        nan_mask = np.isnan(norm_exp).any(axis=(1, 2))
+        if nan_mask.any():
+            logger.warning(f"Normalised explanation (at idxs={np.where(nan_mask)[0]}) contains NaN values. "
+                           f"Dropping these explanations.")
+            norm_exp = norm_exp[~nan_mask]
 
         if self.visualise:
             # add fake colour channel for show_image's expected format: (n, c, h, w)
