@@ -1,0 +1,1 @@
+--deletion_method blur --normalisation_type mean_std --batch_size 16 --samples_per_class 32
