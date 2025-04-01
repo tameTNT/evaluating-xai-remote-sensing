@@ -27,7 +27,6 @@ class Contrastivity(Co12Metric):
 
     def _adversarial_attack(
             self,
-            expected_img_bounds: tuple[float, float] = (-1, 1),
             img_bound_quantile: float = 0.02,
             attack: foolbox.attacks.Attack = foolbox.attacks.LinfDeepFoolAttack,
             attack_kwargs: dict = None,
@@ -79,23 +78,32 @@ class Contrastivity(Co12Metric):
             logger.info(f"No existing adversarial images at {previous_adv_output_path}. "
                         f"Generating new ones via foolbox with batch size {attack_batch_size}.")
 
+            expected_img_bounds = (-1, 1)
             attack_epsilon = 0.01  # default good for the vast majority of datasets and attacks
             higher_epsilon = 0.05  # higher epsilon to account for the larger image value range
             # Images may be out of bounds due to type of normalisation (especially for MS data)
-            # PyTorch's quantile function has an arbitrary input size limit of 16M elements so
-            # we need to use numpy's quantile function instead
-            input_ql = np.quantile(self.exp.input.numpy(force=True), img_bound_quantile)
-            input_qu = np.quantile(self.exp.input.numpy(force=True), 1-img_bound_quantile)
-            if input_ql < expected_img_bounds[0] or input_qu > expected_img_bounds[1]:
-                logger.warning(f"Input images were significantly ({img_bound_quantile*100:.1f}% quantiles) "
-                               f"outside the expected bounds {expected_img_bounds}: "
-                               f"input.quantile({img_bound_quantile})={input_ql}, "
-                               f"input.quantile({1-img_bound_quantile})={input_qu}. "
-                               f"Updating expected img bounds and using higher epsilon "
-                               f"({attack_epsilon} -> {higher_epsilon}).")
-                expected_img_bounds = (min(self.exp.input.min(), expected_img_bounds[0]),
-                                       max(self.exp.input.max(), expected_img_bounds[1]))
-                attack_epsilon = higher_epsilon
+            input_min = self.exp.input.min()
+            input_max = self.exp.input.max()
+            if input_min < expected_img_bounds[0] or input_max > expected_img_bounds[1]:
+                logger.warning(f"Input images were outside the expected bounds {expected_img_bounds}: "
+                               f"input.min()={input_min}, input.max()={input_max}. "
+                               f"Updating image bounds before generation.")
+
+                # PyTorch's quantile function has an arbitrary input size limit of 16M elements so
+                # we need to use numpy's quantile function instead
+                input_lq = np.quantile(self.exp.input.numpy(force=True), img_bound_quantile)
+                input_uq = np.quantile(self.exp.input.numpy(force=True), 1-img_bound_quantile)
+                if input_lq < expected_img_bounds[0] or input_uq > expected_img_bounds[1]:
+                    logger.warning(f"Input images were *significantly* ({img_bound_quantile*100:.1f}% quantiles) "
+                                   f"outside the expected bounds {expected_img_bounds}: "
+                                   f"input.quantile({img_bound_quantile})={input_lq}, "
+                                   f"input.quantile({1-img_bound_quantile})={input_uq}. "
+                                   f"Using higher epsilon "
+                                   f"({attack_epsilon} -> {higher_epsilon}).")
+                    attack_epsilon = higher_epsilon
+
+                expected_img_bounds = (min(input_min, expected_img_bounds[0]),
+                                       max(input_max, expected_img_bounds[1]))
 
             foolbox_model = foolbox.PyTorchModel(self.exp.model, device=self.exp.device, bounds=expected_img_bounds)
 
