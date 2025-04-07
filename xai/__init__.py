@@ -61,6 +61,7 @@ class Explainer:
         self.kwargs = dict()
         # All explanations should attribute just one value to each pixel of each image in the batch
         self._explanation: Float[np.ndarray, "n_samples height width"] = np.ndarray(0)
+        self._raw_return = None  # not saved, just used for debugging
 
         # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
         # requires gradient store, etc. which takes up a lot of memory, limiting batch size

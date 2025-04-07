@@ -42,10 +42,10 @@ def get_data_and_model() -> tuple:
     weights_path = json.load(Path("weights_paths.json").open("r"))[dataset_name][model_name]
     model_weights_path = checkpoints_path / dataset_name / model_name / weights_path
 
-    logger.debug(f"Loading pretrained weights from {model_weights_path} and loading into model...")
     model = model_type(
         pretrained=False, n_input_bands=ds.N_BANDS, n_output_classes=ds.N_CLASSES,
     )
+    logger.debug(f"Loading pretrained weights from {model_weights_path} and loading into model...")
     st.load_model(model, model_weights_path)
     model.eval().to(torch_device)
 

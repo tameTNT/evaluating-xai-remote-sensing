@@ -51,6 +51,7 @@ class GradCAMBase(Explainer):
 
         cam_output = np.concatenate(outputs, axis=0)
         self.explanation = cam_output  # no additional processing needed (already numpy with correct channels)
+        self._raw_return = cam_output  # same as explanation (no modifications for CAM methods)
         self.save_state()
 
 

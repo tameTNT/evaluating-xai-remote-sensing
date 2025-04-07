@@ -84,10 +84,11 @@ class PartitionSHAP(Explainer):
             shap_values = np.concatenate([mp_result.values for mp_result in explainer_results])
         else:  # single process approach
             logger.info("😇 Beginning single-process SHAP evaluation.")
-            shap_values = explain_via_partition_shap(
+            self._raw_return = explain_via_partition_shap(
                 np01_x, blur_masker, max_evals, shap_batch_size,
                 self.device, self.batch_size, self.model, logger.name
-            ).values
+            )
+            shap_values = self._raw_return.values
 
         # only save the most confident prediction (sorted to be first by outputs arg)
         # summing over the image colour/band channels (final axis of output)
