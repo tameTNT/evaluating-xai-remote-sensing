@@ -4,7 +4,7 @@
     "continuity_perturbation_degree": 0.15,
     "compactness_threshold": 0.5,
     "samples_per_class": 32,
-    "deletion_method": "shuffle",
+    "deletion_method": "blur",
     "deletion_iterations": 15,
     "num_random_trials": 5,
     "similarity_intersection_proportion": 0.1,
