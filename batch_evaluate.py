@@ -317,7 +317,6 @@ if __name__ == "__main__":
     logger.info(f"Successfully got script arguments: {args}.")
 
     torch.manual_seed(random_seed)
-    np_rng = np.random.default_rng(random_seed)
 
     dataset, model_to_explain = get_data_and_model()
 
@@ -376,6 +375,10 @@ if __name__ == "__main__":
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
             results_df.loc[current_class_name] = existing_df_row  # update results_df with existing row
             continue
+
+        # Use the same random seed for each class each time (enables repeatable resuming runs)
+        torch.manual_seed(random_seed)
+        np_rng = np.random.default_rng(random_seed)
 
         class_idxs = np.where(classes == c)[0]
 
