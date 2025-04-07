@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+from torchvision.utils import make_grid
 from jaxtyping import Float, Int
 from skimage import color
 
@@ -112,9 +113,11 @@ def show_image(
             plt.gcf().set_size_inches(final_fig_size)
             return
 
-        # todo: use torchvision image grid instead to add padding
-        x = einops.rearrange(x, "n c h w -> h (n w) c")
-        # x = torchvision.utils.make_grid(x, nrow=x.shape[0])
+        # Pad with white value (1)
+        x = make_grid(torch.from_numpy(x), nrow=8, padding=10, pad_value=1).numpy()
+        # x = einops.rearrange(x, "(n1 n2) c h w -> (n1 h) (n2 w) c", n2=8)
+        x = einops.rearrange(x, "c h w -> h w c")
+
     else:
         raise ValueError(f"Invalid shape for x: {x.shape}")
 
@@ -125,7 +128,7 @@ def show_image(
         x = color.rgb2gray(x)
         kwargs["cmap"] = "gray"
 
-    plt.imshow(x, **kwargs)
+    plt.imshow(x.clip(0, 1), **kwargs)  # clip to supress warning
     plt.axis("off")
     plt.gcf().set_size_inches(final_fig_size)
 

@@ -10,6 +10,7 @@ import shap
 import shap.maskers
 import torch
 from jaxtyping import Float
+import matplotlib.pyplot as plt
 
 import helpers
 from xai import Explainer
@@ -127,6 +128,8 @@ def explain_via_partition_shap(
 
 
 def predict_function(np_imgs: np.ndarray, device, max_batch_size, model):
+    # helpers.plotting.show_image(np_imgs, is_01_normalised=True)
+    # plt.show()
     model_input_imgs: torch.Tensor = einops.rearrange(
         torch.from_numpy(np_imgs * 2) - 1, "b h w c -> b c h w"
     ).to(device)
