@@ -368,11 +368,13 @@ if __name__ == "__main__":
 
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
+        current_class_name = dataset.classes[c]
         h5_store = get_hdf5()
-        existing_df_row = h5_store[ds_model_df_name].loc[dataset.classes[c]]
+        existing_df_row = h5_store[ds_model_df_name].loc[current_class_name]
         h5_store.close()
         if existing_df_row.isna().sum() == 0:  # no NaN values in row
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
+            results_df.loc[current_class_name] = existing_df_row  # update results_df with existing row
             continue
 
         class_idxs = np.where(classes == c)[0]
@@ -480,7 +482,7 @@ if __name__ == "__main__":
         logger.info("Saving calculated evaluation metrics to results dataframe...")
         # Use pd.to_numeric (converts numpy array objects) since we require numeric
         # values for HDF5 for fast saving/loading
-        results_df.loc[dataset.classes[c]] = pd.to_numeric([
+        results_df.loc[current_class_name] = pd.to_numeric([
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
             # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
