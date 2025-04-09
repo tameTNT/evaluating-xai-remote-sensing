@@ -167,9 +167,9 @@ class Explainer:
         logger.debug(f"Saved {self.__class__.__name__}'s explanation "
                      f"to {self.npz_path} (kwargs={self.kwargs}).")
 
-    def load_state(self):
+    def load_state(self, _force: bool = False):
         """
-        Loads self.input, self.kwargs and self.explanation from self.npz_path
+        Loads self.input, self.kwargs and self.explanation from self.npz_path.
         """
 
         logger.debug(f"Attempting to load explanation from "
@@ -178,21 +178,37 @@ class Explainer:
             self.input = torch.from_numpy(data["explanation_input"]).to(self.device)
             temp = data["explanation"]
 
-        equal, diff = tolerant_equal(self.input, self.attempt_load)
+        if _force:
+            equal, diff = True, 0
+            als = "N/A"
+        else:
+            equal, diff = tolerant_equal(self.input, self.attempt_load)
+            als = self.attempt_load.shape
+
         if equal:
             logger.debug(f"Loaded input (shape={self.input.shape}) matches the provided check input "
-                         f"(shape={self.attempt_load.shape}) with diff={diff}.")
+                         f"(shape={als}) with diff={diff}.")
             self.explanation = temp
         else:
             logger.warning(
                 f"Loaded input (shape={self.input.shape}) does not match the provided check input "
-                f"(shape={self.attempt_load.shape}) with diff={diff}. Using null values."
+                f"(shape={als}) with diff={diff}. Using null values."
             )
 
         # todo: enforce kwargs are the same as given (for explanation generated in same way)
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs set to {self.kwargs}.")
+
+    def force_load(self):
+        """
+        Populate self.input, self.kwargs and self.explanation from self.npz_path directly.
+        Doesn't need to match any expected input.
+        """
+        print(f"Loading input, explanation, and kwargs from {self.npz_path}...")
+        logger.debug(f"Forcing (with self.attempt_load comparison) to load explanation from "
+                     f"{self.npz_path} to {self.__class__.__name__}.")
+        self.load_state(_force=True)
 
     def __or__(self, other: "Explainer") -> "Explainer":
         """
