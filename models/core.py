@@ -1,7 +1,9 @@
 import typing as t
+from pathlib import Path
 
 import torch
 import torch.nn as nn
+import safetensors.torch as st
 
 from helpers import log
 
@@ -19,6 +21,22 @@ class Model(nn.Module):
         self.pretrained = pretrained
         assert n_input_bands > 0, "Number of input bands must be greater than 0."
         assert n_output_classes > 0, "Number of output classes must be greater than 0."
+
+    def load_weights(self, weights_path: Path) -> tuple[list[str], list[str]]:
+        """
+        Load weights from a safetensors file. Same return as safetensors.torch.load_model.
+
+        :returns: `(missing, unexpected): (List[str], List[str])`
+            `missing` are names in the model which were not modified during loading
+            `unexpected` are names that are on the file, but weren't used during
+            the load.
+        """
+
+        assert weights_path.suffix in [".st", ".safetensors"], \
+            "Weights file must be a safetensors file (.st/.safetensors) file."
+        load_result = st.load_model(self, weights_path)
+        logger.debug(f"Loaded weights from {weights_path} successfully to {self.__class__.__name__}.")
+        return load_result
 
     def yield_layers(self) -> t.Generator[nn.Module, None, None]:
         """

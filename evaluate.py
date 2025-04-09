@@ -3,7 +3,6 @@ from pathlib import Path
 
 # from remote_plot import plt
 import matplotlib.pyplot as plt
-import safetensors.torch as st
 import torch
 from pytorch_grad_cam.utils.image import show_cam_on_image
 
@@ -54,9 +53,8 @@ model_weights_path = helpers.env_var.get_project_root() / "checkpoints" / datase
 model_to_explain = model_type(
     pretrained=False, n_input_bands=dataset.N_BANDS, n_output_classes=dataset.N_CLASSES,
 )
-st.load_model(model_to_explain, model_weights_path)
+model_to_explain.load_weights(model_weights_path)
 model_to_explain.eval().to(torch_device)
-logger.info(f"Loaded weights from {model_weights_path} successfully.")
 
 # ==== Select images from dataset to explain ====
 # temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]

@@ -6,7 +6,6 @@ import json
 import functools
 
 import torch
-import safetensors.torch as st
 import numpy as np
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
@@ -45,8 +44,7 @@ def get_data_and_model() -> tuple:
     model = model_type(
         pretrained=False, n_input_bands=ds.N_BANDS, n_output_classes=ds.N_CLASSES,
     )
-    logger.debug(f"Loading pretrained weights from {model_weights_path} and loading into model...")
-    st.load_model(model, model_weights_path)
+    model.load_weights(model_weights_path)
     model.eval().to(torch_device)
 
     return ds, model
