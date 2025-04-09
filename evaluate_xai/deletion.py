@@ -115,6 +115,7 @@ def generate_random_ranking(
         resolution: int = 16,
         random_seed: int = 42
 ) -> Int[np.ndarray, "height width"]:
+    # futuretodo: maybe this could be done with gaussian spots to blend regions better?
     h, w = shape
 
     random_gen = np.random.default_rng(random_seed)

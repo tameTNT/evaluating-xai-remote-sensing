@@ -42,6 +42,7 @@ class Continuity(Co12Metric):
             plt.title(f"Continuity Perturbation (degree={degree})")
             plt.show()
 
+        # futuretodo: only bother computing the explanation for samples that didn't change f (below)
         exp_for_perturbed = self.get_sub_explainer("perturbed", noisy_samples)
 
         if self.visualise:
