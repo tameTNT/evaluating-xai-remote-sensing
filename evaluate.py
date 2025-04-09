@@ -21,15 +21,15 @@ from evaluate_xai.output_completeness import OutputCompleteness
 
 # ==== Set up script arguments ====
 random_seed = 42
-dataset_name: dataset_processing.DATASET_NAMES = "EuroSATMS"
-normalisation_type = "mean_std"
+dataset_name: dataset_processing.DATASET_NAMES = "EuroSATRGB"
+normalisation_type = "scaling"
 use_resize = True
 batch_size = 32
 
-model_name: models.MODEL_NAMES = "ResNet50"
+model_name: models.MODEL_NAMES = "ConvNeXtSmall"
 num_workers = 4
 
-explainer_name: xai.EXPLAINER_NAMES = "GradCAM"
+explainer_name: xai.EXPLAINER_NAMES = "KPCACAM"
 shap_max_evals = 500
 
 logger = helpers.log.main_logger
@@ -63,14 +63,14 @@ logger.info(f"Loaded weights from {model_weights_path} successfully.")
 temp_idxs = [4179, 3534, 2338]
 # temp_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
-helpers.plotting.show_image(imgs_to_explain, normalisation_type="channel", final_fig_size=(8., 4.))
+helpers.plotting.show_image(imgs_to_explain, final_fig_size=(8., 4.))  # , normalisation_type="channel")
 plt.suptitle("Images to be explained")
 plt.show()
 
 # ==== Generate explanation for selected images ====
 explainer = xai.get_explainer_object(
     explainer_name, model=model_to_explain, extra_path=Path(dataset_name),
-    attempt_load=imgs_to_explain,
+    # attempt_load=imgs_to_explain,
     # batch_size=batch_size,
 )
 
