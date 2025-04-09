@@ -69,6 +69,7 @@ def show_image(
         is_01_normalised: bool = False,
         grayscale: bool = False,
         final_fig_size: tuple[float, float] = (8., 8.),  # width, height
+        padding: int = 10,
         **kwargs
 ):
     """
@@ -113,8 +114,14 @@ def show_image(
             plt.gcf().set_size_inches(final_fig_size)
             return
 
-        # Pad with white value (1)
-        x = make_grid(torch.from_numpy(x), nrow=8, padding=10, pad_value=1).numpy()
+        single_channel = False
+        if x.shape[1] == 1:
+            single_channel = True
+
+        # Pad with black value (0) - white (1) might stretch range too much!
+        x = make_grid(torch.from_numpy(x), nrow=8, padding=padding, pad_value=0).numpy()
+        if single_channel:
+            x = x[0][None,]  # reduce additional channels added by make_grid
         # x = einops.rearrange(x, "(n1 n2) c h w -> (n1 h) (n2 w) c", n2=8)
         x = einops.rearrange(x, "c h w -> h w c")
 
@@ -128,7 +135,7 @@ def show_image(
         x = color.rgb2gray(x)
         kwargs["cmap"] = "gray"
 
-    plt.imshow(x.clip(0, 1), **kwargs)  # clip to supress warning
+    plt.imshow(x, **kwargs)
     plt.axis("off")
     plt.gcf().set_size_inches(final_fig_size)
 
@@ -183,7 +190,7 @@ def show_ms_images(
 
 
 def visualise_importance(
-        x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples height width channels"],
+        x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples channels height width"],
         importance_rank: Int[np.ndarray, "n_samples height width"],
         alpha: float = 0.2,
         with_colorbar: bool = True,
@@ -195,23 +202,37 @@ def visualise_importance(
     a colour bar. Yellow indicates the most important/highest activation regions.
     """
 
-    if x.shape[-1] > 3:  # multi-spectral image
+    if x.shape[1] > 3:  # multi-spectral image
         if band_idxs is None:
-            raise ValueError("bands must be specified for multi-spectral images")
+            raise ValueError(f"bands must be specified for multi-spectral images. "
+                             f"x.shape[1] = {x.shape[1]} > 3")
         else:
             x = x[..., band_idxs]
 
-    show_image(x, grayscale=True, **kwargs)
-    rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
-    if np.issubdtype(rank_img.dtype, np.integer):  # ranked explanation from 0 to a high int
+    show_image(x, grayscale=True, padding=20,
+               **kwargs)
+
+    if np.issubdtype(importance_rank.dtype, np.integer):  # ranked explanation from 0 to a high int
         cmap = "plasma_r"  # yellow for minimum value (0 = most important)
     else:  # float raw explanation
         cmap = "plasma"    # yellow for maximum value
-    plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
+
+    # both use same underlying spacing grid
+    rank_img = importance_rank[:, None]  # add channel dimension
+    show_image(rank_img, is_01_normalised=True, grayscale=False, padding=20,
+               alpha=alpha, cmap=cmap, **kwargs)
+
+    # rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
+    # plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
 
     if with_colorbar:
-        cb = plt.colorbar(label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}")
-        cb.ax.invert_yaxis()
+        cb = plt.colorbar(
+            label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}",
+            location="bottom",
+            pad=0.02,   # move closer distance to image
+            aspect=25,  # make thinner
+        )
+        # cb.ax.invert_yaxis()
         _ = cb.solids.set(alpha=1)
 
 
