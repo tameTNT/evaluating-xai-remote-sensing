@@ -352,6 +352,7 @@ if __name__ == "__main__":
         # noinspection PyTypeChecker
         json.dump(build_parameters_dict(), json_parameters_path.open("w+"), indent=4)
     else:
+        assert h5_store[ds_model_df_name].columns == results_df.columns, "Unexpected columns of saved dataframe."
         h5_store.close()
         stored_parameters = json.load(json_parameters_path.open("r"))
         current_parameters = build_parameters_dict()
@@ -373,7 +374,6 @@ if __name__ == "__main__":
         h5_store.close()
         if existing_df_row.isna().sum() == 0:  # no NaN values in row
             logger.info(f"All metrics already calculated and saved for class {c:02}. Skipping.")
-            results_df.loc[current_class_name] = existing_df_row  # update results_df with existing row
             continue
 
         # Use the same random seed for each class each time (enables repeatable resuming runs)
@@ -483,9 +483,11 @@ if __name__ == "__main__":
 
         # ==== Save all results in the dataframe's row for that class ====
         logger.info("Saving calculated evaluation metrics to results dataframe...")
+        h5_store = get_hdf5()
         # Use pd.to_numeric (converts numpy array objects) since we require numeric
         # values for HDF5 for fast saving/loading
-        results_df.loc[current_class_name] = pd.to_numeric([
+        # Directly update target row only (preserve other rows)
+        h5_store[ds_model_df_name].loc[current_class_name] = pd.to_numeric([
             # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
             # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
@@ -497,9 +499,6 @@ if __name__ == "__main__":
             *contrastivity_similarity_vals.mean(axis=1),
             compactness_scores.mean(),
         ])
-
-        h5_store = get_hdf5()
-        h5_store[ds_model_df_name] = results_df  # saves updated results_df object to HDF5 file
         h5_store.close()
 
     logger.info(f"Script execution complete.")
