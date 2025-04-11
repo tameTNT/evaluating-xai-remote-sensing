@@ -24,6 +24,8 @@ class Continuity(Co12Metric):
         else:
             raise ValueError(f"Unknown evaluation method: {method}")
 
+    # futuretodo: add max sensitivity method as in "On the (In)fidelity and Sensitivity of Explanations"
+    #  https://github.com/chihkuanyeh/saliency_evaluation/blob/8eb095575cf5502290a5a32e27163d1aca224580/infid_sen_utils.py#L301
     def _perturbation(
             self,
             degree: float = 0.15,

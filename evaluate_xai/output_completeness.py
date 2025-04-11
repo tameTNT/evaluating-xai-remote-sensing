@@ -39,6 +39,8 @@ class OutputCompleteness(Co12Metric):
             self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed,
         )
 
+        # futuretodo: perhaps a fractional/proportional metric is better?
+        #  since different classes' random deletion might be more/less effective
         # Drop in acc vs random = (rand_del_acc - org_acc) - (del_acc - org_acc)
         #                       = rand_del_acc - del_acc
         # We want del_acc to be small (the deletion was effective at removing important info),
@@ -62,12 +64,12 @@ class OutputCompleteness(Co12Metric):
             inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed,
         )
 
-        # drop in acc vs random = 1 + (rand_pres_acc - org_acc) - (pres_acc - org_acc)
-        #                       = 1 + rand_pres_acc - pres_acc
+        # drop in acc vs random = (rand_pres_acc - org_acc) - (pres_acc - org_acc)
+        #                       = rand_pres_acc - pres_acc
         # We want pres_acc to remain high (we only removed non-important stuff),
         # while rand_pres_acc should be low (we accidentally removed important stuff)
-        # so best score is 0, worst is 2.
-        return 1 + random_pres_conf - informed_pres_conf
+        # so best score is -1, worst is 1.
+        return random_pres_conf - informed_pres_conf
 
     def delete_via_ranking(
             self,
