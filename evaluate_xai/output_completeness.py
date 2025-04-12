@@ -68,8 +68,8 @@ class OutputCompleteness(Co12Metric):
         #                       = rand_pres_acc - pres_acc
         # We want pres_acc to remain high (we only removed non-important stuff),
         # while rand_pres_acc should be low (we accidentally removed important stuff)
-        # so best score is -1, worst is 1.
-        return random_pres_conf - informed_pres_conf
+        # After inverting (for alignment with deletion check), best score is 1 and worst is -1.
+        return informed_pres_conf - random_pres_conf
 
     def delete_via_ranking(
             self,
