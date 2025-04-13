@@ -192,7 +192,7 @@ class RSDatasetMixin:
         in numpy format ready for display.
         """
 
-        images: np.ndarray = np.take(sample.numpy(), indices=self.rgb_indices, axis=1)
+        images: np.ndarray = np.take(sample.numpy(force=True), indices=self.rgb_indices, axis=1)
 
         # normalised images are in the range [-1, 1] originally
         if self.mean.nonzero().numel() > 0:  # either via explicit mean/std
