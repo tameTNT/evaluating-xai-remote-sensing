@@ -205,7 +205,7 @@ class Explainer:
         Populate self.input, self.kwargs and self.explanation from self.npz_path directly.
         Doesn't need to match any expected input.
         """
-        print(f"Loading input, explanation, and kwargs from {self.npz_path}...")
+        # print(f"Loading input, explanation, and kwargs from {self.npz_path}...")
         logger.debug(f"Forcing (with self.attempt_load comparison) to load explanation from "
                      f"{self.npz_path} to {self.__class__.__name__}.")
         self.load_state(_force=True)

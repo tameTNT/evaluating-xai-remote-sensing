@@ -87,9 +87,8 @@ class OutputCompleteness(Co12Metric):
         )
 
         if self.visualise:
-            helpers.plotting.show_image(imgs_with_deletions)
-            plt.suptitle(f"Explanation informed deletion/preservation (threshold={threshold})",
-                         fontsize=15)
+            helpers.plotting.show_image(imgs_with_deletions, final_fig_size=(8, (n_samples+8)//8))
+            plt.suptitle(f"Explanation informed deletion/preservation (threshold={threshold})")
             plt.show()
 
         logger.debug("Repeating for randomised deletions.")
@@ -107,9 +106,9 @@ class OutputCompleteness(Co12Metric):
 
         if self.visualise:
             # show each different random ranking on 0th image
-            helpers.plotting.show_image(imgs_with_random_deletions[:, 0])
-            plt.suptitle(f"{n_random_rankings} random deletion/preservation rounds (threshold={threshold})",
-                         fontsize=15)
+            helpers.plotting.show_image(imgs_with_random_deletions[:, 0],
+                                        final_fig_size=(8, (n_random_rankings+8)//8 + .75))
+            plt.suptitle(f"{n_random_rankings} random deletion/preservation rounds (threshold={threshold})")
             plt.show()
 
         # flatten out n_random_rankings dimension into n_samples dimension
@@ -124,12 +123,15 @@ class OutputCompleteness(Co12Metric):
         # Get the predictions for the original images. Let's see how the perturbations can decrease it!
         original_outputs = all_outputs[:n_samples]
         original_prediction = original_outputs.argmax(axis=1)
+        print(f"Original predictions: {original_prediction}") if self.visualise else None
 
         informed_outputs = all_outputs[n_samples:2*n_samples]
         # take average across n_random_rankings
         random_outputs = all_outputs[2*n_samples:].reshape(n_random_rankings, n_samples, -1).mean(axis=0)
 
         conf_informed_deletion = informed_outputs[np.arange(n_samples), original_prediction]
+        print(f"Confidence after informed: {conf_informed_deletion}") if self.visualise else None
         conf_random_deletion = random_outputs[np.arange(n_samples), original_prediction]
+        print(f"Confidence after random: {conf_random_deletion}") if self.visualise else None
 
         return conf_informed_deletion, conf_random_deletion

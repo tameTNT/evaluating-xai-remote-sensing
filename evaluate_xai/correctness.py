@@ -27,11 +27,12 @@ def visualise_incremental_deletion(
     n, i, c, h, w = selected_images.shape
     helpers.plotting.show_image(einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"))
     # current_size = plt.gcf().get_size_inches()
-    # width gets scaled if displaying a multi-spectral image (with more than 3 channels)
     fig = plt.gcf()
-    fig.set_size_inches((c if c > 3 else 1) * i/5, n * 3/5)  # width, height
+    fig_scale_factor = .2
+    # width gets additionally scaled if displaying a multi-spectral image (with more than 3 channels)
+    fig.set_size_inches((c if c > 3 else 1) * i * fig_scale_factor, n * fig_scale_factor)  # width, height
     fig.tight_layout(w_pad=1.5)
-    plt.gcf().set_dpi(200)
+    fig.set_dpi(200)
     # plt.tight_layout()
 
 
@@ -96,8 +97,7 @@ class Correctness(Co12Metric):
 
         if self.visualise:
             visualise_incremental_deletion(imgs_with_deletions)
-            plt.suptitle(f"Incremental informed deletion over {iterations} iterations",
-                         fontsize=20)
+            plt.suptitle(f"Incremental informed deletion over {iterations} iterations")
             plt.show()
 
         # Do the same thing for randomised deletions
@@ -133,8 +133,7 @@ class Correctness(Co12Metric):
         if self.visualise:
             # show each different random ranking on the 0th image (collected progressively above)
             visualise_incremental_deletion(np.stack(sample_perturbation_history, axis=0))
-            plt.suptitle(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations",
-                         fontsize=20)
+            plt.suptitle(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations")
             plt.show()
 
         # final dim is num_classes so use -1

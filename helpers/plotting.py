@@ -68,8 +68,9 @@ def show_image(
         x: t.Union[torch.Tensor, np.ndarray],
         is_01_normalised: bool = False,
         grayscale: bool = False,
-        final_fig_size: tuple[float, float] = (8., 8.),  # width, height
+        final_fig_size: tuple[float, float] = None,  # width, height
         padding: int = 10,
+        padding_value: int = 0,
         **kwargs
 ):
     """
@@ -111,15 +112,16 @@ def show_image(
             if "normalisation_type" not in kwargs:
                 kwargs["normalisation_type"] = "channel"
             show_ms_images(x, **kwargs)
-            plt.gcf().set_size_inches(final_fig_size)
+            if final_fig_size:
+                plt.gcf().set_size_inches(final_fig_size)
             return
 
         single_channel = False
         if x.shape[1] == 1:
             single_channel = True
 
-        # Pad with black value (0) - white (1) might stretch range too much!
-        x = make_grid(torch.from_numpy(x), nrow=8, padding=padding, pad_value=0).numpy()
+        # Pad with black value (0) by default - white (1) might stretch range too much!
+        x = make_grid(torch.from_numpy(x), nrow=8, padding=padding, pad_value=padding_value).numpy()
         if single_channel:
             x = x[0][None,]  # reduce additional channels added by make_grid
         # x = einops.rearrange(x, "(n1 n2) c h w -> (n1 h) (n2 w) c", n2=8)
@@ -137,7 +139,8 @@ def show_image(
 
     plt.imshow(x, **kwargs)
     plt.axis("off")
-    plt.gcf().set_size_inches(final_fig_size)
+    if final_fig_size:
+        plt.gcf().set_size_inches(final_fig_size)
 
 
 def show_ms_images(
@@ -195,6 +198,7 @@ def visualise_importance(
         alpha: float = 0.2,
         with_colorbar: bool = True,
         band_idxs: list[int] = None,
+        show_samples_separate: bool = False,
         **kwargs,
 ):
     """
@@ -209,8 +213,16 @@ def visualise_importance(
         else:
             x = x[:, band_idxs]
 
-    show_image(x, grayscale=True, padding=20,
-               **kwargs)
+    if show_samples_separate:
+        plt.subplots(2, 1)
+        plt.subplot(2, 1, 1)
+        show_image(x, grayscale=False, padding=20,
+                   **kwargs)
+        alpha = 1.
+        plt.subplot(2, 1, 2)
+    else:
+        show_image(x, grayscale=True, padding=20,
+                   **kwargs)
 
     if np.issubdtype(importance_rank.dtype, np.integer):  # ranked explanation from 0 to a high int
         cmap = "plasma_r"  # yellow for minimum value (0 = most important)
@@ -234,7 +246,6 @@ def visualise_importance(
         )
         # cb.ax.invert_yaxis()
         _ = cb.solids.set(alpha=1)
-
 
 def make_deletions_plot(
         *args: pd.DataFrame,
