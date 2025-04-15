@@ -19,6 +19,19 @@ SIMILARITY_METRICS = t.Literal["l2_distance", "spearman_rank", "top_k_intersecti
 
 class Similarity:
     def __init__(self, exp1: Explainer, exp2: Explainer, mask: np.ndarray[bool] = None):
+        """
+        An object to calculate similarity metrics between two sets of explanations.
+        Supports masking particular indices to ignore them in the similarity metrics
+        (desirable for some evaluation metrics, e.g. continuity).
+        Call the created instance to calculate and return the metrics in dictionary form.
+
+        :param exp1: An Explainer object with populated explanation and ranked_explanation attributes.
+        :param exp2: An Explainer object with populated explanation and ranked_explanation attributes.
+        :param mask: An optional boolean mask indicating which indices to use for the similarity metrics.
+          If None or all True, all samples are used. The actual indices used are stored in self.return_idxs.
+          The indices hidden (i.e., idxs where mask==False) are stored in self.hidden_idxs.
+        """
+
         x1 = exp1.explanation
         x2 = exp2.explanation
 

@@ -6,7 +6,7 @@ import os
 
 # import multiprocess
 
-import helpers.env_var
+import helpers.env_var  # must be imported before this file (log) in __init__.py
 
 LOG_DIR = Path(f"{helpers.env_var.get_project_root()}/.logs")
 LOG_DIR.mkdir(parents=False, exist_ok=True)

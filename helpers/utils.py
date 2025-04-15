@@ -10,6 +10,8 @@ from helpers import log  # direct import to avoid circular import
 logger = log.main_logger
 
 
+# This function is left here in utils to allow for use of logger
+# (imported after log in __init__.py) without causing circular import issues.
 def get_torch_device(force_mps: bool = False) -> torch.device:
     if torch.cuda.is_available():
         torch_device = torch.device("cuda")
