@@ -36,6 +36,17 @@ def visualise_incremental_deletion(
     # plt.tight_layout()
 
 
+def reset_child_params(model: torch.nn.Module):
+    """
+    Reset all parameters of a model to their defaults **inplace**.
+    Adapted from https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
+    """
+    for layer in model.children():
+        if hasattr(layer, "reset_parameters"):
+            layer.reset_parameters()
+        reset_child_params(layer)
+
+
 class Correctness(Co12Metric):
     # todo: add docstrings - discuss execution time and add definitions from review paper
 
@@ -61,7 +72,7 @@ class Correctness(Co12Metric):
     ) -> Similarity:
         device = helpers.utils.get_model_device(self.exp.model)
         randomised_model = copy.deepcopy(self.exp.model).to(device)
-        self.reset_child_params(randomised_model)
+        reset_child_params(randomised_model)
         randomised_model.eval()
 
         exp_for_randomised_model = self.get_sub_explainer(
@@ -88,7 +99,7 @@ class Correctness(Co12Metric):
         image_shape = self.exp.input.shape[1:]
         total_num_samples = self.n_samples * iterations
 
-        imgs_with_deletions, k_values = self.incrementally_delete(
+        imgs_with_deletions, k_values = self.incrementally_delete_from_input(
             self.exp.ranked_explanation, iterations, deletion_method
         )
         imgs_flat = imgs_with_deletions.reshape(total_num_samples, *image_shape)
@@ -113,7 +124,7 @@ class Correctness(Co12Metric):
             )
             random_rankings = a_random_ranking[np.newaxis, ...].repeat(self.n_samples, axis=0)
 
-            imgs_with_random_deletions = self.incrementally_delete(
+            imgs_with_random_deletions = self.incrementally_delete_from_input(
                 random_rankings, iterations, deletion_method
             )[0]
             if self.visualise:
@@ -172,17 +183,7 @@ class Correctness(Co12Metric):
         return {"informed": exp_informed_area_under_curve_per_img,
                 "random": random_area_under_curve_per_img}
 
-    def reset_child_params(self, model: torch.nn.Module):
-        """
-        Reset all parameters of the model to their defaults **inplace**.
-        Adapted from https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
-        """
-        for layer in model.children():
-            if hasattr(layer, "reset_parameters"):
-                layer.reset_parameters()
-            self.reset_child_params(layer)
-
-    def incrementally_delete(
+    def incrementally_delete_from_input(
             self,
             importance_ranking: Int[np.ndarray, "n_samples height width"],
             num_iterations: int,

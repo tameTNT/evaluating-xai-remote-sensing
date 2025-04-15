@@ -35,7 +35,7 @@ class OutputCompleteness(Co12Metric):
             random_seed: int = 42,
             **kwargs,
     ) -> Float[np.ndarray, "n_samples"]:
-        informed_del_conf, random_del_conf = self.delete_via_ranking(
+        informed_del_conf, random_del_conf = self._perform_check(
             self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed,
         )
 
@@ -60,7 +60,7 @@ class OutputCompleteness(Co12Metric):
         # we can invert it by simply by ranking it again (so 0 becomes least important)
         inverted_importance_ranking = helpers.utils.rank_pixel_importance(self.exp.ranked_explanation)
 
-        informed_pres_conf, random_pres_conf = self.delete_via_ranking(
+        informed_pres_conf, random_pres_conf = self._perform_check(
             inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed,
         )
 
@@ -71,7 +71,7 @@ class OutputCompleteness(Co12Metric):
         # After inverting (for alignment with deletion check), best score is 1 and worst is -1.
         return informed_pres_conf - random_pres_conf
 
-    def delete_via_ranking(
+    def _perform_check(
             self,
             importance_ranking: Float[np.ndarray, "n_samples height width"],
             deletion_method: deletion.METHODS,
@@ -79,8 +79,22 @@ class OutputCompleteness(Co12Metric):
             n_random_rankings: int,
             random_seed: int,
     ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
-        n_samples = self.exp.input.shape[0]
+        informed_deletions, random_deletions = self.delete_from_input(
+            importance_ranking, deletion_method, threshold, n_random_rankings, random_seed,
+        )
+        return self._predict_on_deleted(informed_deletions, random_deletions)
 
+    def delete_from_input(
+            self,
+            importance_ranking: Float[np.ndarray, "n_samples height width"],
+            deletion_method: deletion.METHODS,
+            threshold: float,
+            n_random_rankings: int,
+            random_seed: int,
+    ) -> tuple[
+        Float[np.ndarray, "n_samples channels height width"],
+        Float[np.ndarray, "n_random_rankings n_samples channels height width"]
+    ]:
         num_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]
         imgs_with_deletions = deletion.delete_top_k_important(
             self.exp.input, importance_ranking, threshold*num_pixels, method=deletion_method,
@@ -111,13 +125,22 @@ class OutputCompleteness(Co12Metric):
             plt.suptitle(f"{n_random_rankings} random deletion/preservation rounds (threshold={threshold})")
             plt.show()
 
+        return imgs_with_deletions, imgs_with_random_deletions
+
+    def _predict_on_deleted(
+            self,
+            informed_deletions: Float[np.ndarray, "n_samples channels height width"],
+            random_deletions: Float[np.ndarray, "n_random_rankings n_samples channels height width"]
+    ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
+
+        n_random_rankings = random_deletions.shape[0]  # to reshape later
         # flatten out n_random_rankings dimension into n_samples dimension
-        flattened_random_deletions = np.concatenate(imgs_with_random_deletions, axis=0)
+        flattened_random_deletions = np.concatenate(random_deletions, axis=0)
 
         # Generate model confidence for all candidates (original, informed del, randomised del)
         all_outputs = self.run_model(
             np.concatenate([
-                self.exp.input.numpy(force=True), imgs_with_deletions, flattened_random_deletions
+                self.exp.input.numpy(force=True), informed_deletions, flattened_random_deletions
             ], axis=0)
         )
         # Get the predictions for the original images.
