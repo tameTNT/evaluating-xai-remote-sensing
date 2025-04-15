@@ -69,6 +69,7 @@ def show_image(
         is_01_normalised: bool = False,
         grayscale: bool = False,
         final_fig_size: tuple[float, float] = None,  # width, height
+        imgs_per_row: int = 8,
         padding: int = 10,
         padding_value: int = 0,
         **kwargs
@@ -121,7 +122,7 @@ def show_image(
             single_channel = True
 
         # Pad with black value (0) by default - white (1) might stretch range too much!
-        x = make_grid(torch.from_numpy(x), nrow=8, padding=padding, pad_value=padding_value).numpy()
+        x = make_grid(torch.from_numpy(x), nrow=imgs_per_row, padding=padding, pad_value=padding_value).numpy()
         if single_channel:
             x = x[0][None,]  # reduce additional channels added by make_grid
         # x = einops.rearrange(x, "(n1 n2) c h w -> (n1 h) (n2 w) c", n2=8)
@@ -202,7 +203,8 @@ def visualise_importance(
         **kwargs,
 ):
     """
-    Overlay (with transparency `alpha`) the importance rank/explanation over the image with
+    Overlay (with explanation transparency `alpha`, 1=opaque)
+    the importance rank/explanation over the image with
     a colour bar. Yellow indicates the most important/highest activation regions.
     """
 
