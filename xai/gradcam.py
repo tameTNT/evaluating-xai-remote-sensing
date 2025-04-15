@@ -43,7 +43,8 @@ class GradCAMBase(Explainer):
         for batch_input in helpers.utils.make_device_batches(x, cam_batch_size, self.device):
             cam_output: np.ndarray = gradcam_explainer(
                 input_tensor=batch_input,
-                # futuretodo: add these as options (see https://jacobgil.github.io/pytorch-gradcam-book/introduction.html#smoothing-to-get-nice-looking-cams)
+                # futuretodo: add these as function arguments
+                #  (see https://jacobgil.github.io/pytorch-gradcam-book/introduction.html#smoothing-to-get-nice-looking-cams)
                 aug_smooth=False, eigen_smooth=False,
                 targets=None  # no targets specified, so uses the model's output/most confident prediction
             )

@@ -39,7 +39,7 @@ torch.manual_seed(random_seed)
 # ==== Load dataset and corresponding pretrained model ====
 model_type = models.get_model_type(model_name)
 dataset = dataset_processing.get_dataset_object(
-    dataset_name, "val", model_type.expected_input_dim,  # todo: switch to test in production
+    dataset_name, "val", model_type.expected_input_dim,  # use validation set when setting up metrics
     normalisation_type=normalisation_type, use_resize=use_resize,
     batch_size=batch_size, num_workers=num_workers, device=torch_device,
     download=False,
@@ -89,18 +89,18 @@ plt.imshow(show_cam_on_image(
 )
 plt.show()
 # move channel to final dimension
-helpers.plotting.visualise_importance(imgs_to_explain.permute(0, 2, 3, 1), explainer.explanation,
+helpers.plotting.visualise_importance(imgs_to_explain, explainer.explanation,
                                       alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
 plt.suptitle("Explanations")
 plt.show()
 
-helpers.plotting.visualise_importance(imgs_to_explain.permute(0, 2, 3, 1), explainer.ranked_explanation,
+helpers.plotting.visualise_importance(imgs_to_explain, explainer.ranked_explanation,
                                       alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
 plt.suptitle("Ranked explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
-deletion_method = "blur"  # "shuffle" or "nn" works best here futurenote: shuffle and nn are really terrible for MS
+deletion_method = "blur"  # "shuffle" or "nn" works best here in most cases
 # Applying deletion method to sat img with large 'class regions' is hard
 
 # == Correctness ==

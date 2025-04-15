@@ -18,6 +18,7 @@ from models.core import Model
 logger = helpers.log.main_logger
 
 
+# futuretodo: change to a base ResNetTemplate and implement ResNet101 class
 class ResNet50(Model):
     expected_input_dim = 224
     input_layers_to_train = 2  # we want to train layer 2 too (BatchNorm)

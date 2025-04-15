@@ -67,7 +67,7 @@ class Similarity:
         }
 
     def l2_distance(self, normalise: bool = True) -> Float[np.ndarray, "n_samples"]:
-        # todo: add docstring
+        # todo: add docstring (including range of expected values)
 
         logger.debug(f"Calculating L2 distance for {self}.")
         n, h, w = self.shape

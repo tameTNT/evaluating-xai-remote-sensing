@@ -54,7 +54,7 @@ def get_hdf5():
     if not h5_output_path.exists():
         h5_output_path.mkdir(parents=True)
 
-    # fixme: slim chance that the file is already open in another process
+    # futurefix: there is a slim chance that the file is already open in another process - handle this gracefully
     store_for_explainer_name = pd.HDFStore(f"{h5_output_path / h5_output_name}.h5", mode="a")
     logger.debug(f"Opened HDF5 file {h5_output_path / h5_output_name}.h5.")
     return store_for_explainer_name
@@ -396,8 +396,7 @@ if __name__ == "__main__":
         combined_exp.extra_path = Path(dataset_name) / f"c{c:02}" / "combined"
 
         if visualise:
-            # todo: stack large numbers like with visualise_incremental_deletion
-            helpers.plotting.visualise_importance(combined_exp.input.permute(0, 2, 3, 1),  # -> channel final dimension
+            helpers.plotting.visualise_importance(combined_exp.input,
                                                   combined_exp.ranked_explanation,
                                                   alpha=.2, with_colorbar=False, band_idxs=dataset.rgb_indices)
             plt.title(f"Explanations for Class {c:02}")

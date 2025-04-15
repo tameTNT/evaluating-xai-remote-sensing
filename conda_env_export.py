@@ -10,7 +10,7 @@ including Pip-installed dependencies.
 Lots of issues requesting this functionality in the Conda issue tracker,
 e.g. https://github.com/conda/conda/issues/9628
 
-TODO (?): support command-line flags -n and -p
+externaltodo: support command-line flags -n and -p
 
 MIT License:
     

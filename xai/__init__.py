@@ -195,7 +195,7 @@ class Explainer:
                 f"(shape={als}) with diff={diff}. Using null values."
             )
 
-        # todo: enforce kwargs are the same as given (for explanation generated in same way)
+        # futuretodo: enforce kwargs are the same as given (to ensure explanation was generated in expected way)
         self.kwargs = json.load(self.json_path.open("r"))
         logger.info(f"Loaded {self.__class__.__name__} object state from {self.npz_path} successfully "
                     f"with kwargs set to {self.kwargs}.")

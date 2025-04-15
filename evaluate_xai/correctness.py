@@ -48,7 +48,7 @@ def reset_child_params(model: torch.nn.Module):
 
 
 class Correctness(Co12Metric):
-    # todo: add docstrings - discuss execution time and add definitions from review paper
+    # todo: add docstrings - discuss execution time and add definition of property from review paper
 
     def evaluate(
             self,
@@ -139,7 +139,8 @@ class Correctness(Co12Metric):
 
         random_outputs = np.concatenate(random_outputs, axis=0)  # as if all fed into model in one go
 
-        # todo: save/load perturbations?
+        # futuretodo: save/load perturbations (like adversarial examples in contrastivity.py)
+        #  to disk to save having to regenerate
         if self.visualise:
             # show each different random ranking on the 0th image (collected progressively above)
             visualise_incremental_deletion(np.stack(sample_perturbation_history, axis=0))

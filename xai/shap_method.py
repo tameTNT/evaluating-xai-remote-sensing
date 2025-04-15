@@ -59,7 +59,7 @@ class PartitionSHAP(Explainer):
         blur_str = f"blur({blur_size[0]},{blur_size[1]})"
         blur_masker = shap.maskers.Image(blur_str, np01_x[0].shape)
 
-        if num_mp_processes > 1:  # fixme: this is not working yet?? it takes just as long as single threaded
+        if num_mp_processes > 1:  # futurefix: this is not working yet?? it takes just as long as single threaded
             # multiprocessing approach based on https://github.com/shap/shap/issues/77#issuecomment-2105595557
             per_process_bs = int(np.ceil(len(x) / num_mp_processes))  # calculate batch size per process
             if per_process_bs == 0:
@@ -102,7 +102,8 @@ def explain_via_partition_shap(
         np01_x: np.ndarray, masker, max_evals, shap_batch_size,
         self_device, self_split_batch_size, self_model, top_logger_name
 ):
-    # todo: this doesn't work yet? doesn't log to the main logger
+    # futuretodo: (alongside multiprocessing fix)
+    #  this doesn't work yet? doesn't log to the main logger but to a new one
     # top_logger = logging.getLogger(top_logger_name)
     # top_logger.debug(f"🧵 New dedicated PartitionExplainer process (id={os.getpid()}) started with shap function "
     #                  f"batch size of {shap_batch_size} and model evaluation batch size of {self_split_batch_size}.")

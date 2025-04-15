@@ -319,6 +319,7 @@ def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
         filter(lambda p: p.requires_grad, model.parameters()), lr=opt_lr, **opt_kwargs
     )
 
+    # futuretodo: add support for other schedulers
     sch = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, factor=np.float_power(10, -1 / reduction_steps),
         # requires reduction_steps reductions to reduce by factor 10 (*0.1)
@@ -327,6 +328,7 @@ def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
     return opt, sch
 
 
+# futuretodo: support full loading and resuming training from a previous saved state
 def train_model(
         train_lr: float,
         is_frozen_model: bool = False,
@@ -473,7 +475,7 @@ def train_model(
             if wandb_run:
                 logger.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
-                    model, sampling_iterator, 1  # futuretodo: maybe collect a fixed multiple of the number of classes?
+                    model, sampling_iterator, 1
                 )
                 predicted_labels = sample_outputs.argmax(dim=1)
                 incorrect_mask = predicted_labels != samples_labels
