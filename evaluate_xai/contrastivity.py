@@ -55,7 +55,7 @@ class Contrastivity(Co12Metric):
 
             # check if previous generation was for different number of inputs/sample size
             if original_imgs.shape != self.exp.input.shape:
-                num_desired = self.exp.input.shape[0]
+                num_desired = self.n_samples
             else:  # if shapes are the same, we check all images
                 num_desired = original_imgs.shape[0]
 
@@ -73,7 +73,7 @@ class Contrastivity(Co12Metric):
             img_outputs = []
             attack_batch_size = self.max_batch_size
             if attack_batch_size == 0:
-                attack_batch_size = self.exp.input.shape[0]
+                attack_batch_size = self.n_samples
 
             logger.info(f"No existing adversarial images at {previous_adv_output_path}. "
                         f"Generating new ones via foolbox with batch size {attack_batch_size}.")

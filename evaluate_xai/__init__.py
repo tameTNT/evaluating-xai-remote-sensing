@@ -157,6 +157,8 @@ class Co12Metric:
         self.max_batch_size = max_batch_size
         self.visualise = False
 
+        self.n_samples = self.exp.input.shape[0]
+
     def __repr__(self):
         return f"{self.__class__.__name__}(exp={self.exp})"
 

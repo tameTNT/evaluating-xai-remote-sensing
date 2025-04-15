@@ -54,10 +54,9 @@ class Continuity(Co12Metric):
             )
 
         # Check if any model predictions changed - not fair to compare explanations for these
-        n_samples = self.exp.input.shape[0]
         model_output = self.run_model(torch.cat([self.exp.input, noisy_samples]))
-        original_preds: np.ndarray[int] = model_output[:n_samples].argmax(1)
-        perturbed_preds: np.ndarray[int] = model_output[n_samples:].argmax(1)
+        original_preds: np.ndarray[int] = model_output[:self.n_samples].argmax(1)
+        perturbed_preds: np.ndarray[int] = model_output[self.n_samples:].argmax(1)
 
         # Only compare the similarity of explanations where the model's predictions
         # didn't change, since here we're only interested in perturbations' effect on the *explanation*.
