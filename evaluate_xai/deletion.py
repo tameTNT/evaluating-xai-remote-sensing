@@ -37,7 +37,7 @@ def delete_top_k_important(
     ranking, with grid element size of the first argument, is generated instead.
     """
 
-    masked_imgs = x.numpy(force=True)
+    masked_imgs = x.clone().numpy(force=True)
     n_channels = masked_imgs.shape[1]
 
     top_k_masks = importance_ranking < k
