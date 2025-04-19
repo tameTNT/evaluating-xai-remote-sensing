@@ -72,6 +72,7 @@ def show_image(
         imgs_per_row: int = 8,
         padding: int = 10,
         padding_value: int = 0,
+        ax: plt.Axes = None,
         **kwargs
 ):
     """
@@ -138,37 +139,59 @@ def show_image(
         x = color.rgb2gray(x)
         kwargs["cmap"] = "gray"
 
-    plt.imshow(x, **kwargs)
-    plt.axis("off")
+    plot_target = plt
+    if ax is not None:
+        plot_target = ax
+    plot_target.imshow(x, **kwargs)
+    plot_target.axis("off")
     if final_fig_size:
-        plt.gcf().set_size_inches(final_fig_size)
+        plot_target.gcf().set_size_inches(final_fig_size)
 
 
 def show_ms_images(
         x: Float[t.Union[torch.Tensor, np.ndarray], "n_samples channels height width"],
         normalisation_type: t.Literal["all", "each", "img", "channel", "none"] = "all",
+        total_fig_size: tuple[float, float] = None,  # width, height
+        img_stacking: t.Literal["horizontal", "vertical"] = "horizontal",
+        show_indices: bool = True,
+        img_label_str: str = "img",
 ):
     """
     Show all channels of multiple multi-spectral images (n, c, h, w) in a nice labelled plot.
 
     Performs normalisation based on `normalisation_type`:
         - "all": use min/max across all images and channels to normalise images
-        - "each": use min/max per image and channel (i.e. each plot is normalised separately)
-        - "img": min/max per image (across all plots in a column)
-        - "channel": min/max per channel (across all plots in a row)
-        - "none": no normalisation (let plt.imshow do its thing)
+        - "each": use min/max per image and channel (i.e. each individual plot is normalised separately)
+        - "img": min/max per image (across all plots in a column (if using horizontal stacking))
+        - "channel": min/max per channel (across all plots in a row (if using horizontal stacking))
+        - "none": no normalisation (let plt.imshow do its own thing for every image)
     """
 
     n_imgs, n_channels, h, w = x.shape
 
-    _, axes = plt.subplots(nrows=n_channels, ncols=n_imgs, figsize=(8, 8))
+    if img_stacking == "horizontal":
+        nrows, ncols = n_channels, n_imgs
+
+        def index_calc(i1, i2):
+            return i1 * ncols + i2 + 1
+
+    elif img_stacking == "vertical":
+        nrows, ncols = n_imgs, n_channels
+
+        def index_calc(i1, i2):
+            return i2 * ncols + i1 + 1
+
+    else:
+        raise ValueError(f"Invalid img_stacking: {img_stacking}. Must be 'horizontal' or 'vertical'.")
+
+    _, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=total_fig_size)
 
     if n_channels == 1:
         axes = np.array([axes])
 
-    for c in range(n_channels):  # one channel per row
-        for i in range(n_imgs):  # one image in each column
-            plt.subplot(n_channels, n_imgs, c * n_imgs + i + 1)
+    for c in range(n_channels):
+        for i in range(n_imgs):
+            plt.subplot(nrows, ncols, index_calc(c, i))
 
             norm_args = dict()
             if normalisation_type == "all":
@@ -182,13 +205,17 @@ def show_ms_images(
 
             show_image(x[i, [c]], is_01_normalised=True, cmap="viridis", **norm_args)
 
-    for ax, col_name in zip(axes[:, 0], [f"{c}" for c in range(n_channels)]):  # type: plt.Axes, str
-        ax.annotate(col_name, xy=(0, 0.5), xytext=(-1, 0),
-                    xycoords="axes fraction", textcoords="offset fontsize",
-                    fontsize=12, ha="right", va="center")
-    # Add label to each row (the index of each image in the passed array)
-    for ax, row_name in zip(axes[0], [f"i{n:02}" for n in range(n_imgs)]):  # type: plt.Axes, str
-        ax.set_title(row_name, fontsize=18)
+    if show_indices:
+        # Add label to each row using annotate
+        for ax, row_name in zip(axes[:, 0], range(nrows)):  # type: plt.Axes, int
+            row_label = img_label_str if img_stacking == "vertical" else ""
+            ax.annotate(f"{row_label}{row_name}", xy=(0, 0.5), xytext=(-1, 0),
+                        xycoords="axes fraction", textcoords="offset fontsize",
+                        fontsize=12, ha="right", va="center")
+        # Add label to each column via a title
+        for ax, col_name in zip(axes[0], range(ncols)):  # type: plt.Axes, int
+            col_label = img_label_str if img_stacking == "horizontal" else ""
+            ax.set_title(f"{col_label}{col_name}", fontsize=12)
 
     # plt.tight_layout()
 
