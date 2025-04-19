@@ -67,7 +67,7 @@ def delete_top_k_important(
             masked_imgs[i] = np.where(mask, blurred_img.transpose(2, 0, 1), img)
 
     elif isinstance(method, np.random.Generator):
-        noise = method.normal(size=target_regions.shape) / 5
+        noise = method.normal(size=target_regions.shape) / 2
         masked_imgs[top_k_masks] = np.clip(target_regions + noise, -1, 1)
 
     elif method == "inpaint":

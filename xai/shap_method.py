@@ -129,7 +129,7 @@ def explain_via_partition_shap(
 
 
 def predict_function(np_imgs: np.ndarray, device, max_batch_size, model):
-    # helpers.plotting.show_image(np_imgs, is_01_normalised=True)
+    # helpers.plotting.show_image(np_imgs, is_01_normalised=True, padding_value=1, imgs_per_row=8)
     # plt.show()
     model_input_imgs: torch.Tensor = einops.rearrange(
         torch.from_numpy(np_imgs * 2) - 1, "b h w c -> b c h w"
