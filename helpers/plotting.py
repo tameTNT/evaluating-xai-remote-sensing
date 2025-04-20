@@ -276,6 +276,7 @@ def visualise_importance(
         # cb.ax.invert_yaxis()
         _ = cb.solids.set(alpha=1)
 
+
 def make_deletions_plot(
         *args: pd.DataFrame,
         method_names: list[str] = None,

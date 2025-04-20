@@ -28,7 +28,7 @@ def visualise_incremental_deletion(
     helpers.plotting.show_image(einops.rearrange(selected_images, "n i c h w -> (n h) (i w) c"))
     # current_size = plt.gcf().get_size_inches()
     fig = plt.gcf()
-    fig_scale_factor = .2
+    fig_scale_factor = .5
     # width gets additionally scaled if displaying a multi-spectral image (with more than 3 channels)
     fig.set_size_inches((c if c > 3 else 1) * i * fig_scale_factor, n * fig_scale_factor)  # width, height
     fig.tight_layout(w_pad=1.5)
@@ -175,14 +175,23 @@ class Correctness(Co12Metric):
                 ax.plot(range(len(k_values)), exp_informed_class_confidence[i], "-", label="exp_informed")
                 ax.plot(range(len(k_values)), random_class_confidence[i], "--", label="random")
                 ax.set_title(f"Image {i}")
-                ax.set_xlim([0, len(k_values) - 1])
-                ax.set_ylim([0, 1])
+                ax.set_xlim((0, len(k_values) - 1))
+                ax.set_xticks(range(len(k_values)))
+                ax.set_ylim((0, 1))
             fig.suptitle(f"Model confidence over deletion process")
             fig.tight_layout()
             plt.show()
 
-        return {"informed": exp_informed_area_under_curve_per_img,
-                "random": random_area_under_curve_per_img}
+        return_dict = {"informed": exp_informed_area_under_curve_per_img,
+                       "random": random_area_under_curve_per_img}
+        if self.full_data:
+            return_dict["informed_full"] = exp_informed_class_confidence
+            return_dict["random_full"] = random_class_confidence
+            return_dict["informed_deleted_imgs"] = imgs_with_deletions
+            return_dict["random_deleted_imgs"] = imgs_with_random_deletions
+            return_dict["random_rankings"] = random_rankings
+
+        return return_dict
 
     def incrementally_delete_from_input(
             self,

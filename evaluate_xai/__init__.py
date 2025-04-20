@@ -169,17 +169,19 @@ class Co12Metric:
         self.exp = exp
         self.max_batch_size = max_batch_size
         self.visualise = False
+        self.full_data = False
 
         self.n_samples = self.exp.input.shape[0]
 
     def __repr__(self):
         return f"{self.__class__.__name__}(exp={self.exp})"
 
-    def evaluate(self, method: str, visualise: bool = False, **kwargs):
+    def evaluate(self, method: str, visualise: bool = False, full_data: bool = False, **kwargs):
         logger.info(f"Evaluating {self.__class__.__name__} (via {method} with kwargs={kwargs}) "
                     f"of {self.exp.__class__.__name__} "
                     f"for {self.exp.model.__class__.__name__}.")
         self.visualise = visualise
+        self.full_data = full_data
 
     def run_model(
             self,
