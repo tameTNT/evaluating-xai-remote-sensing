@@ -2,6 +2,7 @@ import typing as t
 
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 
 import einops
 import numpy as np
@@ -259,12 +260,15 @@ def visualise_importance(
         ranked = True
         cmap = "plasma_r"  # yellow for minimum value (0 = most important)
         colourmap = plt.get_cmap(cmap, lut=(importance_rank.max()+1))  # lut specifies number of entries (0->max)
+        colourmap_input = importance_rank
     else:  # floating point raw explanation
         ranked = False
         cmap = "plasma"    # yellow for maximum value
         colourmap = plt.get_cmap(cmap)
+        colourmap_input = Normalize()(importance_rank)  # rescales as expected by colourmap(...)
 
-    coloured_rank_img = colourmap(importance_rank)[..., :3]  # remove added alpha channel
+
+    coloured_rank_img = colourmap(colourmap_input)[..., :3]  # remove added alpha channel
 
     # both use same underlying spacing grid
     # rank_img = importance_rank[:, None]  # add channel dimension
@@ -275,14 +279,17 @@ def visualise_importance(
     # plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
 
     if with_colorbar:
+        ranking_min, ranking_max = importance_rank.min(), importance_rank.max()
+        num_ticks = 5
+        ticks = np.linspace(ranking_min, ranking_max, num_ticks)
         if ranked:
-            ticks = np.arange(0, importance_rank.max(), importance_rank[0].size//10)
             # To get a discrete colour bar, we need to set the boundaries and values
-            boundaries = np.arange(importance_rank.max()+1)
-            values = np.arange(importance_rank.max())
+            boundaries = np.arange(ranking_max+1)
+            values = np.arange(ranking_max)
         else:
-            # Set all values automatically otherwise
-            ticks, boundaries, values = None, None, None
+            cb_res = 50
+            boundaries = np.linspace(ranking_min, ranking_max, cb_res+1)
+            values = np.linspace(ranking_min, ranking_max, cb_res)
 
         cb = plt.colorbar(
             ScalarMappable(cmap=colourmap),
@@ -292,7 +299,7 @@ def visualise_importance(
             label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}",
             location="bottom",
             pad=0.02,   # move closer distance to image
-            shrink=0.75,  # make smaller
+            shrink=0.9,  # make smaller
             aspect=25,  # make thinner
         )
         # cb.ax.invert_yaxis()
