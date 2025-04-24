@@ -34,8 +34,11 @@ class OutputCompleteness(Co12Metric):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ) -> Float[np.ndarray, "n_samples"]:
-        informed_del_conf, random_del_conf = self._perform_check(
+    ) -> Float[np.ndarray, "n_samples"] | tuple[
+        Float[np.ndarray, "n_samples"],
+        tuple[Float[np.ndarray, "n_samples channels height width"],]
+    ]:
+        (informed_del_conf, random_del_conf), imgs_tuple = self._perform_check(
             self.exp.ranked_explanation, deletion_method, threshold, n_random_rankings, random_seed,
         )
 
@@ -46,7 +49,12 @@ class OutputCompleteness(Co12Metric):
         # We want del_acc to be small (the deletion was effective at removing important info),
         # while rand_del_acc should be high (the random deletion didn't successfully remove important info)
         # so best value is 1. Worst is -1 (the random deletion was much more effective than the informed one)
-        return random_del_conf - informed_del_conf
+        result = random_del_conf - informed_del_conf
+
+        if self.full_data:
+            return result, imgs_tuple
+        else:
+            return result
 
     def _preservation_check(
             self,
@@ -55,12 +63,15 @@ class OutputCompleteness(Co12Metric):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ):
+    ) -> Float[np.ndarray, "n_samples"] | tuple[
+        Float[np.ndarray, "n_samples"],
+        tuple[Float[np.ndarray, "n_samples channels height width"],]
+    ]:
         # Since 0 is the 'most important' pixel, in ranked_explanation,
         # we can invert it by simply by ranking it again (so 0 becomes least important)
         inverted_importance_ranking = helpers.utils.rank_pixel_importance(self.exp.ranked_explanation)
 
-        informed_pres_conf, random_pres_conf = self._perform_check(
+        (informed_pres_conf, random_pres_conf), imgs_tuple = self._perform_check(
             inverted_importance_ranking, deletion_method, 1-threshold, n_random_rankings, random_seed,
         )
 
@@ -69,7 +80,13 @@ class OutputCompleteness(Co12Metric):
         # We want pres_acc to remain high (we only removed non-important stuff),
         # while rand_pres_acc should be low (we accidentally removed important stuff)
         # After inverting (for alignment with deletion check), best score is 1 and worst is -1.
-        return informed_pres_conf - random_pres_conf
+        result = informed_pres_conf - random_pres_conf
+
+        if self.full_data:
+            # fixme: clean up full_data return process
+            return result, imgs_tuple
+        else:
+            return result
 
     def _perform_check(
             self,
@@ -78,11 +95,17 @@ class OutputCompleteness(Co12Metric):
             threshold: float,
             n_random_rankings: int,
             random_seed: int,
-    ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
+    ) -> tuple[
+        tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]],
+        tuple[
+            Float[np.ndarray, "n_samples channels height width"],
+            Float[np.ndarray, "n_samples channels height width"],
+        ]
+    ]:
         informed_deletions, random_deletions = self.delete_from_input(
             importance_ranking, deletion_method, threshold, n_random_rankings, random_seed,
         )
-        return self._predict_on_deleted(informed_deletions, random_deletions)
+        return self._predict_on_deleted(informed_deletions, random_deletions), (informed_deletions, random_deletions)
 
     def delete_from_input(
             self,
@@ -93,7 +116,7 @@ class OutputCompleteness(Co12Metric):
             random_seed: int,
     ) -> tuple[
         Float[np.ndarray, "n_samples channels height width"],
-        Float[np.ndarray, "n_random_rankings n_samples channels height width"]
+        Float[np.ndarray, "n_random_rankings n_samples channels height width"],
     ]:
         num_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]
         imgs_with_deletions = deletion.delete_top_k_important(
@@ -147,8 +170,9 @@ class OutputCompleteness(Co12Metric):
         # Let's see how the perturbations can decrease/preserve it!
         original_outputs = all_outputs[:self.n_samples]
         original_prediction = original_outputs.argmax(axis=1)
-        print(f"Original predictions: "
-              f"{original_prediction}") if self.visualise else None
+        # todo: return this for full_data rather than just printing
+        print(f"Original predictions (confidence): "
+              f"{original_prediction} ({original_outputs[:, original_prediction]})") if self.visualise else None
 
         informed_outputs = all_outputs[self.n_samples:2*self.n_samples]
         # take average across n_random_rankings

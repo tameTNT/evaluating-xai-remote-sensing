@@ -74,7 +74,7 @@ def show_image(
         final_fig_size: tuple[float, float] = None,  # width, height
         imgs_per_row: int = 8,
         padding: int = 10,
-        padding_value: int = 0,
+        padding_value: int = 1,
         ax: plt.Axes = None,
         **kwargs
 ):
@@ -125,7 +125,7 @@ def show_image(
         if x.shape[1] == 1:
             single_channel = True
 
-        # Pad with black value (0) by default - white (1) might stretch range too much!
+        # Pad with white value (1) by default
         x = make_grid(torch.from_numpy(x), nrow=imgs_per_row, padding=padding, pad_value=padding_value).numpy()
         if single_channel:
             x = x[0][None,]  # reduce additional channels added by make_grid
