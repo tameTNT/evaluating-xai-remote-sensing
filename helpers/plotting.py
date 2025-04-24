@@ -1,7 +1,9 @@
 import typing as t
 
-import einops
 import matplotlib.pyplot as plt
+from matplotlib.cm import ScalarMappable
+
+import einops
 import numpy as np
 import pandas as pd
 import torch
@@ -254,23 +256,43 @@ def visualise_importance(
                    **kwargs)
 
     if np.issubdtype(importance_rank.dtype, np.integer):  # ranked explanation from 0 to a high int
+        ranked = True
         cmap = "plasma_r"  # yellow for minimum value (0 = most important)
-    else:  # float raw explanation
+        colourmap = plt.get_cmap(cmap, lut=(importance_rank.max()+1))  # lut specifies number of entries (0->max)
+    else:  # floating point raw explanation
+        ranked = False
         cmap = "plasma"    # yellow for maximum value
+        colourmap = plt.get_cmap(cmap)
+
+    coloured_rank_img = colourmap(importance_rank)[..., :3]  # remove added alpha channel
 
     # both use same underlying spacing grid
-    rank_img = importance_rank[:, None]  # add channel dimension
-    show_image(rank_img, is_01_normalised=True, grayscale=False, padding=20,
-               alpha=alpha, cmap=cmap, **kwargs)
+    # rank_img = importance_rank[:, None]  # add channel dimension
+    show_image(coloured_rank_img, is_01_normalised=True, grayscale=False, padding=20,
+               alpha=alpha, **kwargs)
 
     # rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
     # plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
 
     if with_colorbar:
+        if ranked:
+            ticks = np.arange(0, importance_rank.max(), importance_rank[0].size//10)
+            # To get a discrete colour bar, we need to set the boundaries and values
+            boundaries = np.arange(importance_rank.max()+1)
+            values = np.arange(importance_rank.max())
+        else:
+            # Set all values automatically otherwise
+            ticks, boundaries, values = None, None, None
+
         cb = plt.colorbar(
+            ScalarMappable(cmap=colourmap),
+            ticks=ticks, boundaries=boundaries, values=values,
+
+            ax=plt.gca(),
             label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}",
             location="bottom",
             pad=0.02,   # move closer distance to image
+            shrink=0.75,  # make smaller
             aspect=25,  # make thinner
         )
         # cb.ax.invert_yaxis()
