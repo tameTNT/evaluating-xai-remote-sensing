@@ -267,7 +267,6 @@ def visualise_importance(
         colourmap = plt.get_cmap(cmap)
         colourmap_input = Normalize()(importance_rank)  # rescales as expected by colourmap(...)
 
-
     coloured_rank_img = colourmap(colourmap_input)[..., :3]  # remove added alpha channel
 
     # both use same underlying spacing grid

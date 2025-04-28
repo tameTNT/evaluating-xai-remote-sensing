@@ -44,6 +44,8 @@ class OutputCompleteness(Co12Metric):
 
         # futuretodo: perhaps a fractional/proportional metric is better?
         #  since different classes' random deletion might be more/less effective
+        #  But this doesn't make complete sense because we need to include the original confidence somehow
+        #  A ratio also wouldn't have a best/worst value?
         # Drop in acc vs random = (rand_del_acc - org_acc) - (del_acc - org_acc)
         #                       = rand_del_acc - del_acc
         # We want del_acc to be small (the deletion was effective at removing important info),

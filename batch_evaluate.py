@@ -208,7 +208,7 @@ if __name__ == "__main__":
         "--shap_multi_processes",
         type=int,
         default=1,
-        help="Number of multi-processes to use to speed up SHAP methods. "
+        help="⚠️This option is still under development. Number of multi-processes to use to speed up SHAP methods. "
              "Defaults to 1 (no multiprocessing).",
     )
     metric_options = parser.add_argument_group("Metric Options",
