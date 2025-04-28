@@ -1,21 +1,18 @@
+# IDE and generated files
 /.idea/
 /.run/
-
-/.logs/
-*.log
-
-/checkpoints/
-/wandb/
-/output/
-/xai_output_unix/
-/xai_output_windows/
-
 **/*__pycache__/
 *pycharm-support-libs/
-.ipynb_checkpoints/
+/.ipynb_checkpoints/
 
+# Logging and temporary files
+/.logs/
 /slurm_ncc/*_temp.batch
-/memory_dumps
+/memory_dumps/
+/_platform_behaviour_investigation/
 
-/inconsistent_platform_behaviour/*.pt
-/inconsistent_platform_behaviour/*.npz
+# Project output files which are platform specific or too large to track
+/checkpoints/
+/wandb/
+/outputs/
+/xai_output_*/

@@ -254,6 +254,7 @@ if platform.system() == "Windows":
 torch_device = helpers.utils.get_torch_device()
 
 if record_cuda_memory:
+    Path("memory_dumps").mkdir(exist_ok=True)
     logger.info("record_cuda_memory is enabled. CUDA memory usage will be recorded and dumped "
                 "to COM_dump.pickle in the event of an OutOfMemoryError.")
     torch.cuda.memory._record_memory_history()
