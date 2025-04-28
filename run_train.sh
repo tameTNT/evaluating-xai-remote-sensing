@@ -2,10 +2,10 @@
 # Execute in cwd with e.g. source run_train.sh model_training/config/help.args (Windows)
 # or ./run_train.sh model_training/config/help.args (Unix)
 
-if [[ $(hostname | grep -E "(gpu|Luca)" | wc -c) -ne 0 ]]; then
+if [[ $(hostname | grep -E "(gpu|***)" | wc -c) -ne 0 ]]; then
   # Activate conda environment
   eval "$(conda shell.bash hook)"
-  conda activate sat_project
+  conda activate evaluating_xai_remote_sensing
 
   # Read provided file and notes
   pattern="^\s*#|^\s*$"
