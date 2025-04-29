@@ -10,6 +10,17 @@ DATASET_ROOT = helpers.env_var.get_dataset_root()
 
 class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
     def __init__(self, **kwargs):
+        """
+        The dataset is downloaded and saved to `DATASET_ROOT/ucmerced`.
+
+        "The `UC Merced Land Use <http://weegee.vision.ucmerced.edu/datasets/landuse.html>`_
+        dataset is a land use classification dataset of 2.1k 256x256 1ft resolution RGB
+        images of urban locations around the U.S. extracted from the USGS National Map Urban
+        Area Imagery collection with 21 land use classes (100 images per class)." - torchgeo
+
+        :param kwargs: Additional keyword arguments are passed to RSDatasetMixin.
+        """
+
         dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 
         # only uses RGB bands
@@ -30,8 +41,9 @@ class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
 
         self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, self.use_resize)
 
+        self.root_path = str(DATASET_ROOT / "ucmerced")
         super().__init__(
-            root=str(DATASET_ROOT / "ucmerced"),
+            root=self.root_path,
             split=self.split,
             transforms=self.transforms,
             download=self.download,
@@ -41,7 +53,7 @@ class UCMerced(UCMercedBase, dataset_processing.core.RSDatasetMixin):
 
     def get_original_train_dataloader(self, shuffle=False):
         return torch.utils.data.DataLoader(UCMercedBase(
-            root=str(DATASET_ROOT / "ucmerced"),
+            root=self.root_path,
             split="train",
             transforms=None,
             download=self.download,

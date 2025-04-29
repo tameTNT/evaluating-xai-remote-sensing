@@ -17,6 +17,17 @@ class PatternNet(PatternNetBase, dataset_processing.core.RSDatasetMixin):
             random_split_seed: int = 42,
             **kwargs
     ):
+        """
+        The dataset is downloaded and saved to `DATASET_ROOT/patternnet`.
+
+        "The `PatternNet <https://sites.google.com/view/zhouwx/dataset>`__
+        dataset is a dataset for remote sensing scene classification and image retrieval." - torchgeo
+
+        :param random_split_seed: The random seed to use for splitting the dataset into train/val/test splits
+            (these are not provided by torchgeo). Defaults to 42.
+        :param kwargs: Additional keyword arguments are passed to RSDatasetMixin.
+        """
+
         dataset_processing.core.RSDatasetMixin.__init__(self, **kwargs)
 
         # only uses RGB bands
@@ -36,8 +47,9 @@ class PatternNet(PatternNetBase, dataset_processing.core.RSDatasetMixin):
 
         self.transforms = self.build_transforms(scaling_transform, normalisation, augmentations, self.use_resize)
 
+        self.root_path = str(DATASET_ROOT / "patternnet")
         super().__init__(
-            root=str(DATASET_ROOT / "patternnet"),
+            root=self.root_path,
             transforms=self.transforms,
             download=self.download,
         )
@@ -64,8 +76,8 @@ class PatternNet(PatternNetBase, dataset_processing.core.RSDatasetMixin):
         # replace self.imgs with only the imgs in the split
         self.imgs = [self.imgs[idx] for idx in self.split_idxs[self.split]]
 
-    # self.imgs is *not* the variable used to get the data so overwriting it is
-    # not enough: overwrite get methods to use the correct split indexes
+    # self.imgs is *not* the variable used to get the data, so overwriting it above is not enough:
+    # we need to overwrite getitem methods too to use the correct split indexes
     def __getitem__(self, idx):
         split_idx = self.split_idxs[self.split][idx]
         return super().__getitem__(split_idx)
@@ -75,11 +87,11 @@ class PatternNet(PatternNetBase, dataset_processing.core.RSDatasetMixin):
 
     def get_original_train_dataloader(self, shuffle=False):
         return torch.utils.data.DataLoader(
-            Subset(
+            Subset(  # Take a subset of the dataset - i.e. the train split
                 PatternNetBase(
-                    root=str(DATASET_ROOT / "patternnet"),
+                    root=self.root_path,
                     transforms=None,
                     download=self.download,
-                ), self.split_indexes["train"]
+                ), self.split_idxs["train"]
             ), batch_size=self.batch_size, num_workers=self.num_workers, shuffle=shuffle
         )
