@@ -13,6 +13,15 @@ logger = log.main_logger
 # This function is left here in utils to allow for use of logger
 # (imported after log in __init__.py) without causing circular import issues.
 def get_torch_device(force_mps: bool = False) -> torch.device:
+    """
+    Try to get the best PyTorch device available: cuda > mps > cpu.
+    Note that on macOS, will only return mps if torch.version >= 2.6 as mps is
+    still missing some required features (see comment below).
+    Use `force_mps=True` if you want to get mps as the device anyway.
+
+    Also updates the number of threads for torch on non-Linux systems to 1.
+    """
+
     if torch.cuda.is_available():
         torch_device = torch.device("cuda")
         logger.debug(f"Found {torch.cuda.get_device_name()} to use as a cuda device.")
@@ -38,6 +47,9 @@ def get_torch_device(force_mps: bool = False) -> torch.device:
     logger.info(f"Using {torch_device} as torch device.")
 
     if platform.system() != "Linux":
+        # significantly speeds up data loading processes with less loading overhead
+        # see https://discuss.pytorch.org/t/pytorch-v2-high-cpu-consumption/205990 and
+        # https://discuss.pytorch.org/t/cpu-usage-far-too-high-and-training-inefficient/57228
         torch.set_num_threads(1)
         logger.debug("Set number of threads to 1 as using a non-Linux machine.")
 
@@ -78,7 +90,7 @@ def rank_pixel_importance(
         x: Float[np.ndarray, "n_samples height width"]
 ) -> Int[np.ndarray, "n_samples height width"]:
     """
-    Convert pixel importance to rank pixel importance (0 = most important)
+    Convert pixel importance to *rank* pixel importance (0 = most important)
     for each image in `x`.
     """
 

@@ -5,8 +5,10 @@ from pathlib import Path
 
 def get_project_root() -> Path:
     """
-    Get the project root directory
+    Get the project root directory from the environment variable SAT_PROJECT_ROOT.
+    Defaults to ~/l3_project if not set.
     """
+
     project_root = os.getenv("SAT_PROJECT_ROOT", "~/l3_project")
     path = Path(project_root).expanduser().resolve()
     if path.is_dir():
@@ -18,11 +20,11 @@ def get_project_root() -> Path:
 
 def get_xai_output_root() -> Path:
     """
-    Return the output directory to use for XAI results.
+    Return the output directory to use for XAI results (explanations, metric evaluations, etc.).
 
     Different directories are used for Windows and Unix systems since Resize leads to very slightly different
-    output images/files on Windows compared to Unix systems so equality comparisons used in xai Explainers fail.
-    See inconsistent_platform_behaviour/resize_eurosat.py and resize_by_platform.py for more details.
+    output images/files on Windows compared to Unix systems, so equality comparisons used in xai Explainers fail.
+    See _platform_behaviour_investigation/resize_eurosat.py and resize_by_platform.py for more details.
     """
 
     if platform.system() == "Windows":
@@ -33,8 +35,8 @@ def get_xai_output_root() -> Path:
 
 def get_dataset_root() -> Path:
     """
-    Get the dataset root directory from the environment variable "DATASET_ROOT".
-    Uses ~/datasets as default if not set.
+    Get the dataset root directory from the environment variable DATASET_ROOT.
+    Defaults to ~/datasets if not set.
     """
 
     dataset_root = os.getenv("DATASET_ROOT", "~/datasets")

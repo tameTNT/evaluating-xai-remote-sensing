@@ -13,6 +13,8 @@ LOG_DIR.mkdir(parents=False, exist_ok=True)
 
 
 def get_logger(name: str) -> logging.Logger:
+    """Returns a logger with the given name that formats logging messages."""
+
     # Basic setup mirrors https://docs.python.org/3/howto/logging-cookbook.html#using-logging-in-multiple-modules
     active_logger = logging.getLogger(name)
 
@@ -57,4 +59,7 @@ def get_logger(name: str) -> logging.Logger:
 #     main_logger = get_logger(f"main_{int(time.time())}")
 # else:
 #     main_logger = get_logger(f"mp_{int(time.time())}")
+
+# Logs are named using the initiation time and process ID.
+# This variable can be imported by other modules to share the same logger.
 main_logger = get_logger(f"main_{int(time.time())}_{os.getpid()}")

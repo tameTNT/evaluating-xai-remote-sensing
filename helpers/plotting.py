@@ -80,21 +80,24 @@ def show_image(
 ):
     """
     Show an image (or n images) using matplotlib.
-    If `is_normalised` is True, the image is assumed to be in the range [-1, 1]
-    and will be scaled to [0, 1] for display.
 
-    The shape of x (a numpy array OR torch Tensor) can be:
-
-        - (c, h, w) OR (h, w, c) for a single image
-        - (n, c, h, w) OR (n, h, w, c) for n images
-
-    The number of channels (c) should either be 13 or less.
-    Image dimensions (h, w) should also be at least 14x14.
-
-    kwargs (e.g. vmin, vmax) are passed to `plt.imshow`.
-
-    If c > 3, the function will call `show_ms_images` to show all channels.
-    kwargs are instead passed to `show_ms_images`.
+    :param x: Input image or images (a numpy array OR torch Tensor) of shape:
+        [(c, h, w) OR (h, w, c) for a single image] OR [(n, c, h, w) OR (n, h, w, c) for n images]
+        The number of channels (c) should either be 13 or less.
+        Image dimensions (h, w) should also be at least 14x14.
+    :param is_01_normalised: If True, the image is assumed to be in the range [0, 1]
+        and no rescaling is performed. Otherwise, assumes input is in range [-1, 1]. Default is False.
+    :param grayscale: If True, the image is converted from RGB to grayscale skimage.color.rgb2gray().
+        Default is False.
+    :param final_fig_size: The final figure size in inches (width, height) to set for the plot.
+        Default is None (no resizing).
+    :param imgs_per_row: Number of images to show per row. Default is 8.
+    :param padding: Padding between images in the grid. Default is 10.
+    :param padding_value: Padding value to use between images. Default is 1 (usually white if RGB).
+    :param ax: Matplotlib Axes object to plot on. If None (default), a new figure is created.
+    :param kwargs: Keyword arguments (e.g. vmin, vmax) are passed on to `plt.imshow`.
+        If c > 3, the function will call `show_ms_images` to show all channels.
+        kwargs are then instead passed to `show_ms_images`.
     """
 
     if isinstance(x, torch.Tensor):
@@ -160,7 +163,7 @@ def show_ms_images(
         img_label_str: str = "img",
 ):
     """
-    Show all channels of multiple multi-spectral images (n, c, h, w) in a nice labelled plot.
+    Show all channels of multiple multi-spectral images x (with shape (n, c, h, w)) in a nice labelled plot.
 
     Performs normalisation based on `normalisation_type`:
         - "all": use min/max across all images and channels to normalise images
@@ -168,6 +171,16 @@ def show_ms_images(
         - "img": min/max per image (across all plots in a column (if using horizontal stacking))
         - "channel": min/max per channel (across all plots in a row (if using horizontal stacking))
         - "none": no normalisation (let plt.imshow do its own thing for every image)
+
+    :param x: Input images with shape (n, c, h, w)
+    :param normalisation_type: Type of normalisation to apply (see above).
+    :param total_fig_size: The final overall figure size in inches (width, height) to set for the plot.
+        Default is None (no resizing).
+    :param img_stacking: How to stack the images multispectral. Either "horizontal" (default) or "vertical".
+        E.g. if "horizontal", each row is a channel and each column is an image.
+    :param show_indices: If True (default), adds labels to each row and column indicating index.
+    :param img_label_str: String to prefix the image index labels with. Default is "img".
+        E.g. if img_stacking is "horizontal", each column will be labelled "img0", "img1", etc.
     """
 
     n_imgs, n_channels, h, w = x.shape
@@ -225,7 +238,8 @@ def show_ms_images(
 
 def visualise_importance(
         x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples channels height width"],
-        importance_rank: Int[np.ndarray, "n_samples height width"],
+        importance_rank: t.Union[Int[np.ndarray, "n_samples height width"],
+                                 Float[np.ndarray, "n_samples height width"]],
         alpha: float = 0.7,
         with_colorbar: bool = True,
         band_idxs: list[int] = None,
@@ -233,9 +247,23 @@ def visualise_importance(
         **kwargs,
 ):
     """
-    Overlay (with explanation transparency `alpha`, 1=opaque)
-    the importance rank/explanation over the image with
-    a colour bar. Yellow indicates the most important/highest activation regions.
+    Visualise an importance heatmap for a set of images.
+    Yellow indicates the most important/highest activation regions.
+    Use `show_image` internally.
+
+    :param x: Either a numpy ndarray or Tensor of shape (n, c, h, w) of images being explained.
+        Displayed as a grayscale background image.
+    :param importance_rank: A numpy ndarray of shape (n, h, w) of importance ranks/explanations.
+        This can be floats (for a pure importance value) or integers (for a rank).
+    :param alpha: The transparency of the explanation heatmap.
+        1 shows only the heatmap and not x. Defaults to 0.7.
+    :param with_colorbar: If True, a colour bar scale is shown. Defaults to True.
+    :param band_idxs: If x is a multi-spectral image, specifies the channel indices of x
+        to use to show the image. Defaults to None (use all bands for RGB images).
+    :param show_samples_separate: If True, show the images in x and explanation
+        heatmap separately in two rows of plots.
+    :param kwargs: Any additional keyword arguments are passed to `show_image`,
+        both when displaying x and the importance rank heatmap.
     """
 
     if x.shape[1] > 3:  # multi-spectral image
@@ -248,13 +276,11 @@ def visualise_importance(
     if show_samples_separate:
         plt.subplots(2, 1)
         plt.subplot(2, 1, 1)
-        show_image(x, grayscale=False, padding=20,
-                   **kwargs)
+        show_image(x, grayscale=False, padding=20, **kwargs)
         alpha = 1.
         plt.subplot(2, 1, 2)
     else:
-        show_image(x, grayscale=True, padding=20,
-                   **kwargs)
+        show_image(x, grayscale=True, padding=20, **kwargs)
 
     if np.issubdtype(importance_rank.dtype, np.integer):  # ranked explanation from 0 to a high int
         ranked = True
@@ -269,13 +295,8 @@ def visualise_importance(
 
     coloured_rank_img = colourmap(colourmap_input)[..., :3]  # remove added alpha channel
 
-    # both use same underlying spacing grid
-    # rank_img = importance_rank[:, None]  # add channel dimension
     show_image(coloured_rank_img, is_01_normalised=True, grayscale=False, padding=20,
                alpha=alpha, **kwargs)
-
-    # rank_img = einops.rearrange(importance_rank, "n h w -> h (n w)")
-    # plt.imshow(rank_img, alpha=alpha, cmap=cmap, **kwargs)
 
     if with_colorbar:
         ranking_min, ranking_max = importance_rank.min(), importance_rank.max()
@@ -362,3 +383,5 @@ def make_deletions_plot(
 
     if return_aucs:
         return aucs
+    else:
+        return None

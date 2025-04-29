@@ -13,6 +13,7 @@ def make_preds(
         y: torch.Tensor,
         criterion: torch.nn.Module,
 ) -> t.Tuple[torch.Tensor, torch.Tensor]:
+    """Get the loss (via criterion) and accuracy of model evaluated on x with labels y"""
 
     y_pred: torch.Tensor = model(x)
 
@@ -24,11 +25,15 @@ def make_preds(
 
 def train_step(
         model_to_train: torch.nn.Module,
-        input_img: torch.Tensor,
+        inputs: torch.Tensor,
         targets: torch.Tensor,
         train_criterion: torch.nn.Module,
         model_optimiser: torch.optim.Optimizer,
 ) -> t.Tuple[float, float]:
+    """
+    Perform one train step (loss.backward() and optimiser.step()) for a data, label pair.
+    Returns the loss and accuracy for this train step.
+    """
 
     model_to_train.train()
     model_device = utils.get_model_device(model_to_train)
@@ -36,7 +41,7 @@ def train_step(
     # use set_to_none=True to save some memory
     # see caveats at https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
     model_optimiser.zero_grad(set_to_none=True)
-    loss, accuracy = make_preds(model_to_train, input_img.to(model_device), targets.to(model_device), train_criterion)
+    loss, accuracy = make_preds(model_to_train, inputs.to(model_device), targets.to(model_device), train_criterion)
 
     loss.backward()
     model_optimiser.step()
@@ -50,6 +55,10 @@ def validation_step(
         val_data_gen: t.Generator,
         num_val_batches: int,
 ) -> t.Tuple[float, float]:
+    """
+    Perform one validation cycle, iterating through val_data_gen for num_val_batches
+    and returning the mean loss and accuracy.
+    """
 
     model_to_validate.eval()
     model_device = utils.get_model_device(model_to_validate)
@@ -77,6 +86,10 @@ def sample_outputs(
         sample_iterator: t.Generator[dict[str, torch.Tensor], None, None],
         num_batches: int,
 ) -> t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Sample some outputs of model_to_test,
+    returning the original samples, their labels and the raw model outputs.
+    """
 
     model_to_test.eval()
     model_device = utils.get_model_device(model_to_test)
