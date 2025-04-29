@@ -10,6 +10,7 @@ import dataset_processing
 import helpers
 import models
 import xai
+from evaluate_xai import Similarity
 from evaluate_xai.compactness import Compactness
 from evaluate_xai.continuity import Continuity
 from evaluate_xai.contrastivity import Contrastivity
@@ -104,12 +105,11 @@ deletion_method = "blur"  # "shuffle" or "nn" works best here in most cases
 # Applying deletion method to sat img with large 'class regions' is hard
 
 # == Correctness ==
-correctness_metric = Correctness(explainer, max_batch_size=batch_size)
+correctness_metric = Correctness(explainer, batch_size=batch_size)
 
 # Model Randomisation
-corr_sim_metrics = correctness_metric.evaluate(method="model_randomisation", visualise=True)(
-    l2_normalise=True, intersection_k=5000
-)
+corr_similarity: Similarity = correctness_metric.evaluate(method="model_randomisation", visualise=True)
+corr_sim_metrics = corr_similarity(l2_normalise=True, intersection_m=5000, show_scatter=False)
 print("Correctness evaluation via model randomisation (↓)", corr_sim_metrics)
 
 # Incremental Deletion
@@ -122,12 +122,12 @@ nn_aucs = correctness_metric.evaluate(
 print("Correctness evaluation via incremental deletion (↓)", nn_aucs["informed"]/nn_aucs["random"])
 
 # == Output Completeness ==
-output_completeness_metric = OutputCompleteness(explainer, max_batch_size=batch_size)
-threshold = 0.2
+output_completeness_metric = OutputCompleteness(explainer, batch_size=batch_size)
+proportion = 0.2
 
 # Deletion Check
 drop_in_confidence = output_completeness_metric.evaluate(
-    method="deletion_check", deletion_method=deletion_method, threshold=threshold,
+    method="deletion_check", deletion_method=deletion_method, proportion=proportion,
     n_random_rankings=5, random_seed=42, visualise=True,
 )
 print("Output completeness evaluation via deletion check (↑)", end=" ")
@@ -135,14 +135,14 @@ print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # Preservation Check
 drop_in_confidence = output_completeness_metric.evaluate(
-    method="preservation_check", deletion_method=deletion_method, threshold=threshold,
+    method="preservation_check", deletion_method=deletion_method, proportion=proportion,
     n_random_rankings=5, random_seed=42, visualise=True,
 )
-print("Output completeness evaluation via preservation check (↓)", end=" ")
+print("Output completeness evaluation via preservation check (↑)", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 # == Continuity ==
-continuity_metric = Continuity(explainer, max_batch_size=batch_size)
+continuity_metric = Continuity(explainer, batch_size=batch_size)
 
 # Model Randomisation
 similarity = continuity_metric.evaluate(
@@ -151,21 +151,21 @@ similarity = continuity_metric.evaluate(
 )
 print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at "
       f"indices: {similarity.hidden_idxs}")
-cont_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
+cont_sim_metrics = similarity(l2_normalise=True, intersection_m=5000)
 print("Continuity evaluation via image perturbation (↑)", cont_sim_metrics)
 
 # == Contrastivity ==
-contrastivity_metric = Contrastivity(explainer, max_batch_size=batch_size)
+contrastivity_metric = Contrastivity(explainer, batch_size=batch_size)
 
 # Adversarial Attack
 similarity = contrastivity_metric.evaluate(
-    method="adversarial_attack", visualise=True,
+    method="target_sensitivity", visualise=True,
 )
-contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_k=5000)
+contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_m=5000, show_scatter=True)
 print("Contrastivity evaluation via adversarial attack (↓)", contrastivity_sim_metrics)
 
 # == Compactness ==
-compactness_metric = Compactness(explainer, max_batch_size=batch_size)
+compactness_metric = Compactness(explainer, batch_size=batch_size)
 compactness_scores = compactness_metric.evaluate(
     method="threshold", threshold=0.5, visualise=True,
 )

@@ -5,12 +5,17 @@ import numpy as np
 from jaxtyping import Float
 
 import helpers
-from . import Co12Metric
+from . import Co12Property
 
 logger = helpers.log.main_logger
 
 
-class Compactness(Co12Metric):
+class Compactness(Co12Property):
+    """
+    "Compactness considers the size of the explanation and is motivated by human cognitive capacity
+    limitations. Explanations should be sparse, short and not redundant to avoid presenting an
+    explanation that is too big to understand."
+    """
     def evaluate(
             self,
             method: t.Literal["threshold"],
@@ -31,7 +36,7 @@ class Compactness(Co12Metric):
         """
         Calculate the compactness of each explanation relative to a given threshold ([0, 1]).
         The compactness is defined as the proportion of pixels (normalised per image)
-        equal to or below the threshold. Note that the absolute value of
+        equal to or below the threshold, τ. Note that the absolute value of
         the pixels is used since negative values also contribute to visual clutter
         when plotted.
         """
@@ -47,7 +52,7 @@ class Compactness(Co12Metric):
             norm_exp = norm_exp[~nan_mask]
 
         if self.visualise:
-            # add fake colour channel for show_image's expected format: (n, c, h, w)
+            # add channel dimension for show_image's expected format: (n, c, h, w)
             helpers.plotting.show_image(np.expand_dims(norm_exp, 1), is_01_normalised=True, cmap="viridis")
             plt.title("Normalised explanations")
             plt.show()

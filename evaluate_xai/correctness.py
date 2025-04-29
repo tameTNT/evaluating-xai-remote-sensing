@@ -9,19 +9,23 @@ from jaxtyping import Int, Float
 from tqdm.autonotebook import tqdm
 
 import helpers
-from . import Co12Metric, Similarity
+from . import Co12Property, Similarity
 from . import deletion
 
 logger = helpers.log.main_logger
 
 
-def visualise_incremental_deletion(
-        imgs_with_deletions: Float[np.ndarray, "n_samples num_iterations channels height width"],
-):
-    num_iterations = imgs_with_deletions.shape[1]
+def visualise_incremental_deletion(x: Float[np.ndarray, "n_samples num_iterations channels height width"]):
+    """
+    A helper function to visualise the incremental deletion process. Does *not* call plt.show().
+    Expects an input with dimensions (n_samples, num_deletion_iterations, channels, height, width).
+    If num_deletion_iterations > 10, 10 linearly spaced iterations are selected.
+    """
 
-    selected_images: np.ndarray = imgs_with_deletions.copy()
-    if num_iterations > 10:
+    num_iterations = x.shape[1]
+
+    selected_images: np.ndarray = x.copy()
+    if num_iterations > 10:  # extract 10 evenly spaced iterations
         selected_images = selected_images.take(np.floor(np.linspace(0, num_iterations - 1, 10)).astype(int), axis=1)
 
     n, i, c, h, w = selected_images.shape
@@ -38,7 +42,7 @@ def visualise_incremental_deletion(
 
 def reset_child_params(model: torch.nn.Module):
     """
-    Reset all parameters of a model to their defaults **inplace**.
+    Reset all parameters of a PyTorch Module/model to their defaults **inplace** and recursively.
     Adapted from https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
     """
     for layer in model.children():
@@ -47,15 +51,20 @@ def reset_child_params(model: torch.nn.Module):
         reset_child_params(layer)
 
 
-class Correctness(Co12Metric):
-    # todo: add docstrings - discuss execution time and add definition of property from review paper
-
+class Correctness(Co12Property):
+    """
+    "Correctness addresses the truthfulness/faithfulness of the explanation with respect to predictive
+    model f, the model to be explained. Hence, it indicates how truthful the explanations are
+    compared to the “true” black box behaviour (either locally or globally). Note that this property is
+    not about the predictive accuracy of the black box model, but about the descriptive accuracy of the
+    explanation. Ideally, an explanation is “nothing but the truth”, and high correctness is
+    desired"
+    """
     def evaluate(
             self,
             method: t.Literal["model_randomisation", "incremental_deletion"],
             **kwargs,
-    ) -> t.Union[Similarity,
-                 dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]]:
+    ) -> t.Union[Similarity, dict[str, Float[np.ndarray, "n_samples"]]]:
 
         super().evaluate(method, **kwargs)
 
@@ -70,6 +79,15 @@ class Correctness(Co12Metric):
             self,
             **kwargs,
     ) -> Similarity:
+        """
+        Performs a model randomisation test by creating a copy of the original model,
+        resetting its parameters, and computing and return the Similarity between the explanations of the
+        original and randomised models. We desire a low similarity score, indicating that the
+        explanation of the original model is faithful to the model's workings.
+
+        🐌 Since this method requires generating new explanations, it can be slow.
+        """
+
         device = helpers.utils.get_model_device(self.exp.model)
         randomised_model = copy.deepcopy(self.exp.model).to(device)
         reset_child_params(randomised_model)
@@ -94,7 +112,33 @@ class Correctness(Co12Metric):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
+    ) -> dict[str, Float[np.ndarray, "n_samples"]]:
+        """
+        Performs an incremental deletion check to investigate the effect of deleting
+        pixels or regions on a model's predictions when informed by explanations compared to a randomised baseline.
+        The method computes model confidence over iterations during these deletion processes and returns the area
+        under curve (AUC) for explanation-informed deletion and randomised deletion as two numpy arrays.
+        Typically, we take the ratio of the two AUCs (informed / randomised)
+        and desire a ratio below 1 indicating better than random performance.
+
+        🐌 Since this method requires a lot of model invocations, it can be slow.
+        Some deletion methods can also take some time (e.g. inpaint).
+
+        :param deletion_method: Method used for deletion: one of deletion.METHODS (see `deletion.py`).
+            Defaults to "nn" (nearest neighbour).
+        :param iterations: Total number of incremental deletion steps, `K`.
+        :param n_random_rankings: Size of ensemble, `T`, of random rankings to use as a baseline.
+        :param random_seed: Random seed used for generating randomised explanation for random deletion. Defaults to 42.
+        :return: A dictionary containing results of the incremental deletion
+            process. The main keys are "informed" and "random", each containing
+            area under curve (AUC) values for model confidence over deletion
+            iterations for each sample considered.
+            Additional keys may be included if `self.full_data` is True,
+            such as "informed_full", "random_full" (complete confidence trends),
+            "informed_deleted_imgs", "random_deleted_imgs" (deleted images),
+            and "random_rankings" (random rankings used).
+        """
+        assert n_random_rankings > 0, "n_random_rankings must be greater than 0."
 
         image_shape = self.exp.input.shape[1:]
         total_num_samples = self.n_samples * iterations
@@ -102,8 +146,8 @@ class Correctness(Co12Metric):
         imgs_with_deletions, k_values = self.incrementally_delete_from_input(
             self.exp.ranked_explanation, iterations, deletion_method
         )
-        imgs_flat = imgs_with_deletions.reshape(total_num_samples, *image_shape)
-        informed_outputs = self.run_model(imgs_flat)
+        imgs_flat_list = imgs_with_deletions.reshape(total_num_samples, *image_shape)
+        informed_outputs = self.run_model(imgs_flat_list)
 
         if self.visualise:
             visualise_incremental_deletion(imgs_with_deletions)
@@ -120,24 +164,24 @@ class Correctness(Co12Metric):
         for i, seed in tqdm(enumerate(seeds), total=len(seeds), ncols=110, mininterval=5,
                             desc="Randomly perturbing", leave=False):  # type: int, int
             a_random_ranking = deletion.generate_random_ranking(
-                image_shape[-2:], 16, seed
+                image_shape[-2:], 16, seed  # futuretodo: make resolution_d configurable
             )
             random_rankings = a_random_ranking[np.newaxis, ...].repeat(self.n_samples, axis=0)
 
             imgs_with_random_deletions = self.incrementally_delete_from_input(
                 random_rankings, iterations, deletion_method
-            )[0]
+            )[0]  # don't care about k_values here, so take the first output
             if self.visualise:
-                # Just use the first image as an example to showcase random deletions
+                # Use just the first image as an example to showcase random deletions
                 sample_perturbation_history.append(imgs_with_random_deletions[0])
 
-            imgs_flat = imgs_with_random_deletions.reshape(total_num_samples, *image_shape)
-            random_outputs_for_seed = self.run_model(imgs_flat)
+            imgs_flat_list = imgs_with_random_deletions.reshape(total_num_samples, *image_shape)
+            random_outputs_for_seed = self.run_model(imgs_flat_list)
             # Build up the model's outputs for each seed as we go along
-            # Leaving it until the end with all the perturbations in memory uses too much RAM!
+            # Leaving it until the end with all the perturbations in memory uses too much RAM (especially for MS data)!
             random_outputs.append(random_outputs_for_seed)
 
-        random_outputs = np.concatenate(random_outputs, axis=0)  # as if all fed into model in one go
+        random_outputs = np.concatenate(random_outputs, axis=0)  # as if all fed into the model in one go
 
         # futuretodo: save/load perturbations (like adversarial examples in contrastivity.py)
         #  to disk to save having to regenerate
@@ -147,25 +191,27 @@ class Correctness(Co12Metric):
             plt.suptitle(f"Incremental randomised deletion {n_random_rankings} times over {iterations} iterations")
             plt.show()
 
-        # final dim is num_classes so use -1
-        exp_informed_model_confidences = informed_outputs.reshape(self.n_samples, iterations, -1)
+        # The final dimension is num_classes (unknown here), so use -1
+        informed_confidences = informed_outputs.reshape(self.n_samples, iterations, -1)
         # max confidence class on the original img
-        original_pred_class = exp_informed_model_confidences[:, 0].argmax(axis=1)
-        # we only care about confidence of the original prediction class
-        exp_informed_class_confidence = exp_informed_model_confidences[np.arange(self.n_samples), ..., original_pred_class]
-        # Calculate area under the curve along iterations axis. This is our final output.
+        original_pred_class = informed_confidences[:, 0].argmax(axis=1)
+        # we only care about the confidence in the original prediction class
+        exp_informed_class_confidence = informed_confidences[np.arange(self.n_samples), ..., original_pred_class]
+        # Calculate area under the curve along the discrete iteration (k) axis.
+        # This is the first part of the final output.
         exp_informed_area_under_curve_per_img = np.trapz(exp_informed_class_confidence, axis=1)
 
-        # take mean over n_random_rankings
-        random_model_confidences = random_outputs.reshape(n_random_rankings, self.n_samples, iterations, -1).mean(axis=0)
+        # Perform the same steps for random ensemble
+        # Take mean over n_random_rankings
+        random_confidences = random_outputs.reshape(n_random_rankings, self.n_samples, iterations, -1).mean(axis=0)
         # confidence class in the original prediction over the iterations for each sample
-        random_class_confidence = random_model_confidences[np.arange(self.n_samples), :, original_pred_class]
+        random_class_confidence = random_confidences[np.arange(self.n_samples), :, original_pred_class]
 
         no_deletion_confidence_diff = random_class_confidence[:, 0] - exp_informed_class_confidence[:, 0]
         assert np.all(no_deletion_confidence_diff <= 0.01), \
             f"For no deletions, prediction confidences should be identical, not {no_deletion_confidence_diff} > 0.01."
 
-        # Second part of final output.
+        # Second part of the final output.
         random_area_under_curve_per_img = np.trapz(random_class_confidence, axis=1)
 
         # Visualise the area under curve results by plotting confidence against iterations
@@ -182,8 +228,10 @@ class Correctness(Co12Metric):
             fig.tight_layout()
             plt.show()
 
-        return_dict = {"informed": exp_informed_area_under_curve_per_img,
-                       "random": random_area_under_curve_per_img}
+        return_dict = {
+            "informed": exp_informed_area_under_curve_per_img,
+            "random": random_area_under_curve_per_img
+        }
         if self.full_data:
             return_dict["informed_full"] = exp_informed_class_confidence
             return_dict["random_full"] = random_class_confidence
@@ -203,13 +251,12 @@ class Correctness(Co12Metric):
         Int[np.ndarray, "num_iterations"]
     ]:
         """
-        Iteratively delete the top k most important pixels (as specified by
-        `importance_rank`).
+        Iteratively delete the top k most important pixels (as specified by `importance_rank`).
 
-        k is increased linearly from 0 (inclusive) to the total number pixels in the
-        image over `num_iterations`.
-        An ndarray of shape (num_iterations, *x.shape) is returned alongside the
-        values of k used.
+        k is increased linearly from 0 to the total number of pixels in the image
+        over `num_iterations` (both inclusive).
+
+        A tuple is returned: an ndarray of shape (num_iterations, *x.shape) and the exact values of k used.
         """
 
         num_img_pixels = self.exp.input.shape[-2] * self.exp.input.shape[-1]

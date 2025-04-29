@@ -94,7 +94,7 @@ def generate_explanations(_for_idxs: np.array, class_idx: int) -> list[xai.Expla
 def build_parameters_dict() -> dict:
     return {
         "shap_max_evals": shap_max_evals,
-        "output_completeness_threshold": output_completeness_threshold,
+        "output_completeness_proportion": output_completeness_proportion,
         "continuity_perturbation_degree": continuity_perturbation_degree,
         "compactness_threshold": compactness_threshold,
         "samples_per_class": samples_per_class,
@@ -107,7 +107,7 @@ def build_parameters_dict() -> dict:
 
 
 def evaluate_sim_to_array(sim: Similarity) -> np.array:
-    sim_return_dict = sim(l2_normalise=True, intersection_k=similarity_intersection_k)
+    sim_return_dict = sim(l2_normalise=True, intersection_m=similarity_intersection_m)
     return np.stack([sim_return_dict[m] for m in available_sim_metrics])
 
 
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     metric_options = parser.add_argument_group("Metric Options",
                                                "Options for specific evaluation metrics.")
     metric_options.add_argument(
-        "--output_completeness_threshold",
+        "--output_completeness_proportion",
         type=float,
         default=0.2,
         help="Proportion of images to delete/preserve for output completeness evaluation metrics. "
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     shap_batch_size = batch_size if shap_batch_size == 0 else shap_batch_size
     shap_multi_processes: int = args.shap_multi_processes
 
-    output_completeness_threshold: float = args.output_completeness_threshold
+    output_completeness_proportion: float = args.output_completeness_proportion
     continuity_perturbation_degree: float = args.continuity_perturbation_degree
     compactness_threshold: float = args.compactness_threshold
 
@@ -318,7 +318,7 @@ if __name__ == "__main__":
 
     dataset, model_to_explain = get_data_and_model()
 
-    similarity_intersection_k = int(similarity_intersection_proportion * model_to_explain.expected_input_dim ** 2)
+    similarity_intersection_m = int(similarity_intersection_proportion * model_to_explain.expected_input_dim ** 2)
     available_sim_metrics = t.get_args(evaluate_xai.SIMILARITY_METRICS)
 
     results_df = pd.DataFrame(columns=[
@@ -402,9 +402,9 @@ if __name__ == "__main__":
             plt.title(f"Explanations for Class {c:02}")
             plt.show()
 
-        # ==== Evaluate Co12 Metrics ====
+        # ==== Evaluate Metrics for Co12 Properties ====
         with tqdm(total=7, ncols=110, desc="Calculating metrics", leave=False) as metric_pbar:
-            metric_kwargs = {"exp": combined_exp, "max_batch_size": batch_size}
+            metric_kwargs = {"exp": combined_exp, "batch_size": batch_size}
             sim_inf_array = np.zeros((len(available_sim_metrics), combined_exp.input.shape[0])) - np.inf
 
             # == Evaluate Correctness ==
@@ -414,7 +414,8 @@ if __name__ == "__main__":
             correctness_similarity = correctness.evaluate(
                 method="model_randomisation", visualise=visualise,
             )
-            # Evaluate Similarity object to array in order given by available_sim_metrics (dictates column order)
+            # Evaluate the Similarity object into an array
+            # in the order given by available_sim_metrics (dictates column order)
             correctness_similarity_vals = evaluate_sim_to_array(correctness_similarity)
             metric_pbar.update()
 
@@ -430,14 +431,14 @@ if __name__ == "__main__":
             output_completeness = OutputCompleteness(**metric_kwargs)
             deletion_check = output_completeness.evaluate(
                 method="deletion_check", deletion_method=deletion_method,
-                threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+                proportion=output_completeness_proportion, n_random_rankings=num_random_trials,
                 random_seed=random_seed, visualise=visualise,
             )
             metric_pbar.update()
 
             preservation_check = output_completeness.evaluate(
                 method="preservation_check", deletion_method=deletion_method,
-                threshold=output_completeness_threshold, n_random_rankings=num_random_trials,
+                proportion=output_completeness_proportion, n_random_rankings=num_random_trials,
                 random_seed=random_seed, visualise=visualise,
             )
             metric_pbar.update()
@@ -460,7 +461,7 @@ if __name__ == "__main__":
             # == Evaluate Contrastivity ==
             contrastivity = Contrastivity(**metric_kwargs)
             contrastivity_similarity = contrastivity.evaluate(
-                method="adversarial_attack", visualise=visualise,
+                method="target_sensitivity", visualise=visualise,
             )
             if len(contrastivity_similarity.return_idxs) < min_samples_for_similarity:
                 logger.warning(f"Not a sufficient number of successful adversarial attacks for class {c} to "

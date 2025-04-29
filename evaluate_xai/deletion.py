@@ -18,7 +18,7 @@ def delete_top_k_important(
 ) -> Float[np.ndarray, "n_samples channels height width"]:
     """
     'Delete' the top k most important pixels (as specified by `importance_rank`)
-    in `x` (values in [-1,1]) using one of several methods
+    in `x` (values generally expected to be in [-1,1]) using one of several methods
     determined by the `method` parameter:
 
     - If method is a float or int, set the top k pixels to this value.
@@ -33,8 +33,7 @@ def delete_top_k_important(
     - If method is 'shuffle', randomly perturb the top k pixels by shuffling
         them with the other pixels in the image. This is the 2nd slowest method.
 
-    If importance_rank is a tuple of an int and a np.random.Generator, a random
-    ranking, with grid element size of the first argument, is generated instead.
+    Returns a new numpy array with the same shape as `x`, where the top k pixels have been deleted.
     """
 
     masked_imgs = x.clone().numpy(force=True)
@@ -111,18 +110,30 @@ def delete_top_k_important(
 
 
 def generate_random_ranking(
-        shape: Int[np.ndarray, "height width"],
-        resolution: int = 16,
+        shape: tuple[int, int],
+        resolution_d: int = 16,
         random_seed: int = 42
 ) -> Int[np.ndarray, "height width"]:
+    """
+    Generate a random importance ranking in a 2D grid form.
+    The final grid has a 'resolution_d' as given by `resolution_d` (`d` in our final paper).
+
+    :param shape: The final shape of the importance ranking.
+        This should be the normally same as the input image being 'explained'.
+    :param resolution_d: The number of squares per edge in the final grid.
+        (This is the `d` parameter from our final paper).
+    :param random_seed: Random seed used for generating the random grid. Defaults to 42.
+    :return: An importance ranking in a 2D grid form of shape given by `shape`.
+    """
+
     # futuretodo: add alternative method to do this via gaussian spotting to blend regions better?
     #  compared to current harsh edge blocks
     h, w = shape
 
     random_gen = np.random.default_rng(random_seed)
     random_importance = random_gen.permuted(
-        np.floor(np.linspace(0, h*w, resolution ** 2))
-    ).reshape(resolution, resolution)
+        np.floor(np.linspace(0, h * w, resolution_d ** 2)).astype(int)
+    ).reshape(resolution_d, resolution_d)
 
     return skimage.transform.resize(
         random_importance, output_shape=(h, w),

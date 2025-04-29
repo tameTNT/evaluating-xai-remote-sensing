@@ -7,42 +7,72 @@ import einops
 import numpy as np
 
 import helpers
-from . import Co12Metric, Similarity
+from . import Co12Property, Similarity
 
 logger = helpers.log.main_logger
 
 
-class Contrastivity(Co12Metric):
+class Contrastivity(Co12Property):
+    """
+    "Contrastivity addresses the discriminativeness of an explanation and aims to facilitate comparisons
+    in relation to other targets or events. [An] explanation should not
+    only explain an event, but explain it “relative to some other event that did not occur”"
+    """
     def evaluate(
             self,
-            method: t.Literal["adversarial_attack"],
+            method: t.Literal["target_sensitivity"],
             **kwargs,
     ) -> Similarity:
         super().evaluate(method, **kwargs)
 
-        if method == "adversarial_attack":
-            return self._adversarial_attack(**kwargs)
+        if method == "target_sensitivity":
+            return self._target_sensitivity(**kwargs)
         else:
             raise ValueError(f"Unknown evaluation method: {method}")
 
-    def _adversarial_attack(
+    def _target_sensitivity(
             self,
             img_bound_quantile: float = 0.02,
             attack: foolbox.attacks.Attack = foolbox.attacks.LinfDeepFoolAttack,
             attack_kwargs: dict = None,
             **kwargs,
     ) -> Similarity:
+        """
+        Calculates the target sensitivity of a model by generating adversarial examples
+        and comparing their explanations with the explanations on the original inputs,
+        ultimately returning a Similarity (lower is better).
+
+        🐌 Since this method requires generating new explanations, it can be slow.
+
+        This function performs adversarial image generation using Foolbox
+        (or using previously generated and saved images if found on disk) and computes the
+        similarity between explanations on original and adversarial inputs
+        where the model output changed.
+
+        It also handles cases where input image bounds differ from expected ranges and adjusts
+        the adversarial generation parameters accordingly (primarily needed for MS images).
+
+        :param img_bound_quantile: Quantile value used to detect significant deviations
+            from expected input image bounds (-1, 1). Default is 0.02.
+        :param attack: Foolbox attack type to use for adversarial example generation.
+            Defaults to `foolbox.attacks.LinfDeepFoolAttack`.
+        :param attack_kwargs: Dictionary of additional keyword arguments to configure
+            the Foolbox attack. If None, default values of `{"steps": 50, "candidates": 5}`
+            will be used.
+        :return: A `Similarity` object that encapsulates the comparison results
+            between the original and adversarial input explanations.
+        """
 
         if attack_kwargs is None:
-            # use the default number of steps
-            # We're only working with 10-20 class datasets so 5 candidates is reasonable
+            # Use the default number of steps
+            # We're only working with 10-20 class datasets, so 5 candidate classes is reasonable
             attack_kwargs = {"steps": 50, "candidates": 5}
 
         original_preds = self.run_model(self.exp.input).argmax(1)
 
-        # check for existing generated adversarial images to save having to regenerate
+        # check for existing generated adversarial images to avoid having to regenerate
         need_to_generate = True
-        # Adversarial images are specific to a trained model (using their gradients) not an explainer
+        # Adversarial images are specific to a trained model (using their gradients), *not* an Explainer object
         # e.g. xai_output_unix/EuroSATRGB/c00/combined/ConvNeXtSmall_adversarial_examples.npz
         previous_adv_output_path = (self.exp.save_path.parent /  # not explainer specific so use .parent
                                     f"{self.exp.model.__class__.__name__}_adversarial_examples.npz")
@@ -53,7 +83,7 @@ class Contrastivity(Co12Metric):
                 clipped_adv_imgs = torch.from_numpy(data["clipped_adv_imgs"]).to(self.exp.device)
                 original_imgs = torch.from_numpy(data["original_imgs"]).to(self.exp.device)
 
-            # check if previous generation was for different number of inputs/sample size
+            # check if the previous generation was for different number of inputs/sample size
             if original_imgs.shape != self.exp.input.shape:
                 num_desired = self.n_samples
             else:  # if shapes are the same, we check all images
@@ -71,7 +101,7 @@ class Contrastivity(Co12Metric):
         # if no existing adversarial images, generate them
         if need_to_generate:
             img_outputs = []
-            attack_batch_size = self.max_batch_size
+            attack_batch_size = self.batch_size
             if attack_batch_size == 0:
                 attack_batch_size = self.n_samples
 
@@ -81,7 +111,7 @@ class Contrastivity(Co12Metric):
             expected_img_bounds = (-1, 1)
             attack_epsilon = 0.01  # default good for the vast majority of datasets and attacks
             higher_epsilon = 0.05  # higher epsilon to account for the larger image value range
-            # Images may be out of bounds due to type of normalisation (especially for MS data)
+            # Images may be out of expected bounds due to the nature of normalisation (especially for MS data)
             input_min = self.exp.input.min()
             input_max = self.exp.input.max()
             if input_min < expected_img_bounds[0] or input_max > expected_img_bounds[1]:
@@ -118,9 +148,10 @@ class Contrastivity(Co12Metric):
                 # just the model's original predictions (and associated explanation)
                 batch_criteria = foolbox.criteria.Misclassification(batch_preds)
 
-                # WARNING: there is a rogue call to the base logging.info() on
+                # ⚠️ WARNING: there is a rogue call to the Python standard library logging.info() on
                 # line 127 of foolbox/attacks/deepfool.py which should be commented out.
                 # Otherwise, all logging calls are printed to the terminal
+
                 # noinspection PyCallingNonCallable
                 _, clipped_adv_imgs, _ = attack(**attack_kwargs)(
                     foolbox_model, batch_input, batch_criteria, epsilons=attack_epsilon,
@@ -145,7 +176,7 @@ class Contrastivity(Co12Metric):
         # Only compare similarity of explanations where the model predictions changed
         # since the explanations should reflect the underlying model (and change a lot)
         # noinspection PyTypeChecker
-        success: np.ndarray[bool] = original_preds != adv_preds
+        success: np.ndarray = original_preds != adv_preds
         if not success.all():
             failed_idxs = np.flatnonzero(~success)
             logger.warning(f"Failed to successfully load/generate truly adversarial images for "

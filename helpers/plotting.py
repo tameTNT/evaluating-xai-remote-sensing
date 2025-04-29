@@ -226,7 +226,7 @@ def show_ms_images(
 def visualise_importance(
         x: Float[t.Union[np.ndarray, torch.Tensor], "n_samples channels height width"],
         importance_rank: Int[np.ndarray, "n_samples height width"],
-        alpha: float = 0.2,
+        alpha: float = 0.7,
         with_colorbar: bool = True,
         band_idxs: list[int] = None,
         show_samples_separate: bool = False,
