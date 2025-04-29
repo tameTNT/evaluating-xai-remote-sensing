@@ -350,7 +350,8 @@ if __name__ == "__main__":
         # noinspection PyTypeChecker
         json.dump(build_parameters_dict(), json_parameters_path.open("w+"), indent=4)
     else:
-        assert h5_store[ds_model_df_name].columns == results_df.columns, "Unexpected columns of saved dataframe."
+        assert np.array_equal(h5_store[ds_model_df_name].columns, results_df.columns), \
+            f"Unexpected columns in existing dataframe."
         h5_store.close()
         stored_parameters = json.load(json_parameters_path.open("r"))
         current_parameters = build_parameters_dict()
@@ -485,18 +486,21 @@ if __name__ == "__main__":
         # Use pd.to_numeric (converts numpy array objects) since we require numeric
         # values for HDF5 for fast saving/loading
         # Directly update target row only (preserve other rows)
-        h5_store[ds_model_df_name].loc[current_class_name] = pd.to_numeric([
-            # Calculate mean similarity across samples; unpack with * array of len(available_sim_metrics) to fill cols
+        updated_df = h5_store[ds_model_df_name]
+        updated_df.loc[current_class_name] = [
+            # Calculate mean similarity across samples;
+            # unpack with * the array of len(available_sim_metrics) to fill cols
             *correctness_similarity_vals.mean(axis=1),
-            # Calculate ratio of AUC for informed deletion / AUC for randomised deletion
-            # We expect the AUC of informed deletion < randomised one, so ratio should be small
+            # Calculate the ratio of AUC for informed deletion / AUC for randomised deletion
+            # We expect the AUC of informed deletion < randomised one, so the ratio should be small
             (correctness_id_dict["informed"]/correctness_id_dict["random"]).mean(),
             deletion_check.mean(),
             preservation_check.mean(),
             *continuity_similarity_vals.mean(axis=1),
             *contrastivity_similarity_vals.mean(axis=1),
             compactness_scores.mean(),
-        ])
+        ]
+        h5_store[ds_model_df_name] = updated_df
         h5_store.close()
 
     logger.info(f"Script execution complete.")
