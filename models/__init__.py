@@ -20,7 +20,8 @@ def get_model_type(
         name: MODEL_NAMES,
 ) -> t.Type[Model]:
     """
-    Get the model type corresponding to the given name.
+    Get the model *type* (the object still needs to be instantiated) corresponding to the given name.
+
     :param name: One of the model names in MODEL_NAMES.
     :return: A callable model type used to instantiate a model.
     """

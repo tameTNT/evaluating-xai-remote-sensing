@@ -27,12 +27,6 @@ class ConvNeXtTemplate(Model):
             size: AVAILABLE_SIZES = "small",
             **kwargs
     ):
-        """
-        Initialise a ConvNeXt model with:
-            - the input layer replaced to accept the desired number of input bands.
-            - the final linear layer replaced to output the desired number of classes.
-        """
-
         super().__init__(pretrained, n_input_bands, n_output_classes, *args, **kwargs)
 
         if size == "tiny":
@@ -55,7 +49,7 @@ class ConvNeXtTemplate(Model):
         logger.debug(f"Model {self.__class__.__name__} initialised "
                      f"{'with' if self.pretrained else 'without'} pretrained weights.")
 
-        # modify model after loading pretrained weights
+        # modify self.model *after* loading pretrained weights
         # if necessary, change the input convolution
         if n_input_bands != 3:
             logger.debug(f"Changing input conv layer from 3 to {n_input_bands} input channels.")
@@ -67,7 +61,7 @@ class ConvNeXtTemplate(Model):
                 kernel_size=4,
                 stride=4,
                 padding=0,
-                norm_layer=functools.partial(LayerNorm2d, eps=1e-6),
+                norm_layer=functools.partial(LayerNorm2d, eps=1e-6),  # same as the original
                 activation_layer=None,
                 bias=True,
             )
@@ -82,16 +76,16 @@ class ConvNeXtTemplate(Model):
         logger.info(f"Model {self.__class__.__name__} successfully initialised with {n_input_bands} input channels "
                     f"and {n_output_classes} output classes.")
 
+    def forward(self, x):
+        return self.model(x)
+
     def yield_layers(self) -> t.Generator[nn.Module, None, None]:
         for part in (self.model.features, self.model.avgpool, self.model.classifier):
             for child in part.children():
                 yield child
 
-    def forward(self, x):
-        return self.model(x)
-
     def get_explanation_target_layers(self):
-        # the final convolution layer in the model before avgpooling and classification
+        # the final convolution layer in the model before avgpool-ing and classification
         return [self.model.features[-1][-1]]
 
 

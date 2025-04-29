@@ -1,6 +1,7 @@
 import typing as t
 from pathlib import Path
 
+from jaxtyping import Float
 import torch
 import torch.nn as nn
 import safetensors.torch as st
@@ -11,20 +12,43 @@ logger = log.main_logger
 
 
 class Model(nn.Module):
-    modified_input_layer = False
+    modified_input_layer = False  # whether the input layer has been modified
 
-    expected_input_dim: int
+    expected_input_dim: int  # the expected image input dimension for the model
     input_layers_to_train: int  # the number of input layers from the top to unfreeze when fine-tuning
 
     def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int, *args, **kwargs):
+        """
+        Initialise a model with:
+            - the input layer replaced to accept the desired number of input bands (`n_input_bands`).
+            - the final linear layer replaced to output the desired number of classes (`n_output_classes`).
+        Optionally loads pretrained ImageNet weights for transfer learning if `pretrained` is True.
+        (This is done before modifying the model.)
+        Args and kwargs not used by the child class of Model are passed to the torch.nn.Module constructor.
+        """
+
         super().__init__(*args, **kwargs)
         self.pretrained = pretrained
         assert n_input_bands > 0, "Number of input bands must be greater than 0."
         assert n_output_classes > 0, "Number of output classes must be greater than 0."
 
+    def forward(
+            self,
+            x: Float[torch.Tensor, "batch_size channels height width"]
+    ) -> Float[torch.Tensor, "batch_size n_output_classes"]:
+        """
+        Forward pass through the model.
+        The shapes given are typical for simple classification models but may differ for some models.
+
+        :param x: Input tensor of shape (batch_size, n_input_bands, height, width).
+        :return: Output tensor of shape (batch_size, n_output_classes).
+        """
+        raise NotImplementedError("forward() not implemented in base class.")
+
     def load_weights(self, weights_path: Path) -> tuple[list[str], list[str]]:
         """
-        Load weights from a safetensors file. Same return as safetensors.torch.load_model.
+        Load weights from a safetensors file, `weights_path`.
+        This function has the same return as safetensors.torch.load_model(...).
 
         :returns: `(missing, unexpected): (List[str], List[str])`
             `missing` are names in the model which were not modified during loading
@@ -43,17 +67,20 @@ class Model(nn.Module):
         Yields all layers of self.model sequentially starting from the input layer.
         By default, this is the same as looping through self.model.children() and yielding each child.
 
-        Can be overridden if a model has a different structure (with lots of nested sequences for example).
-        So .children() would clump a bunch of layers together, which may not be desirable when iterating.
+        Can be overridden if a model has a different structure (with lots of nested sequences, for example),
+        so .children() would clump a bunch of layers together, which may not be desirable when iterating.
         """
         for child in self.model.children():
             yield child
 
     def freeze_layers(self, keep: int):
         """
-        Freeze layers (requires_grad = False) from the first input layer leaving the last `keep` layers (inc. output).
-        :param keep: Number of layers from output (inc.) to keep unfrozen.
-            e.g. keep=1 means only output layer is trainable.
+        Freeze layers (set requires_grad to False) from the first input layer,
+        leaving the last `keep` layers (including output layer) unfrozen.
+        Uses the 'layers' yielded by `yield_layers()`.
+
+        :param keep: Number of layers from output (inclusive) to keep unfrozen.
+            E.g. keep=1 means only the output layer is trainable.
         """
 
         n_frozen = 0
@@ -72,7 +99,7 @@ class Model(nn.Module):
 
     def unfreeze_all_layers(self):
         """
-        Unfreeze all layers in the model.
+        Unfreeze all layers in the model (set requires_grad to True for all model parameters).
         """
 
         for param in self.parameters():
@@ -82,6 +109,7 @@ class Model(nn.Module):
     def unfreeze_input_layers(self, k: int):
         """
         Unfreeze the first k input layers of the model.
+        Uses the 'layers' yielded by `yield_layers()`.
         """
 
         for layer_k, layer in enumerate(self.yield_layers()):
@@ -97,10 +125,7 @@ class Model(nn.Module):
         logger.info(f"Unfroze top {k} input layers of {self.__class__.__name__}.")
 
     def extra_repr(self):
-        """
-        Add additional detail on number of frozen layers.
-        :return:
-        """
+        # Adds additional detail on the number of frozen layers to repr.
         num_frozen = 0
         frozen_layers = []
         for layer in self.yield_layers():
@@ -116,7 +141,7 @@ class Model(nn.Module):
     def reshape_transform(x: torch.Tensor, height: int = 0, width: int = 0) -> torch.Tensor:
         """
         The reshape transform function an Explainer object (e.g. GradCAM) should use.
-        This is needed for transformer type models (e.g. Swin Transformer).
+        This may be needed for non-CNN type models (e.g. Swin Transformer).
         """
         return x  # by default, no reshape is needed
 

@@ -27,12 +27,6 @@ class SwinTransformerTemplate(Model):
             size: AVAILABLE_SIZES = "tiny",
             **kwargs
     ):
-        """
-        Initialise a SwinTransformer model with:
-            - the input layer replaced to accept the desired number of input bands.
-            - the final linear layer replaced to output the desired number of classes.
-        """
-
         super().__init__(pretrained, n_input_bands, n_output_classes, *args, **kwargs)
 
         if size == "tiny":
@@ -55,7 +49,7 @@ class SwinTransformerTemplate(Model):
         logger.debug(f"Model {self.__class__.__name__} initialised "
                      f"{'with' if self.pretrained else 'without'} pretrained weights.")
 
-        # modify model after loading pretrained weights (this is why we don't use the num_classes option)
+        # modify self.model after loading pretrained weights (this is why we don't use the num_classes option)
         # if necessary, change the input convolution
         if n_input_bands != 3:
             logger.debug(f"Changing input transformer block from 3 to {n_input_bands} input channels.")
@@ -78,14 +72,14 @@ class SwinTransformerTemplate(Model):
         logger.info(f"Model {self.__class__.__name__} successfully initialised with {n_input_bands} input channels "
                     f"and {n_output_classes} output classes.")
 
+    def forward(self, x):
+        return self.model(x)
+
     def yield_layers(self) -> t.Generator[nn.Module, None, None]:
         for child in self.model.features.children():
             yield child
         yield self.model.norm
         yield self.model.head
-
-    def forward(self, x):
-        return self.model(x)
 
     # @staticmethod
     # def reshape_transform(x: torch.Tensor, height: int = 8, width: int = 8) -> torch.Tensor:
@@ -108,7 +102,7 @@ class SwinTransformerTemplate(Model):
         # return [self.model.features[-1][-1].norm2]
 
         # We take the final layer before pooling, flattening, and linear classification
-        # (already has channels in expected position so no reshape_transform needed)
+        # (already has channels in the expected position, so no reshape_transform needed)
         return [self.model.permute]
 
 

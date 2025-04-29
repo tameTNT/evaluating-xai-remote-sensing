@@ -23,13 +23,14 @@ class ResNet50(Model):
     expected_input_dim = 224
     input_layers_to_train = 2  # we want to train layer 2 too (BatchNorm)
 
-    def __init__(self, pretrained: bool, n_input_bands: int, n_output_classes: int, *args, **kwargs):
-        """
-        Initialise a ResNet-50 model with:
-            - the input layer replaced to accept the desired number of input bands.
-            - the final linear layer replaced to output the desired number of classes.
-        """
-
+    def __init__(
+            self,
+            pretrained: bool,
+            n_input_bands: int,
+            n_output_classes: int,
+            *args,
+            **kwargs
+    ):
         super().__init__(pretrained, n_input_bands, n_output_classes, *args, **kwargs)
 
         if self.pretrained:
