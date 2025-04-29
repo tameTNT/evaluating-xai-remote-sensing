@@ -347,7 +347,6 @@ if __name__ == "__main__":
     if not df_already_exists:
         h5_store[ds_model_df_name] = results_df
         h5_store.close()  # close the HDF5 file again asap after reading/writing to it!
-        # noinspection PyTypeChecker
         json.dump(build_parameters_dict(), json_parameters_path.open("w+"), indent=4)
     else:
         assert np.array_equal(h5_store[ds_model_df_name].columns, results_df.columns), \

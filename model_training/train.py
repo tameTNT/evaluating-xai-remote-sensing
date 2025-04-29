@@ -466,7 +466,6 @@ def train_model(
             # Save model to file as we go along (overwritten every epoch - just as a backup to resume training)
             model_save_path = weights_save_path / f"{wandb_run.id}_current.st"
             st.save_model(model, model_save_path)
-            # noinspection PyTypeChecker
             json.dump(
                 {"completed_epoch": epoch, "lr": current_lr, "args": str(args)},
                 model_save_path.with_suffix(".json").open("w")

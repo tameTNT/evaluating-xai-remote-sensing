@@ -19,7 +19,7 @@ EXPLAINER_NAMES = t.Literal["PartitionSHAP", "GradCAM", "KPCACAM"]
 
 def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, float]:
     """
-    Returns True if the explanation is equal to the given eps.
+    Returns True if the explanations are equal within the given eps.
     Also allows the inputs to be different sizes (this returns False, -1 immediately).
     """
     if a.shape != b.shape:
@@ -31,27 +31,37 @@ def tolerant_equal(a: torch.Tensor, b: torch.Tensor, eps=1e-5) -> tuple[bool, fl
 
 
 class Explainer:
+    """
+    A base class for all explainers.
+    Explainers are wrappers around implementations of explainers (e.g. PartitionSHAP, GradCAM, etc.),
+    which provide a consistent interface for generating and saving explanations.
+    Explainer objects are initialised with a model and potentially an input tensor (via attempt_load).
+    Explanations are generated using the .explain() method, which takes an input tensor.
+    The generated explanations are stored in the explanation property and enable access to ranked_explanation too.
+    """
     def __init__(
             self,
             model: Model,
             extra_path: Path = Path(""),
-            attempt_load: torch.Tensor = None,
+            attempt_load: Float[torch.Tensor, "n_samples channels height width"] = None,
             batch_size: int = 0,
     ):
         """
         Initialise an Explainer object. Can generate explanations using .explain()
         which can then be accessed via .explanation and .ranked_explanation.
+        The root path, BASE_OUTPUT_PATH, is given by `helpers.env_var.get_xai_output_root()`.
 
         :param model: The Model (subclass of torch.nn.Module) to explain.
         :param extra_path: An additional string to insert into the save path.
             Usually used to save explanations for different datasets.
             The default save_path is BASE_OUTPUT_PATH / self.__class__.__name__ / {model.__class__.__name__}{.npz, .json}
-            If extra_path is provided, save path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / ...
+            If extra_path is provided, save_path is BASE_OUTPUT_PATH / extra_path / self.__class__.__name__ / ...
         :param attempt_load: Whether to attempt to load an existing explanation.
-            If provided, should be a torch.Tensor which the object will try to load the explanations for.
-        :param batch_size: Batch size to use when passing images to the underlying model.
+            If provided, it should be a Tensor input which the Explainer will try to load the explanations for.
+        :param batch_size: Batch size to use when passing images to the underlying model or explainer object.
             If not given or 0, this is set to len(x) when .explain(x, ...) is called.
         """
+
         self.model = model
         self.device = helpers.utils.get_model_device(model)
 
@@ -64,8 +74,8 @@ class Explainer:
         self._raw_return = None  # not saved, just used for debugging
 
         # General batch size to use if Explainer doesn't natively support (e.g. GradCAM) but
-        # requires gradient store, etc. which takes up a lot of memory, limiting batch size
-        # Note how this is different from the shap_batch_size kwarg for e.g. PartitionSHAP
+        # requires gradient store, etc. which takes up a lot of memory, limiting possible batch size.
+        # Note how this is different from e.g. the shap_batch_size kwarg for PartitionSHAP
         self.batch_size = batch_size
 
         self.attempt_load = attempt_load
@@ -84,12 +94,13 @@ class Explainer:
 
     @property
     def save_path(self) -> Path:
+        """The save directory for the explanation files (may not exist yet)."""
         return (BASE_OUTPUT_PATH / self.extra_path / self.__class__.__name__).resolve()
 
     @property
     def npz_path(self) -> Path:
         # delay the creation of the directory until we save to it
-        # (avoids creating directory unnecessarily if we call .parent as we do in contrastivity.py)
+        # (avoids creating the directory unnecessarily if we call .parent as we do in evaluate_xai/contrastivity.py)
         if not self.save_path.exists():
             self.save_path.mkdir(parents=True)
             logger.debug(f"Created save_path of {self.__class__.__name__}: {self.save_path}.")
@@ -105,14 +116,14 @@ class Explainer:
     def ranked_explanation(self) -> Int[np.ndarray, "n_samples height width"]:
         """
         Convert pixel importance to rank pixel importance (0 = most important)
-        for each sample image in self.explanation.
+        for each sample image in self.explanation, returning this ranked explanation.
         """
 
         return helpers.utils.rank_pixel_importance(self.explanation)
 
     def has_explanation_for(self, x: torch.Tensor) -> bool:
         """
-        Returns True if the explanation has been generated for a specific input x.
+        Returns True if an explanation has been generated for a specific input x.
         """
 
         if self.explanation is not None:
@@ -124,23 +135,33 @@ class Explainer:
 
     def explain(
             self,
-            x: torch.Tensor,
+            x: Float[torch.Tensor, "n_samples channels height width"],
             **kwargs
     ):
+        """
+        Explains the model's predictions for the given images using the explainer.
+        Saves the result to disk via self.save_state() and sets self.explanation.
+        Does not return anything.
+
+        :param x: Input to explain. This will be moved to self.device.
+        :param kwargs: Additional keyword arguments are left to the specific Explainer's implementation.
+        """
         logger.info(f"Generating explanations in {self.__class__.__name__} "
                     f"for x.shape={x.shape} with kwargs={kwargs} (self.kwargs updated). "
                     f"General Explainer batch size (with gradients) is {self.batch_size}.")
         self.input = x.to(self.device)
         self.kwargs = kwargs
-        self.batch_size = self.batch_size or len(x)  # if self.batch_size is currently 0, set it to len(x)
+        self.batch_size = self.batch_size or len(x)  # if self.batch_size is currently 0, naively set it to len(x)
 
     @property
     def explanation(self) -> Float[np.ndarray, "n_samples height width"]:
+        """The explanation for the input images, x, provided at the last call to explain(...)."""
         return self._explanation
 
     @explanation.setter
     def explanation(self, val: Float[np.ndarray, "n_samples height width"]):
-        # Check if there are any explanations which are just all 0 (bad!)
+        """Sets the _explanation property to the given value, checking for all 0 explanations (bad!)."""
+
         all_0_exps = np.where(np.all(val == 0, axis=(1, 2)))[0]
         if len(all_0_exps) > 0:
             logger.warning(f"{self.__class__.__name__} Explanation contains "
@@ -150,8 +171,8 @@ class Explainer:
 
     def save_state(self):
         """
-        Saves self.input, self.args and self.explanation to
-        self.save_path / '{self.model.__class__.__name__}.npz'
+        Saves self.input, self.kwargs and self.explanation to
+        self.save_path / '{self.model.__class__.__name__}.npz' (i.e. self.npz_path)
         as a compressed npz file.
         """
 
@@ -161,7 +182,6 @@ class Explainer:
             explanation=self.explanation,
         )
 
-        # noinspection PyTypeChecker
         json.dump(self.kwargs, self.json_path.open("w+"))
 
         logger.debug(f"Saved {self.__class__.__name__}'s explanation "
@@ -170,6 +190,7 @@ class Explainer:
     def load_state(self, _force: bool = False):
         """
         Loads self.input, self.kwargs and self.explanation from self.npz_path.
+        If _force is True, the loaded input is *not* checked against self.attempt_load.
         """
 
         logger.debug(f"Attempting to load explanation from "
@@ -215,6 +236,7 @@ class Explainer:
         Combine two compatible Explainer objects together via `c = a | b`.
         Being 'compatible' means they both have an explanation for inputs of the same image sizes
         (the batch size need not be the same) for the same model with the same kwargs.
+
         :param other: The other Explainer object to combine.
         :return: A new Explainer object with the combined explanations and inputs.
         """
@@ -253,12 +275,8 @@ def get_explainer_object(
         batch_size: int = 0,
 ) -> Explainer:
     """
-    Returns an explainer object of the specified type.
-    :param name: The name of the explainer to load. One of the explainer names in EXPLAINER_NAMES.
-    :param model: The model to explain.
-    :param extra_path: Extra path to save the explanation to.
-    :param attempt_load: Attempt to load an existing explanation for this input.
-    :return: An explainer object of the specified type.
+    Returns an Explainer object of the specified name.
+    For a detailed description of the parameters, see the Explainer __init__() method.
     """
 
     if name == "PartitionSHAP":
@@ -268,12 +286,12 @@ def get_explainer_object(
                                   attempt_load=attempt_load, batch_size=batch_size)
     elif name == "GradCAM":
         logger.debug("Building GradCAM explainer...")
-        from xai.gradcam import GradCAM
+        from xai.cam_methods import GradCAM
         explainer = GradCAM(model, extra_path=extra_path,
                             attempt_load=attempt_load, batch_size=batch_size)
     elif name == "KPCACAM":
         logger.debug("Building KPCACAM explainer...")
-        from xai.gradcam import KPCACAM
+        from xai.cam_methods import KPCACAM
         explainer = KPCACAM(model, extra_path=extra_path,
                             attempt_load=attempt_load, batch_size=batch_size)
     else:

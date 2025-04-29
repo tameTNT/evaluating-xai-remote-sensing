@@ -1,8 +1,7 @@
 import logging
-
-import multiprocess as mp  # use pip's 'multiprocess' instead of 'multiprocessing' to use dill to pickle
-import os
+# import os
 from functools import partial
+import platform
 
 import einops
 import numpy as np
@@ -10,7 +9,7 @@ import shap
 import shap.maskers
 import torch
 from jaxtyping import Float
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 import helpers
 from xai import Explainer
@@ -19,10 +18,6 @@ logger: logging.Logger = helpers.log.main_logger
 
 
 class PartitionSHAP(Explainer):
-    """
-    An Explainer object using PartitionSHAP explanations for a model
-    """
-
     def explain(
             self,
             x: Float[torch.Tensor, "n_samples channels height width"],
@@ -33,22 +28,22 @@ class PartitionSHAP(Explainer):
     ):
         """
         Explains the model's predictions for the given images using the PartitionSHAP
-        Explainer (shap.PartitionExplainer). Requires a decent amount of memory
+        Explainer (shap.PartitionExplainer). Requires a decent amount of VRAM for larger batch sizes.
         (approx 6GB for n_samples=5, shap_batch_size=64).
         NB: Even though PartitionSHAP generates explanations for all model outputs, only
-        the model's most confident prediction is saved.
+        the model's most confident prediction (not necessarily the correct one) is saved to the explanation property.
 
-        :param x: Normalised images in [-1, 1] with shape
-            (n_samples, channels, height, width)
-        :param max_evals: Maximum number of partition explainer evaluations to
-            perform. Effectively controls the 'resolution' of the explanation
+        :param x: Normalised Tensor of images (i.e. [-1, 1]) with shape (n_samples, channels, height, width)
+        :param max_evals: Maximum number of partition explainer evaluations to perform.
+            Effectively controls the 'resolution' of the explanation,
             with a factor of 10 approximately doubling the resolution.
-        :param shap_batch_size: Batch size for shap evaluation. Does not need to store gradients from each so this can be high.
-            e.g. batch_size=5 takes 4m 21s; =32 takes 3m40s; =64 takes 3m34s
+        :param shap_batch_size: Batch size for shap evaluation.
+            The method does not store gradients from each evaluation, so this can be relatively high.
         :param blur_size: Size of the blur mask to use for the SHAP Partition explainer.
-            This is eventually passed to cv2.blur as the kernel. Defaults to (128, 128). Good for 224x224 images.
-        :param num_mp_processes: Number of separate processes to use for multiprocessing. If <= 1, no multiprocessing is used.
-        :return:
+            This is eventually passed to cv2.blur as the kernel.
+            Defaults to (128, 128) - this is suitable for 224x224 images.
+        :param num_mp_processes: Number of separate processes to use for multiprocessing.
+            If <= 1, no multiprocessing is used. ⚠️ This is not yet working and provides no noticeable speedup.
         """
 
         super().explain(x, max_evals=max_evals, shap_batch_size=shap_batch_size,
@@ -60,6 +55,13 @@ class PartitionSHAP(Explainer):
         blur_masker = shap.maskers.Image(blur_str, np01_x[0].shape)
 
         if num_mp_processes > 1:  # futurefix: this is not working yet?? it takes just as long as single threaded
+            if platform.system() != "Linux":
+                raise NotImplementedError("Multiprocessing is only supported on Linux. "
+                                          "Please use num_mp_processes=1 for now.")
+            else:
+                # use pip's 'multiprocess' instead of 'multiprocessing' to use dill to pickle
+                import multiprocess as mp
+
             # multiprocessing approach based on https://github.com/shap/shap/issues/77#issuecomment-2105595557
             per_process_bs = int(np.ceil(len(x) / num_mp_processes))  # calculate batch size per process
             if per_process_bs == 0:
@@ -97,7 +99,7 @@ class PartitionSHAP(Explainer):
         self.save_state()
 
 
-# functions are top level to enable pickling for multiprocess(ing)
+# these functions are defined at the top level outside the class to allow for pickling via multiprocess(ing)
 def explain_via_partition_shap(
         np01_x: np.ndarray, masker, max_evals, shap_batch_size,
         self_device, self_split_batch_size, self_model, top_logger_name
@@ -131,6 +133,7 @@ def explain_via_partition_shap(
 def predict_function(np_imgs: np.ndarray, device, max_batch_size, model):
     # helpers.plotting.show_image(np_imgs, is_01_normalised=True, padding_value=1, imgs_per_row=8)
     # plt.show()
+    # Immediately undo normalisation back to original expected by model
     model_input_imgs: torch.Tensor = einops.rearrange(
         torch.from_numpy(np_imgs * 2) - 1, "b h w c -> b c h w"
     ).to(device)

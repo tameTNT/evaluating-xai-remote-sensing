@@ -13,10 +13,10 @@ from xai import Explainer
 logger = helpers.log.main_logger
 
 
-class GradCAMBase(Explainer):
+class CAMBase(Explainer):
     def __init__(
             self,
-            cam_type: t.Union[t.Type[OriginalGradCAM], t.Type[OriginalKPCACAM]],
+            cam_type: t.Type[t.Union[OriginalGradCAM, OriginalKPCACAM]],
             *args,
             **kwargs
     ):
@@ -28,6 +28,10 @@ class GradCAMBase(Explainer):
             x: Float[torch.Tensor, "n_samples channels height width"],
             **kwargs,
     ):
+        """
+        Explains self.model's predictions for the given images, x, using a CAM-based method.
+        Requires that self.model.get_explanation_target_layers() is defined.
+        """
         super().explain(x)
 
         gradcam_explainer = self.cam_type(
@@ -37,7 +41,7 @@ class GradCAMBase(Explainer):
 
         outputs = []
         cam_batch_size = self.batch_size
-        if cam_batch_size == 0:  # if no batch size given, just pass the whole tensor
+        if cam_batch_size == 0:  # if no batch size given, just pass the whole Tensor without batching
             cam_batch_size = x.shape[0]
 
         for batch_input in helpers.utils.make_device_batches(x, cam_batch_size, self.device):
@@ -56,11 +60,11 @@ class GradCAMBase(Explainer):
         self.save_state()
 
 
-class GradCAM(GradCAMBase):
+class GradCAM(CAMBase):
     def __init__(self, *args, **kwargs):
         super().__init__(OriginalGradCAM, *args, **kwargs)
 
 
-class KPCACAM(GradCAMBase):
+class KPCACAM(CAMBase):
     def __init__(self, *args, **kwargs):
         super().__init__(OriginalKPCACAM, *args, **kwargs)
