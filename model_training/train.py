@@ -18,9 +18,10 @@ import helpers
 import models
 import wandb
 
+
 SUPPORTED_OPTIMISERS = t.Literal["SGD", "Adam", "AdamW"]
 
-# Create argument parser
+# ==== Parse command line arguments ====
 parser = argparse.ArgumentParser(description="Train a deep learning model on a remote sensing dataset.")
 
 script_meta_group = parser.add_argument_group("Meta",
@@ -221,7 +222,7 @@ lr_early_stop_threshold: float = args.lr_early_stop_threshold
 max_epochs: int = args.max_epochs
 
 
-# Actual script starts here
+# ==== Actual training script starts here ====
 logger = helpers.log.main_logger
 # noinspection PyUnresolvedReferences
 print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
@@ -229,7 +230,7 @@ logger.debug(f"Running script with args: {args}")
 
 
 # Adapted from https://stackoverflow.com/a/31464349/7253717
-# Allows for graceful shutdown of script
+# Allows for graceful shutdown of the script (hopefully)
 class GracefulKiller:
     please_kill = False
 
@@ -263,6 +264,7 @@ np_rng = np.random.default_rng(random_seed)
 _ = torch.manual_seed(random_seed)
 logger.debug(f'Random seed set to {random_seed}.')
 
+# ==== Loads model and training dataset ====
 checkpoints_path = helpers.env_var.get_project_root() / checkpoints_root_name
 checkpoints_path.mkdir(exist_ok=True)
 logger.debug(f'Checkpoints directory set to {checkpoints_path}.')
@@ -329,6 +331,7 @@ def get_opt_and_scheduler(opt_lr: float, reduction_steps: int = 4):
     return opt, sch
 
 
+# ==== Main train function called below ====
 # futuretodo: support full loading and resuming training from a previous saved state
 def train_model(
         train_lr: float,
@@ -391,7 +394,7 @@ def train_model(
                 self.id = id_
 
             def __bool__(self):
-                return False  # this is a fake run
+                return False  # this is a fake run so evaluates to False in if statements
 
         wandb_run = DummyRun(f"untracked_{int(time.time())}")
 
@@ -403,6 +406,7 @@ def train_model(
             training_acc_arr = np.zeros(0)
 
             logger.info(str(prog_bar1))
+            # == Main training loop ==
             with tqdm(total=len(training_dataloader), desc="Training",
                       unit="batch", ncols=110, leave=False) as prog_bar2:
                 for i, data in enumerate(training_dataloader):  # type: int, dict[str, torch.Tensor]
@@ -440,6 +444,7 @@ def train_model(
                         prog_bar2.set_postfix(train_loss=training_mean_loss, train_acc=training_mean_acc)
                         logger.debug(str(prog_bar2))
 
+                        # == Log metrics for this training step ==
                         if wandb_run:
                             wandb_run.log({
                                 "loss/train": training_mean_loss,
@@ -450,6 +455,7 @@ def train_model(
                         training_loss_arr = np.zeros(0)
                         training_acc_arr = np.zeros(0)
 
+            # == Post training step evaluation ==
             val_mean_loss, val_mean_acc = helpers.ml.validation_step(
                 model, loss_criterion, validation_iterator, len(validation_dataloader)
             )
@@ -463,7 +469,7 @@ def train_model(
             prog_bar1.update()
             prog_bar1.set_postfix(val_loss=val_mean_loss, val_acc=val_mean_acc, lr=current_lr)
 
-            # Save model to file as we go along (overwritten every epoch - just as a backup to resume training)
+            # Save the model to file as we go along (overwritten every epoch - just as a backup to resume training)
             model_save_path = weights_save_path / f"{wandb_run.id}_current.st"
             st.save_model(model, model_save_path)
             json.dump(
@@ -472,6 +478,7 @@ def train_model(
             )
             logger.debug(f"Saved current model and state at epoch {epoch} to {model_save_path}.")
 
+            # == Log metrics for this validation step (includes some incorrect samples) ==
             if wandb_run:
                 logger.info("Sampling incorrect predictions for logging to WandB...")
                 samples, samples_labels, sample_outputs = helpers.ml.sample_outputs(
@@ -542,6 +549,7 @@ def cuda_memory_dump(exception: Exception, is_frozen: bool):
     raise exception
 
 
+# Load and resume training from existing weights if specified.
 if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
     logger.info(f"Loading weights from {start_from}...")
     try:
@@ -550,6 +558,8 @@ if start_from.is_file() and start_from.suffix in (".st", ".safetensors"):
         loggable_error = str(error).replace("\n", " ")
         logger.warning(f"Could not load weights from {start_from} via safetensors.load_model: {loggable_error}")
 
+# ==== Primary training loops initiated here ====
+# == Optional fine-tuning step if using pretrained weights ==
 if use_pretrained and frozen_lr and frozen_max_epochs and frozen_lr_early_stop_threshold:
     logger.info("Training partially frozen pretrained model...")
     model.freeze_layers(1)  # freeze all but the last linear layer
@@ -572,6 +582,7 @@ elif frozen_lr or frozen_max_epochs or frozen_lr_early_stop_threshold:
     logger.warning("--frozen_lr, --frozen_max_epochs and/or --frozen_lr_early_stop_threshold were given but "
                    "--use_pretrained was not. Ignoring these arguments.")
 
+# == Train the full model ==
 logger.info("Training full (unfrozen) model...")
 model.unfreeze_all_layers()
 

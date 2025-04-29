@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-# from remote_plot import plt
 import matplotlib.pyplot as plt
 import torch
 from pytorch_grad_cam.utils.image import show_cam_on_image
@@ -17,7 +16,6 @@ from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 
-# plt.port = 36422
 
 # ==== Set up script arguments ====
 random_seed = 42
@@ -58,7 +56,7 @@ model_to_explain.load_weights(model_weights_path)
 model_to_explain.eval().to(torch_device)
 
 # ==== Select images from dataset to explain ====
-# temp_idxs = [481, 4179, 3534, 2369, 2338, 4636,  464, 3765, 1087,  508]
+# temp_idxs = [481, 4179, 3534, 2369, 2338, 4636, 464, 3765, 1087, 508]
 temp_idxs = [4179, 3534, 2338]
 # temp_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
@@ -68,9 +66,9 @@ plt.show()
 
 # ==== Generate explanation for selected images ====
 explainer = xai.get_explainer_object(
-    explainer_name, model=model_to_explain, extra_path=Path(dataset_name),
+    explainer_name, model=model_to_explain, extra_path=Path(dataset_name + "_temp"),
     # attempt_load=imgs_to_explain,
-    # batch_size=batch_size,
+    batch_size=batch_size,
 )
 
 explain_args = {}
@@ -89,7 +87,7 @@ plt.imshow(show_cam_on_image(
     explainer.explanation[0], use_rgb=True)
 )
 plt.show()
-# move channel to final dimension
+
 helpers.plotting.visualise_importance(imgs_to_explain, explainer.explanation,
                                       alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
 plt.suptitle("Explanations")
@@ -101,8 +99,7 @@ plt.suptitle("Ranked explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
-deletion_method = "blur"  # "shuffle" or "nn" works best here in most cases
-# Applying deletion method to sat img with large 'class regions' is hard
+deletion_method = "blur"
 
 # == Correctness ==
 correctness_metric = Correctness(explainer, batch_size=batch_size)

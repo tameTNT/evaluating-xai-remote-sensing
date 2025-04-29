@@ -4,6 +4,7 @@ import typing as t
 from pathlib import Path
 import json
 import functools
+import warnings
 
 import torch
 import numpy as np
@@ -112,6 +113,7 @@ def evaluate_sim_to_array(sim: Similarity) -> np.array:
 
 
 if __name__ == "__main__":
+    # ==== Parse command line arguments ====
     parser = argparse.ArgumentParser(
         description="Evaluate an xAI method on a selected deep learning model and dataset."
     )
@@ -311,16 +313,18 @@ if __name__ == "__main__":
     similarity_intersection_proportion: float = args.similarity_intersection_proportion
     min_samples_for_similarity: int = args.min_samples_for_similarity
 
+    # ==== Begin actual script execution using parsed args ====
     print(f"Logging to {logger.handlers[0].baseFilename}. See file for details.\n")
     logger.info(f"Successfully got script arguments: {args}.")
 
-    torch.manual_seed(random_seed)
+    torch.manual_seed(random_seed)  # set torch seed here before getting the dataset to ensure any splits are the same
 
     dataset, model_to_explain = get_data_and_model()
 
     similarity_intersection_m = int(similarity_intersection_proportion * model_to_explain.expected_input_dim ** 2)
     available_sim_metrics = t.get_args(evaluate_xai.SIMILARITY_METRICS)
 
+    # == Build the output results DataFrame and load any existing data if it exists ==
     results_df = pd.DataFrame(columns=[
         # ↓, low similarity
         *[f"correctness : randomised_model_similarity : {metric_name}" for metric_name in available_sim_metrics],
@@ -328,7 +332,7 @@ if __name__ == "__main__":
         "correctness : incremental_deletion_auc_ratio",
         # ↑, best is 1
         "output_completeness : deletion_check_conf_drop",
-        # ↓, best is 0
+        # ↑, best is 1
         "output_completeness : preservation_check_conf_drop",
         # ↑, high similarity
         *[f"continuity : perturbation_similarity : {metric_name}" for metric_name in available_sim_metrics],
@@ -360,10 +364,11 @@ if __name__ == "__main__":
                     warning_txt = (f"Parameter '{key}' has changed from "
                                    f"'{stored_parameters[key] if key in stored_parameters else '[not present]'}' "
                                    f"to '{value}'.")
-                    print("WARNING", warning_txt)
+                    warnings.warn(warning_txt)
                     logger.warning(warning_txt)
             logger.warning("Some parameters have changed since the last evaluation. Continuing regardless.")
 
+    # ==== Iterate over every class in the dataset ====
     classes = np.array([class_ for _, class_ in dataset.imgs])
     for c in tqdm(range(dataset.N_CLASSES), ncols=110, desc="xAI per class"):
         current_class_name = dataset.classes[c]
@@ -392,7 +397,7 @@ if __name__ == "__main__":
         explainers_for_c = generate_explanations(class_idxs_sampled, c)
         # Combine all the explainers for this class into one
         combined_exp = functools.reduce(lambda x, y: x | y, explainers_for_c)
-        # update extra path to ensure each combined explainer is saved per class
+        # update extra_path to ensure each combined explainer is saved on an overall per-class basis (not per-batch)
         combined_exp.extra_path = Path(dataset_name) / f"c{c:02}" / "combined"
 
         if visualise:
@@ -405,6 +410,7 @@ if __name__ == "__main__":
         # ==== Evaluate Metrics for Co12 Properties ====
         with tqdm(total=7, ncols=110, desc="Calculating metrics", leave=False) as metric_pbar:
             metric_kwargs = {"exp": combined_exp, "batch_size": batch_size}
+            # Array of -inf values to use for voided similarity metrics
             sim_inf_array = np.zeros((len(available_sim_metrics), combined_exp.input.shape[0])) - np.inf
 
             # == Evaluate Correctness ==
