@@ -1,0 +1,12 @@
+{
+    "shap_max_evals": 10000,
+    "output_completeness_proportion": 0.2,
+    "continuity_perturbation_degree": 0.15,
+    "compactness_threshold": 0.5,
+    "samples_per_class": 32,
+    "deletion_method": "shuffle",
+    "deletion_iterations": 15,
+    "num_random_trials": 5,
+    "similarity_intersection_proportion": 0.1,
+    "min_samples_for_similarity": 10
+}

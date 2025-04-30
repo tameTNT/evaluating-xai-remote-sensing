@@ -31,7 +31,7 @@ from evaluate_xai.contrastivity import Contrastivity
 from evaluate_xai.compactness import Compactness
 import helpers
 
-torch_device = helpers.utils.get_torch_device()
+torch_device = helpers.utils.get_torch_device(force_mps=True)
 logger = helpers.log.main_logger
 
 
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         "--h5_output_name",
         type=str,
         default="evaluation_output",
-        help="Name of the HDF5 file to store the evaluation results in. Defaults to 'evaluation_output.h5'.",
+        help="Name of the HDF5 file to store the evaluation results in. Defaults to 'evaluation_output'.",
     )
 
     options_group = parser.add_argument_group("Primary Options",
