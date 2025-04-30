@@ -314,15 +314,24 @@ class Co12Property:
             sub_exp: Explainer,
             alpha: float = .7,
             title: str = "Explanation on original/perturbed input",
+            ranked: bool = True,
     ):
         """
         Plot and compare the explanations of the Explainer objects self.exp and sub_exp.
         :param sub_exp: Explainer object to compare with self.exp.
         :param alpha: Transparency of the explanation over image in the plot.
         :param title: Title to use for the plot.
+        :param ranked: If True (default) compare ranked explanations.
         """
+
         double_input = torch.concatenate([self.exp.input, self.exp.input])
-        stacked_explanations = np.concatenate([self.exp.ranked_explanation, sub_exp.ranked_explanation])
+
+        if ranked:
+            exps = [self.exp.ranked_explanation, sub_exp.ranked_explanation]
+        else:
+            exps = [self.exp.explanation, sub_exp.explanation]
+        stacked_explanations = np.concatenate(exps)
+
         # noinspection PyUnboundLocalVariable
         helpers.plotting.visualise_importance(double_input, stacked_explanations, imgs_per_row=self.exp.input.shape[0],
                                               alpha=alpha, with_colorbar=False)

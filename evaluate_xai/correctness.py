@@ -100,7 +100,8 @@ class Correctness(Co12Property):
         if self.visualise:
             self.compare_sub_explainer(
                 exp_for_randomised_model,
-                title="Explanation of original/randomised model"
+                title="Explanation of original/randomised model",
+                ranked=False
             )
 
         return Similarity(self.exp, exp_for_randomised_model)
