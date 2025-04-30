@@ -1,3 +1,9 @@
+"""
+This is the main training script used to train all deep learning models
+described in our paper. It should be run from the command line from the project
+root directory as a module: e.g. `python -m model_training.train --help`
+"""
+
 import argparse
 import json
 import platform

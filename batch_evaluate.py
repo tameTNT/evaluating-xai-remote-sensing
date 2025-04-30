@@ -1,3 +1,10 @@
+"""
+This is the primary evaluation script used to generate all explanations and
+evaluate them via metrics for the Co-12 properties. This can take some time
+for larger datasets and larger models. It should be run from the command line
+directly via e.g. `python batch_evaluate.py --help`
+"""
+
 import argparse
 import platform
 import typing as t

@@ -1,3 +1,10 @@
+"""
+This is an example standalone script demonstrating the evaluation of explanations
+using the Co12Property framework implementation proposed by this paper.
+It should be run directly via e.g. `python standalone_evaluation.py` - variables
+are hardcoded since this is just a demonstration of the functionality and APIs.
+"""
+
 import json
 from pathlib import Path
 
@@ -17,10 +24,10 @@ from evaluate_xai.correctness import Correctness
 from evaluate_xai.output_completeness import OutputCompleteness
 
 
-# ==== Set up script arguments ====
+# ==== Set script arguments manually ====
 random_seed = 42
 dataset_name: dataset_processing.DATASET_NAMES = "EuroSATRGB"
-normalisation_type = "scaling"
+normalisation_type = "scaling"  # only needed for EuroSATRGB/MS
 use_resize = True
 batch_size = 32
 
