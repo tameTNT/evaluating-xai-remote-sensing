@@ -64,7 +64,7 @@ class Correctness(Co12Property):
             self,
             method: t.Literal["model_randomisation", "incremental_deletion"],
             **kwargs,
-    ) -> t.Union[Similarity, dict[str, Float[np.ndarray, "n_samples"]]]:
+    ) -> t.Union[Similarity, dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]]:
 
         super().evaluate(method, **kwargs)
 
@@ -112,7 +112,7 @@ class Correctness(Co12Property):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ) -> dict[str, Float[np.ndarray, "n_samples"]]:
+    ) -> dict[t.Literal["informed", "random"], Float[np.ndarray, "n_samples"]]:
         """
         Performs an incremental deletion check to investigate the effect of deleting
         pixels or regions on a model's predictions when informed by explanations compared to a randomised baseline.
@@ -133,10 +133,6 @@ class Correctness(Co12Property):
             process. The main keys are "informed" and "random", each containing
             area under curve (AUC) values for model confidence over deletion
             iterations for each sample considered.
-            Additional keys may be included if `self.full_data` is True,
-            such as "informed_full", "random_full" (complete confidence trends),
-            "informed_deleted_imgs", "random_deleted_imgs" (deleted images),
-            and "random_rankings" (random rankings used).
         """
         assert n_random_rankings > 0, "n_random_rankings must be greater than 0."
 
@@ -228,18 +224,17 @@ class Correctness(Co12Property):
             fig.tight_layout()
             plt.show()
 
-        return_dict = {
+        if self.store_full_data:  # this is a lot of images to store in memory potentially
+            self.full_data["exp_informed_class_confidence"] = exp_informed_class_confidence
+            self.full_data["random_class_confidence"] = random_class_confidence
+            self.full_data["imgs_with_deletions"] = imgs_with_deletions
+            self.full_data["imgs_with_random_deletions"] = imgs_with_random_deletions
+            self.full_data["random_rankings"] = random_rankings
+
+        return {
             "informed": exp_informed_area_under_curve_per_img,
             "random": random_area_under_curve_per_img
         }
-        if self.full_data:
-            return_dict["informed_full"] = exp_informed_class_confidence
-            return_dict["random_full"] = random_class_confidence
-            return_dict["informed_deleted_imgs"] = imgs_with_deletions
-            return_dict["random_deleted_imgs"] = imgs_with_random_deletions
-            return_dict["random_rankings"] = random_rankings
-
-        return return_dict
 
     def incrementally_delete_from_input(
             self,

@@ -40,14 +40,7 @@ class OutputCompleteness(Co12Property):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ) -> t.Union[
-            Float[np.ndarray, "n_samples"],
-            tuple[
-                Float[np.ndarray, "n_samples"],
-                tuple[Float[np.ndarray, "n_samples channels height width"],
-                      Float[np.ndarray, "n_samples channels height width"]]
-            ]
-    ]:
+    ) -> Float[np.ndarray, "n_samples"]:
         """
         Calculate the deletion check metric, computing the drop in model
         confidence when evaluated on an image with the top, e.g. 10%, of pixels
@@ -62,10 +55,9 @@ class OutputCompleteness(Co12Property):
         :param n_random_rankings: Size of ensemble, `T`, of random rankings to use as a baseline. Defaults to 5.
         :param random_seed: Random seed used for generating randomised explanation for random deletion. Defaults to 42.
         :return: An array of size n_samples containing the deletion check metric for each sample.
-            If `self.full_data` is True, it also returns the images themselves with informed and random deletions.
         """
 
-        (informed_del_conf, random_del_conf), imgs_tuple = self._perform_check(
+        informed_del_conf, random_del_conf = self._perform_check(
             self.exp.ranked_explanation, deletion_method, proportion, n_random_rankings, random_seed,
         )
 
@@ -80,10 +72,7 @@ class OutputCompleteness(Co12Property):
         # so best value is 1. Worst is -1 (the random deletion was much more effective than the informed one)
         result = random_del_conf - informed_del_conf
 
-        if self.full_data:
-            return result, imgs_tuple
-        else:
-            return result
+        return result
 
     def _preservation_check(
             self,
@@ -92,14 +81,7 @@ class OutputCompleteness(Co12Property):
             n_random_rankings: int = 5,
             random_seed: int = 42,
             **kwargs,
-    ) -> t.Union[
-        Float[np.ndarray, "n_samples"],
-        tuple[
-            Float[np.ndarray, "n_samples"],
-            tuple[Float[np.ndarray, "n_samples channels height width"],
-                  Float[np.ndarray, "n_samples channels height width"]]
-        ]
-    ]:
+    ) -> Float[np.ndarray, "n_samples"]:
         """
         Calculate the preservation check metric, computing the drop in model
         confidence when evaluated on an image with only the top, e.g. 10%, of pixels
@@ -115,14 +97,13 @@ class OutputCompleteness(Co12Property):
         :param n_random_rankings: Size of ensemble, `T`, of random rankings to use as a baseline. Defaults to 5.
         :param random_seed: Random seed used for generating randomised explanation for random deletion. Defaults to 42.
         :return: An array of size n_samples containing the preservation check metric for each sample.
-            If `self.full_data` is True, it also returns the images themselves with informed and random deletions.
         """
 
         # Since 0 is the 'most important' pixel, in ranked_explanation,
         # we can invert it by simply by ranking it again (so 0 becomes least important)
         inverted_importance_ranking = helpers.utils.rank_pixel_importance(self.exp.ranked_explanation)
 
-        (informed_pres_conf, random_pres_conf), imgs_tuple = self._perform_check(
+        informed_pres_conf, random_pres_conf = self._perform_check(
             inverted_importance_ranking, deletion_method, 1-proportion, n_random_rankings, random_seed,
         )  # we thereby delete the bottom (1-proportion) of pixels
 
@@ -133,11 +114,7 @@ class OutputCompleteness(Co12Property):
         # After inverting (for alignment with deletion check): the best score is 1, and the worst is -1.
         result = informed_pres_conf - random_pres_conf
 
-        if self.full_data:
-            # fixme: clean up full_data return process
-            return result, imgs_tuple
-        else:
-            return result
+        return result
 
     def _perform_check(
             self,
@@ -146,17 +123,11 @@ class OutputCompleteness(Co12Property):
             proportion: float,
             n_random_rankings: int,
             random_seed: int,
-    ) -> tuple[
-        tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]],
-        tuple[
-            Float[np.ndarray, "n_samples channels height width"],
-            Float[np.ndarray, "n_samples channels height width"],
-        ]
-    ]:
+    ) -> tuple[Float[np.ndarray, "n_samples"], Float[np.ndarray, "n_samples"]]:
         informed_deletions, random_deletions = self.delete_from_input(
             importance_ranking, deletion_method, proportion, n_random_rankings, random_seed,
         )
-        return self._predict_on_deleted(informed_deletions, random_deletions), (informed_deletions, random_deletions)
+        return self._predict_on_deleted(informed_deletions, random_deletions)
 
     def delete_from_input(
             self,
@@ -199,6 +170,10 @@ class OutputCompleteness(Co12Property):
             plt.suptitle(f"{n_random_rankings} random deletion/preservation rounds (proportion={proportion})")
             plt.show()
 
+        if self.store_full_data:
+            self.full_data["informed_deletions"] = imgs_with_deletions
+            self.full_data["random_deletions"] = imgs_with_random_deletions
+
         return imgs_with_deletions, imgs_with_random_deletions
 
     def _predict_on_deleted(
@@ -220,21 +195,20 @@ class OutputCompleteness(Co12Property):
         # Get the predictions for the original images.
         # Let's see how the perturbations can decrease/preserve it!
         original_outputs = all_outputs[:self.n_samples]
-        original_prediction = original_outputs.argmax(axis=1)
-        # todo: return this for full_data rather than just printing
-        print(f"Original predictions (confidence): "
-              f"{original_prediction} ({original_outputs[:, original_prediction]})") if self.visualise else None
+        original_predictions = original_outputs.argmax(axis=1)
 
         informed_outputs = all_outputs[self.n_samples:2*self.n_samples]
         # take average across n_random_rankings
         random_outputs = all_outputs[2*self.n_samples:].reshape(n_random_rankings, self.n_samples, -1).mean(axis=0)
 
-        informed_confidences = informed_outputs[np.arange(self.n_samples), original_prediction]
-        print(f"Confidence after informed: "
-              f"{informed_confidences}") if self.visualise else None
+        informed_confidences = informed_outputs[np.arange(self.n_samples), original_predictions]
 
-        random_confidences = random_outputs[np.arange(self.n_samples), original_prediction]
-        print(f"Confidence after random: "
-              f"{random_confidences}") if self.visualise else None
+        random_confidences = random_outputs[np.arange(self.n_samples), original_predictions]
+
+        if self.store_full_data:
+            self.full_data["original_predictions"] = original_predictions
+            self.full_data["original_pred_confidence"] = original_outputs[:, original_predictions]
+            self.full_data["informed_confidences"] = informed_confidences
+            self.full_data["random_confidences"] = random_confidences
 
         return informed_confidences, random_confidences

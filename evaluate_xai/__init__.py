@@ -210,32 +210,34 @@ class Co12Property:
         :param exp: The explainer object with an explanation for a set of input images to evaluate.
         :param batch_size: The batch size to use when passing images to exp.model
         """
+
         self.exp = exp
         self.batch_size = batch_size
 
         self.visualise = False
-        self.full_data = False
+        self.store_full_data = False
+        self.full_data = dict()
 
         self.n_samples = self.exp.input.shape[0]
 
     def __repr__(self):
         return f"{self.__class__.__name__}(exp={self.exp})"
 
-    def evaluate(self, method: str, visualise: bool = False, full_data: bool = False, **kwargs):
+    def evaluate(self, method: str, visualise: bool = False, store_full_data: bool = False, **kwargs):
         """
         Evaluates the Co12 property of the explainer object via a given method/metric.
         :param method: Method/Metric to use for evaluation.
         :param visualise: Whether to show appropriate visualisations for the metric if applicable.
-        :param full_data: Whether to return full data (e.g. perturbed images) for the metric
-            or just the metric result itself.
+        :param store_full_data: Whether to store additional data in self.full_data for the metric.
+            Can use a lot of memory if this extra data are images so defaults to False.
         :param kwargs: Additional keyword arguments to pass to the particular method call.
             Must also be included in all overriding methods to match call signature.
         """
         logger.info(f"Evaluating {self.__class__.__name__} (via {method} with kwargs={kwargs}) "
                     f"of {self.exp.__class__.__name__} "
-                    f"for {self.exp.model.__class__.__name__}.")
+                    f"for {self.exp.model.__class__.__name__} (with store_full_data={store_full_data}).")
         self.visualise = visualise
-        self.full_data = full_data
+        self.store_full_data = store_full_data
 
     def run_model(
             self,

@@ -140,10 +140,16 @@ print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 # Preservation Check
 drop_in_confidence = output_completeness_metric.evaluate(
     method="preservation_check", deletion_method=deletion_method, proportion=proportion,
-    n_random_rankings=5, random_seed=42, visualise=True,
+    n_random_rankings=5, random_seed=42, visualise=True, store_full_data=True
 )
 print("Output completeness evaluation via preservation check (↑)", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
+
+print(f"== Extra ==\nOriginal predictions (confidence): "
+      f"{output_completeness_metric.full_data['original_predictions']} "
+      f"({output_completeness_metric.full_data['original_pred_confidence']})")
+print(f"Confidence after informed: {output_completeness_metric.full_data['informed_confidences']}")
+print(f"Confidence after random: {output_completeness_metric.full_data['random_confidences']}")
 
 # == Continuity ==
 continuity_metric = Continuity(explainer, batch_size=batch_size)
