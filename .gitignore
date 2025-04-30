@@ -4,6 +4,7 @@
 **/*__pycache__/
 *pycharm-support-libs/
 /.ipynb_checkpoints/
+**/.DS_store
 
 # Logging and temporary files
 /.logs/
