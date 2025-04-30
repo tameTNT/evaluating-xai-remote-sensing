@@ -7,6 +7,7 @@ are hardcoded since this is just a demonstration of the functionality and APIs.
 
 import json
 from pathlib import Path
+import pprint
 
 import matplotlib.pyplot as plt
 import torch
@@ -31,10 +32,10 @@ normalisation_type = "scaling"  # only needed for EuroSATRGB/MS
 use_resize = True
 batch_size = 32
 
-model_name: models.MODEL_NAMES = "ConvNeXtSmall"
+model_name: models.MODEL_NAMES = "ResNet50"
 num_workers = 4
 
-explainer_name: xai.EXPLAINER_NAMES = "KPCACAM"
+explainer_name: xai.EXPLAINER_NAMES = "PartitionSHAP"
 shap_max_evals = 500
 
 logger = helpers.log.main_logger
@@ -63,8 +64,8 @@ model_to_explain.load_weights(model_weights_path)
 model_to_explain.eval().to(torch_device)
 
 # ==== Select images from dataset to explain ====
-# temp_idxs = [481, 4179, 3534, 2369, 2338, 4636, 464, 3765, 1087, 508]
-temp_idxs = [4179, 3534, 2338]
+temp_idxs = [481, 4179, 3534, 2369, 2338, 4636, 508, 3765]  # , 464, 1087]
+# temp_idxs = [4179, 3534, 2338]
 # temp_idxs = torch.randint(0, len(dataset), (10,))
 imgs_to_explain = torch.stack([dataset[i]["image"] for i in temp_idxs])
 helpers.plotting.show_image(imgs_to_explain, final_fig_size=(8., 4.))  # , normalisation_type="channel")
@@ -73,8 +74,8 @@ plt.show()
 
 # ==== Generate explanation for selected images ====
 explainer = xai.get_explainer_object(
-    explainer_name, model=model_to_explain, extra_path=Path(dataset_name + "_temp"),
-    # attempt_load=imgs_to_explain,
+    explainer_name, model=model_to_explain, extra_path=Path(dataset_name + "_demo"),
+    attempt_load=imgs_to_explain,
     batch_size=batch_size,
 )
 
@@ -89,24 +90,25 @@ if not explainer.has_explanation_for(imgs_to_explain):
 else:
     logger.info(f"Existing explanation found for imgs_to_explain.")
 
-plt.imshow(show_cam_on_image(
-    (imgs_to_explain[0, [2, 1, 0]].numpy()*2 + 1).clip(0, 1).transpose(1, 2, 0),
-    explainer.explanation[0], use_rgb=True)
-)
-plt.show()
+if explainer_name != "PartitionSHAP":
+    plt.imshow(show_cam_on_image(
+        (imgs_to_explain[0, [2, 1, 0]].numpy()*2 + 1).clip(0, 1).transpose(1, 2, 0),
+        explainer.explanation[0], use_rgb=True)
+    )
+    plt.show()
 
 helpers.plotting.visualise_importance(imgs_to_explain, explainer.explanation,
-                                      alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
-plt.suptitle("Explanations")
+                                      alpha=.7, with_colorbar=True, band_idxs=dataset.rgb_indices)
+plt.title("Explanations")
 plt.show()
 
 helpers.plotting.visualise_importance(imgs_to_explain, explainer.ranked_explanation,
-                                      alpha=.2, with_colorbar=True, band_idxs=dataset.rgb_indices)
-plt.suptitle("Ranked explanations being evaluated")
+                                      alpha=.7, with_colorbar=True, band_idxs=dataset.rgb_indices)
+plt.title("Ranked explanations being evaluated")
 plt.show()
 
 # ==== Evaluate explanation using Co12 Metrics ====
-deletion_method = "blur"
+deletion_method = "shuffle"
 
 # == Correctness ==
 correctness_metric = Correctness(explainer, batch_size=batch_size)
@@ -114,7 +116,8 @@ correctness_metric = Correctness(explainer, batch_size=batch_size)
 # Model Randomisation
 corr_similarity: Similarity = correctness_metric.evaluate(method="model_randomisation", visualise=True)
 corr_sim_metrics = corr_similarity(l2_normalise=True, intersection_m=5000, show_scatter=False)
-print("Correctness evaluation via model randomisation (↓)", corr_sim_metrics)
+print("Correctness evaluation via model randomisation (↓)")
+pprint.pprint(corr_sim_metrics)
 
 # Incremental Deletion
 nn_aucs = correctness_metric.evaluate(
@@ -146,23 +149,23 @@ print("Output completeness evaluation via preservation check (↑)", end=" ")
 print(", ".join([f"{d:.3f}" for d in drop_in_confidence]))
 
 print(f"== Extra ==\nOriginal predictions (confidence): "
-      f"{output_completeness_metric.full_data['original_predictions']} "
-      f"({output_completeness_metric.full_data['original_pred_confidence']})")
+      f"{output_completeness_metric.full_data['original_predictions']}")
+#     f" ({output_completeness_metric.full_data['original_pred_confidence']})")
 print(f"Confidence after informed: {output_completeness_metric.full_data['informed_confidences']}")
 print(f"Confidence after random: {output_completeness_metric.full_data['random_confidences']}")
 
 # == Continuity ==
-continuity_metric = Continuity(explainer, batch_size=batch_size)
-
-# Model Randomisation
-similarity = continuity_metric.evaluate(
-    method="perturbation", visualise=True,
-    degree=0.15, random_seed=42,
-)
-print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at "
-      f"indices: {similarity.hidden_idxs}")
-cont_sim_metrics = similarity(l2_normalise=True, intersection_m=5000)
-print("Continuity evaluation via image perturbation (↑)", cont_sim_metrics)
+# continuity_metric = Continuity(explainer, batch_size=batch_size)
+#
+# # Model Randomisation
+# similarity = continuity_metric.evaluate(
+#     method="perturbation", visualise=True,
+#     degree=0.15, random_seed=42,
+# )
+# print(f"{len(similarity.hidden_idxs)} predictions changed after perturbation at "
+#       f"indices: {similarity.hidden_idxs}")
+# cont_sim_metrics = similarity(l2_normalise=True, intersection_m=5000)
+# print("Continuity evaluation via image perturbation (↑)", cont_sim_metrics)
 
 # == Contrastivity ==
 contrastivity_metric = Contrastivity(explainer, batch_size=batch_size)
@@ -171,8 +174,9 @@ contrastivity_metric = Contrastivity(explainer, batch_size=batch_size)
 similarity = contrastivity_metric.evaluate(
     method="target_sensitivity", visualise=True,
 )
-contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_m=5000, show_scatter=True)
-print("Contrastivity evaluation via adversarial attack (↓)", contrastivity_sim_metrics)
+contrastivity_sim_metrics = similarity(l2_normalise=True, intersection_m=5000, show_scatter=False)
+print("Contrastivity evaluation via adversarial attack (↓)")
+pprint.pprint(contrastivity_sim_metrics)
 
 # == Compactness ==
 compactness_metric = Compactness(explainer, batch_size=batch_size)

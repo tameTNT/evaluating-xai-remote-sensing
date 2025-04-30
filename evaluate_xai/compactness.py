@@ -51,13 +51,15 @@ class Compactness(Co12Property):
                            f"Dropping these explanations.")
             norm_exp = norm_exp[~nan_mask]
 
-        if self.visualise:
-            # add channel dimension for show_image's expected format: (n, c, h, w)
-            helpers.plotting.show_image(np.expand_dims(norm_exp, 1), is_01_normalised=True, cmap="viridis")
-            plt.title("Normalised explanations")
-            plt.show()
-
         # nparray.size returns the number of elements so this divides by the number of pixels per image
         proportion_under_threshold = np.sum(norm_exp <= threshold, axis=(1, 2)) / norm_exp[0].size
+
+        if self.visualise:
+            above_threshold_only = norm_exp.copy()
+            above_threshold_only[above_threshold_only <= threshold] = 0
+            # add channel dimension for show_image's expected format: (n, c, h, w)
+            helpers.plotting.show_image(np.expand_dims(above_threshold_only, 1), is_01_normalised=True, cmap="viridis")
+            plt.title(f"Normalised explanation above threshold, τ={threshold}")
+            plt.show()
 
         return proportion_under_threshold

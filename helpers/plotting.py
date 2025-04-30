@@ -315,7 +315,7 @@ def visualise_importance(
             ScalarMappable(cmap=colourmap),
             ticks=ticks, boundaries=boundaries, values=values,
 
-            ax=plt.gca(),
+            ax=plt.gca(),  # todo: this currently pulls the figure down, leaving whitespace at top of figure
             label=f"Importance{' Rank (0 = most important)' if cmap == 'plasma_r' else ''}",
             location="bottom",
             pad=0.02,   # move closer distance to image
