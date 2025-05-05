@@ -6,7 +6,6 @@ from matplotlib.colors import Normalize
 
 import einops
 import numpy as np
-import pandas as pd
 import torch
 from torchvision.utils import make_grid
 from jaxtyping import Float, Int
