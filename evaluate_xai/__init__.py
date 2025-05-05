@@ -94,7 +94,7 @@ class Similarity:
 
             if x1_range != 0:
                 x1 = (x1 - x1.min()) / x1_range
-            elif x1.max() > 0:  # Array is all same constant. If all 0s leave.
+            elif x1.max() > 0:  # Array is all the same constant. If all 0s leave.
                 # If greater than 0, set to 1
                 x1 = np.ones(x1.shape)
             else:
@@ -336,4 +336,4 @@ class Co12Property:
         helpers.plotting.visualise_importance(double_input, stacked_explanations, imgs_per_row=self.exp.input.shape[0],
                                               alpha=alpha, with_colorbar=False)
         plt.title(title)
-        plt.show()
+        plt.show()  # todo: change all instances of plt.show() in to instead return a figure object

@@ -140,7 +140,7 @@ class Explainer:
     ):
         """
         Explains the model's predictions for the given images using the explainer.
-        Saves the result to disk via self.save_state() and sets self.explanation.
+        Sets self.explanation and saves the new state via self.save_state().
         Does not return anything.
 
         :param x: Input to explain. This will be moved to self.device.
