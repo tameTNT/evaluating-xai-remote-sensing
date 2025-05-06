@@ -108,13 +108,17 @@ helpers.plotting.visualise_importance(imgs_to_explain, explainer.ranked_explanat
 plt.title("Ranked Explanations")
 plt.show()
 
-# ==== Metric evaluation ====
+# ==== Property Metric evaluation ====
 # == Correctness ==
-correctness_metric = Correctness(explainer, batch_size=batch_size)
+correctness = Correctness(explainer, batch_size=batch_size)
 
 # Model Randomisation
-random_model_sim: Similarity = correctness_metric.evaluate(method="model_randomisation", visualise=True)
-corr_sim_metrics = random_model_sim(l2_normalise=True, intersection_m=sim_intersection_m, show_scatter=False)
+random_model_sim: Similarity = correctness.evaluate(
+    method="model_randomisation", visualise=True
+)
+corr_sim_metrics = random_model_sim(
+    l2_normalise=True, intersection_m=sim_intersection_m, show_scatter=False
+)
 print("\nCorrectness evaluation via model randomisation (↓)")
 pprint(corr_sim_metrics)
 
@@ -122,22 +126,11 @@ pprint(corr_sim_metrics)
 if use_mps_as_possible:
     explainer.model = explainer.model.to(helpers.utils.get_torch_device(force_mps=True))
 
-# Incremental Deletion (AUC_ratio)
-nn_aucs = correctness_metric.evaluate(
-    method="incremental_deletion",
-    deletion_method=deletion_method,
-    iterations=15, n_random_rankings=random_ensemble_size,
-    random_seed=42, visualise=True,
-)
-ratio = nn_aucs["informed"]/nn_aucs["random"]
-print("\nCorrectness evaluation via incremental deletion (↓)")
-print(ratio)
-
 # == Output Completeness ==
-output_completeness_metric = OutputCompleteness(explainer, batch_size=batch_size)
+output_completeness = OutputCompleteness(explainer, batch_size=batch_size)
 
 # Deletion Check
-deletion_scores = output_completeness_metric.evaluate(
+deletion_scores = output_completeness.evaluate(
     method="deletion_check", deletion_method=deletion_method, proportion=oc_proportion,
     n_random_rankings=random_ensemble_size, random_seed=42, visualise=True,
 )
@@ -145,26 +138,20 @@ print("\nOutput completeness evaluation via deletion check (↑)")
 print(deletion_scores)
 
 # Preservation Check
-preservation_scores = output_completeness_metric.evaluate(
+preservation_scores = output_completeness.evaluate(
     method="preservation_check", deletion_method=deletion_method, proportion=oc_proportion,
     n_random_rankings=random_ensemble_size, random_seed=42, visualise=True, store_full_data=False
 )
 print("\nOutput completeness evaluation via preservation check (↑)")
 print(preservation_scores)
 
-# print(f"== Extra ==\nOriginal predictions (confidence): "
-#       f"{output_completeness_metric.full_data['original_predictions']}")
-# #     f" ({output_completeness_metric.full_data['original_pred_confidence']})")
-# print(f"Confidence after informed: {output_completeness_metric.full_data['informed_confidences']}")
-# print(f"Confidence after random: {output_completeness_metric.full_data['random_confidences']}")
-
 # Contrastivity again needs the model on cuda or cpu
 if use_mps_as_possible:
     explainer.model = explainer.model.to(torch_device)
 
 # == Contrastivity ==
-contrastivity_metric = Contrastivity(explainer, batch_size=batch_size)
-target_sensitivity_sim: Similarity = contrastivity_metric.evaluate(
+contrastivity = Contrastivity(explainer, batch_size=batch_size)
+target_sensitivity_sim: Similarity = contrastivity.evaluate(
     method="target_sensitivity", visualise=True,
 )
 contrastivity_sim_metrics = target_sensitivity_sim(
@@ -175,8 +162,8 @@ pprint(contrastivity_sim_metrics)
 print("NB: skipped indices (no adversarial example) are", target_sensitivity_sim.hidden_idxs)
 
 # == Compactness ==
-compactness_metric = Compactness(explainer, batch_size=batch_size)
-compactness_scores = compactness_metric.evaluate(
+compactness = Compactness(explainer, batch_size=batch_size)
+compactness_scores = compactness.evaluate(
     method="threshold", threshold=0.5, visualise=True,
 )
 print("\nCompactness evaluation via threshold (↑)")

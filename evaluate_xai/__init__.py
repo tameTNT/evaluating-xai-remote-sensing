@@ -226,7 +226,7 @@ class Co12Property:
     def evaluate(self, method: str, visualise: bool = False, store_full_data: bool = False, **kwargs):
         """
         Evaluates the Co12 property of the explainer object via a given method/metric.
-        :param method: Method/Metric to use for evaluation.
+        :param method: Method/Metric to use for evaluation. todo: rename to metric fully
         :param visualise: Whether to show appropriate visualisations for the metric if applicable.
         :param store_full_data: Whether to store additional data in self.full_data for the metric.
             Can use a lot of memory if this extra data are images so defaults to False.
