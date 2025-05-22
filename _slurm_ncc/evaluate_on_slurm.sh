@@ -32,6 +32,6 @@ printf '%s\n' "#!/bin/bash" \
        "conda activate sat_project" \
        "cd ~/l3_project" \
        "export DATASET_ROOT=~/datasets" \
-       "$(printf '%s ' "python batch_evaluate.py --dataset_name $dataset_name --model_name $model_name --explainer_name $explainer_name $args ${@:4}")" > ~/l3_project/slurm_ncc/evaluate_temp.batch
+       "$(printf '%s ' "python batch_evaluate.py --dataset_name $dataset_name --model_name $model_name --explainer_name $explainer_name $args ${@:4}")" > ~/l3_project/_slurm_ncc/evaluate_temp.batch
 
-sbatch ~/l3_project/slurm_ncc/evaluate_temp.batch
+sbatch ~/l3_project/_slurm_ncc/evaluate_temp.batch

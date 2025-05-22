@@ -19,6 +19,6 @@ printf '%s\n' "#!/bin/bash" \
        "conda activate sat_project" \
        "cd ~/l3_project" \
        "export DATASET_ROOT=~/datasets" \
-       "$(printf '%s ' "bash run_train.sh $2 --wandb_run_name $1 ${@:3}")" > ~/l3_project/slurm_ncc/train_model_temp.batch
+       "$(printf '%s ' "bash run_train.sh $2 --wandb_run_name $1 ${@:3}")" > ~/l3_project/_slurm_ncc/train_model_temp.batch
 
-sbatch ~/l3_project/slurm_ncc/train_model_temp.batch
+sbatch ~/l3_project/_slurm_ncc/train_model_temp.batch
