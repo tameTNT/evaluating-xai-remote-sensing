@@ -1,6 +1,9 @@
 # Evaluating Explanation Methods for the Classification of Land Use and Land Cover
 
-_This README was last updated 30/04/2025._
+_**Project conducted by Luca Huelle as part of the degree BSc Natural Sciences at Durham University.
+Supervised by Paolo Remagnino of the Department of Computer Sciences, Durham University.**_
+
+_(This README was last updated 12/07/2025.)_
 
 This repository contains the full source code and configuration files for the paper _"Evaluating Explanation Methods for the Classification of Land Use and Land Cover"_.
 
