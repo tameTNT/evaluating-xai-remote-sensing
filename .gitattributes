@@ -1,2 +1,2 @@
-# Exclude Jupyter Notebooks from language stats as these have hugely inflated line counts
-*.ipynb linguist-documentation
+# Exclude old experimentation Jupyter Notebooks from language stats as these have hugely inflated line counts
+notebooks/old_experiments/* linguist-documentation
