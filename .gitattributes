@@ -1,0 +1,2 @@
+# Exclude Jupyter Notebooks from language stats as these have hugely inflated line counts
+*.ipynb linguist-documentation
